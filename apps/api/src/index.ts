@@ -1,8 +1,9 @@
 import express from "express";
 import { RegisterSchema } from "@repo/validation";
+import { config } from "./config";
 
 const app = express();
-const port = process.env.PORT || 3001;
+const port = config.PORT;
 
 app.use(express.json());
 
