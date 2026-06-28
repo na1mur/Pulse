@@ -1,6 +1,7 @@
 {
   "$schema": "https://turborepo.dev/schema.json",
   "ui": "tui",
+  "globalEnv": ["PORT", "MONGODB_URI", "JWT_SECRET", "JWT_REFRESH_SECRET", "NODE_ENV"],
   "tasks": {
     "build": {
       "dependsOn": ["^build"],
