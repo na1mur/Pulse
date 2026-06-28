@@ -5,8 +5,9 @@
   "type": "module",
   "main": "dist-electron/main.js",
   "scripts": {
+    "predev": "node -e \"require('fs').mkdirSync('dist-electron', {recursive: true}); require('fs').writeFileSync('dist-electron/package.json', JSON.stringify({type: 'commonjs'}))\"",
     "dev": "concurrently \"vite\" \"tsc -p tsconfig.electron.json --watch\" \"wait-on http://localhost:5173 && electron .\"",
-    "build:electron": "tsc -p tsconfig.electron.json",
+    "build:electron": "tsc -p tsconfig.electron.json && node -e \"require('fs').writeFileSync('dist-electron/package.json', JSON.stringify({type: 'commonjs'}))\"",
     "build": "tsc -b && vite build && pnpm build:electron",
     "lint": "oxlint",
     "preview": "vite preview"
