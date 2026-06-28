@@ -28,6 +28,32 @@ function getLocalDateString(date: Date, timeZone: string): string {
   }
 }
 
+// Get the UTC Date for local 00:00:00 and 23:59:59.999 of a given YYYY-MM-DD date key in a specific timezone
+function getLocalDayRange(
+  dateKey: string,
+  timeZone: string,
+): { start: Date; end: Date } {
+  try {
+    const utcDate = new Date(`${dateKey}T00:00:00Z`);
+    const fmt = new Intl.DateTimeFormat("en-US", {
+      timeZone: timeZone || "UTC",
+      hour: "numeric",
+      hour12: false,
+    });
+    const targetHour = parseInt(fmt.format(utcDate), 10);
+    const offsetHours = targetHour === 24 ? 0 : targetHour;
+    const start = new Date(utcDate.getTime() - offsetHours * 60 * 60 * 1000);
+    const end = new Date(start.getTime() + 24 * 60 * 60 * 1000 - 1);
+    return { start, end };
+  } catch (error) {
+    console.error("Error calculating day range:", dateKey, timeZone, error);
+    // Fallback to UTC day boundaries
+    const start = new Date(`${dateKey}T00:00:00.000Z`);
+    const end = new Date(`${dateKey}T23:59:59.999Z`);
+    return { start, end };
+  }
+}
+
 const createSessionHandler: RequestHandler = async (req, res) => {
   try {
     const result = SessionSchema.safeParse(req.body);
@@ -86,6 +112,44 @@ const createSessionHandler: RequestHandler = async (req, res) => {
   }
 };
 
+const getSessionsHandler: RequestHandler = async (req, res) => {
+  try {
+    const userId = req.userId!;
+    const sessions = await WorkSession.find({ userId }).sort({ startTime: -1 });
+    res.json(sessions);
+  } catch (error) {
+    console.error("Get sessions error:", error);
+    res.status(500).json({ error: "Internal server error" });
+  }
+};
+
+const getSessionsTodayHandler: RequestHandler = async (req, res) => {
+  try {
+    const userId = req.userId!;
+    const user = await User.findById(userId);
+    if (!user) {
+      res.status(404).json({ error: "User not found" });
+      return;
+    }
+
+    // Calculate local date range for "today" in user's timezone
+    const dateKey = getLocalDateString(new Date(), user.timezone);
+    const { start, end } = getLocalDayRange(dateKey, user.timezone);
+
+    const sessions = await WorkSession.find({
+      userId,
+      startTime: { $gte: start, $lte: end },
+    }).sort({ startTime: -1 });
+
+    res.json(sessions);
+  } catch (error) {
+    console.error("Get today's sessions error:", error);
+    res.status(500).json({ error: "Internal server error" });
+  }
+};
+
 router.post("/", requireAuth, createSessionHandler);
+router.get("/", requireAuth, getSessionsHandler);
+router.get("/today", requireAuth, getSessionsTodayHandler);
 
 export default router;
