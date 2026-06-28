@@ -30,6 +30,9 @@ importers:
         specifier: ^4.21.2
         version: 4.22.2
     devDependencies:
+      '@repo/typescript-config':
+        specifier: workspace:*
+        version: link:../../packages/typescript-config
       '@types/express':
         specifier: ^5.0.0
         version: 5.0.6
@@ -97,10 +100,10 @@ importers:
         version: 19.2.7(react@19.2.7)
     devDependencies:
       '@repo/eslint-config':
-        specifier: '*'
+        specifier: workspace:*
         version: link:../eslint-config
       '@repo/typescript-config':
-        specifier: '*'
+        specifier: workspace:*
         version: link:../typescript-config
       '@types/node':
         specifier: ^22.15.3
