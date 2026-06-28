@@ -1,6 +1,7 @@
 import express from "express";
 import { RegisterSchema } from "@repo/validation";
 import { config } from "./config";
+import { connectDatabase } from "./db";
 
 const app = express();
 const port = config.PORT;
@@ -20,6 +21,13 @@ app.post("/register", (req, res) => {
   res.json({ message: "Registration mock successful", data: result.data });
 });
 
-app.listen(port, () => {
-  console.log(`API server listening on port ${port}`);
+async function startServer() {
+  await connectDatabase();
+  app.listen(port, () => {
+    console.log(`API server listening on port ${port}`);
+  });
+}
+
+startServer().catch((err) => {
+  console.error("Failed to start API server:", err);
 });
