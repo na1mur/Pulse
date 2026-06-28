@@ -1,9 +1,10 @@
 import { Router, Request, Response, RequestHandler } from "express";
-import { RegisterSchema } from "@repo/validation";
+import { RegisterSchema, LoginSchema } from "@repo/validation";
 import { User } from "../models/User";
 import { RefreshToken } from "../models/RefreshToken";
 import {
   hashPassword,
+  comparePassword,
   generateAccessToken,
   generateRefreshToken,
 } from "../utils/auth";
@@ -66,6 +67,60 @@ const registerHandler: RequestHandler = async (req, res) => {
   }
 };
 
+const loginHandler: RequestHandler = async (req, res) => {
+  try {
+    const result = LoginSchema.safeParse(req.body);
+    if (!result.success) {
+      res.status(400).json({ error: result.error.format() });
+      return;
+    }
+
+    const { email, password } = result.data;
+
+    // Find user
+    const user = await User.findOne({ email });
+    if (!user) {
+      res.status(401).json({ error: "Invalid email or password" });
+      return;
+    }
+
+    // Verify password
+    const isMatch = await comparePassword(password, user.passwordHash);
+    if (!isMatch) {
+      res.status(401).json({ error: "Invalid email or password" });
+      return;
+    }
+
+    // Generate tokens
+    const accessToken = generateAccessToken(user.id);
+    const refreshTokenString = generateRefreshToken(user.id);
+
+    // Save refresh token in database
+    const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000); // 7 days
+    const refreshTokenDoc = new RefreshToken({
+      token: refreshTokenString,
+      userId: user._id,
+      expiresAt,
+    });
+    await refreshTokenDoc.save();
+
+    res.json({
+      accessToken,
+      refreshToken: refreshTokenString,
+      user: {
+        id: user.id,
+        email: user.email,
+        dailyTargetMinutes: user.dailyTargetMinutes,
+        timezone: user.timezone,
+      },
+    });
+  } catch (error) {
+    console.error("Login error:", error);
+    res.status(500).json({ error: "Internal server error" });
+  }
+};
+
 router.post("/register", registerHandler);
+router.post("/login", loginHandler);
 
 export default router;
