@@ -1,10 +1,12 @@
 import express from "express";
+import { createServer } from "http";
 import { config } from "./config";
 import { connectDatabase } from "./db";
 import authRouter from "./routes/auth";
 import sessionRouter from "./routes/session";
 import statsRouter from "./routes/stats";
 import settingsRouter from "./routes/settings";
+import { initSocket } from "./socket";
 
 const app = express();
 const port = config.PORT;
@@ -20,9 +22,12 @@ app.use("/sessions", sessionRouter);
 app.use("/stats", statsRouter);
 app.use("/settings", settingsRouter);
 
+const server = createServer(app);
+initSocket(server);
+
 async function startServer() {
   await connectDatabase();
-  app.listen(port, () => {
+  server.listen(port, () => {
     console.log(`API server listening on port ${port}`);
   });
 }

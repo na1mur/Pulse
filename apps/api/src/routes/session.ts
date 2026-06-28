@@ -4,6 +4,7 @@ import { requireAuth } from "../middleware/auth";
 import { WorkSession } from "../models/WorkSession";
 import { DailyStats } from "../models/DailyStats";
 import { User } from "../models/User";
+import { broadcastToUser } from "../socket";
 
 const router: Router = Router();
 
@@ -104,6 +105,9 @@ const createSessionHandler: RequestHandler = async (req, res) => {
       },
       { upsert: true, new: true, setDefaultsOnInsert: true },
     );
+
+    // Broadcast newly created session to all other user devices
+    broadcastToUser(userId, "session_created", session);
 
     res.status(201).json(session);
   } catch (error) {

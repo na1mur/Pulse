@@ -3,6 +3,7 @@ import { DailyTargetSchema } from "@repo/validation";
 import { requireAuth } from "../middleware/auth";
 import { User } from "../models/User";
 import { DailyStats } from "../models/DailyStats";
+import { broadcastToUser } from "../socket";
 
 const router: Router = Router();
 
@@ -55,6 +56,11 @@ const updateDailyTargetHandler: RequestHandler = async (req, res) => {
       { userId, date: todayKey },
       { goalMinutes: dailyTargetMinutes },
     );
+
+    // Broadcast update to all other connected user devices in real time
+    broadcastToUser(userId, "goal_updated", {
+      dailyTargetMinutes: user.dailyTargetMinutes,
+    });
 
     res.json({
       dailyTargetMinutes: user.dailyTargetMinutes,
