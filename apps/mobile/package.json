@@ -10,8 +10,10 @@
     "axios": "^1.7.9",
     "expo": "~56.0.12",
     "expo-status-bar": "~56.0.4",
-    "react": "19.2.3",
+    "react": "19.2.7",
+    "react-dom": "^19.2.7",
     "react-native": "0.85.3",
+    "react-native-web": "^0.21.2",
     "socket.io-client": "^4.8.1",
     "zustand": "^5.0.14"
   },
@@ -20,6 +22,7 @@
     "typescript": "~6.0.3"
   },
   "scripts": {
+    "dev": "expo start",
     "start": "expo start",
     "android": "expo start --android",
     "ios": "expo start --ios",

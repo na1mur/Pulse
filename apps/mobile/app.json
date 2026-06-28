@@ -6,6 +6,7 @@
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
+    "main": "index.ts",
     "ios": {
       "supportsTablet": true
     },
@@ -23,3 +24,4 @@
     }
   }
 }
+
