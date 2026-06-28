@@ -3,10 +3,17 @@
   "version": "1.0.0",
   "main": "index.ts",
   "dependencies": {
+    "@react-native-async-storage/async-storage": "^2.1.2",
+    "@repo/types": "workspace:*",
+    "@repo/utils": "workspace:*",
+    "@tanstack/react-query": "^5.101.2",
+    "axios": "^1.7.9",
     "expo": "~56.0.12",
     "expo-status-bar": "~56.0.4",
     "react": "19.2.3",
-    "react-native": "0.85.3"
+    "react-native": "0.85.3",
+    "socket.io-client": "^4.8.1",
+    "zustand": "^5.0.14"
   },
   "devDependencies": {
     "@types/react": "~19.2.2",
