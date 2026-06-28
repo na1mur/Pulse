@@ -1,7 +1,7 @@
 import express from "express";
-import { RegisterSchema } from "@repo/validation";
 import { config } from "./config";
 import { connectDatabase } from "./db";
+import authRouter from "./routes/auth";
 
 const app = express();
 const port = config.PORT;
@@ -12,14 +12,7 @@ app.get("/health", (req, res) => {
   res.json({ status: "OK", timestamp: new Date() });
 });
 
-app.post("/register", (req, res) => {
-  const result = RegisterSchema.safeParse(req.body);
-  if (!result.success) {
-    res.status(400).json({ error: result.error.format() });
-    return;
-  }
-  res.json({ message: "Registration mock successful", data: result.data });
-});
+app.use("/auth", authRouter);
 
 async function startServer() {
   await connectDatabase();
