@@ -32,7 +32,6 @@ const refreshTokenSchema = new Schema<IRefreshToken>(
 
 // TTL index to automatically remove expired refresh tokens
 refreshTokenSchema.index({ expiresAt: 1 }, { expireAfterSeconds: 0 });
-refreshTokenSchema.index({ token: 1 });
 
 export const RefreshToken = model<IRefreshToken>(
   "RefreshToken",
