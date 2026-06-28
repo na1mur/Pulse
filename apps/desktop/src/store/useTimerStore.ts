@@ -7,6 +7,7 @@ interface TimerStoreState extends TimerState {
   pauseTimer: () => void;
   resetTimer: () => void;
   syncTimerState: (state: TimerState) => void;
+  checkDayChange: () => void;
 }
 
 export const useTimerStore = create<TimerStoreState>()(
@@ -15,6 +16,7 @@ export const useTimerStore = create<TimerStoreState>()(
       isRunning: false,
       startedAt: undefined,
       elapsedBeforeCurrentRun: 0,
+      lastActiveDate: undefined,
 
       startTimer: () =>
         set((state) => {
@@ -22,6 +24,7 @@ export const useTimerStore = create<TimerStoreState>()(
           return {
             isRunning: true,
             startedAt: Date.now(),
+            lastActiveDate: new Date().toDateString(),
           };
         }),
 
@@ -34,6 +37,7 @@ export const useTimerStore = create<TimerStoreState>()(
             startedAt: undefined,
             elapsedBeforeCurrentRun:
               state.elapsedBeforeCurrentRun + sessionElapsed,
+            lastActiveDate: new Date().toDateString(),
           };
         }),
 
@@ -42,6 +46,7 @@ export const useTimerStore = create<TimerStoreState>()(
           isRunning: false,
           startedAt: undefined,
           elapsedBeforeCurrentRun: 0,
+          lastActiveDate: new Date().toDateString(),
         }),
 
       syncTimerState: (state) =>
@@ -49,6 +54,21 @@ export const useTimerStore = create<TimerStoreState>()(
           isRunning: state.isRunning,
           startedAt: state.startedAt,
           elapsedBeforeCurrentRun: state.elapsedBeforeCurrentRun,
+          lastActiveDate: state.lastActiveDate || new Date().toDateString(),
+        }),
+
+      checkDayChange: () =>
+        set((state) => {
+          const today = new Date().toDateString();
+          if (state.lastActiveDate && state.lastActiveDate !== today) {
+            return {
+              isRunning: false,
+              startedAt: undefined,
+              elapsedBeforeCurrentRun: 0,
+              lastActiveDate: today,
+            };
+          }
+          return { lastActiveDate: today };
         }),
     }),
     {
@@ -56,3 +76,4 @@ export const useTimerStore = create<TimerStoreState>()(
     },
   ),
 );
+

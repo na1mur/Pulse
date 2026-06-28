@@ -26,4 +26,6 @@ export interface TimerState {
   isRunning: boolean;
   startedAt?: number; // timestamp
   elapsedBeforeCurrentRun: number; // in milliseconds
+  lastActiveDate?: string; // local date string to detect day changes
 }
+

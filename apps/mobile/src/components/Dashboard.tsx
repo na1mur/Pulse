@@ -27,13 +27,22 @@ interface DashboardProps {
 export function Dashboard({ onLogout }: DashboardProps) {
   const queryClient = useQueryClient();
 
-  const { isRunning, startedAt, elapsedBeforeCurrentRun, resetTimer } =
+  const { isRunning, startedAt, elapsedBeforeCurrentRun, resetTimer, checkDayChange } =
     useTimerStore();
   const { addPendingSession } = useOfflineStore();
   const { startTimer, pauseTimer, isConnected } = useSocketSync();
   const { pendingCount } = useSyncManager();
 
   const [localElapsed, setLocalElapsed] = useState(0);
+
+  // Check for day change / midnight reset periodically
+  useEffect(() => {
+    checkDayChange();
+    const interval = setInterval(() => {
+      checkDayChange();
+    }, 10000);
+    return () => clearInterval(interval);
+  }, [checkDayChange]);
 
   useEffect(() => {
     if (!isRunning) {
@@ -118,7 +127,6 @@ export function Dashboard({ onLogout }: DashboardProps) {
       });
       queryClient.invalidateQueries({ queryKey: ["todayStats"] });
       queryClient.invalidateQueries({ queryKey: ["todaySessions"] });
-      resetTimer();
     } catch (err) {
       console.warn("API logging failed. Enqueueing session offline.", err);
       addPendingSession({
@@ -126,7 +134,6 @@ export function Dashboard({ onLogout }: DashboardProps) {
         endTime: endTimeIso,
         deviceId,
       });
-      resetTimer();
     }
   };
 

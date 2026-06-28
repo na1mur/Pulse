@@ -36,7 +36,7 @@ export function Dashboard({ onLogout }: DashboardProps) {
   const queryClient = useQueryClient();
 
   // Connect stores and hooks
-  const { isRunning, startedAt, elapsedBeforeCurrentRun, resetTimer } =
+  const { isRunning, startedAt, elapsedBeforeCurrentRun, resetTimer, checkDayChange } =
     useTimerStore();
   const { addPendingSession } = useOfflineStore();
   const { startTimer, pauseTimer, isConnected } = useSocketSync();
@@ -44,6 +44,15 @@ export function Dashboard({ onLogout }: DashboardProps) {
 
   // Local elapsed time in component state to update visual clock smoothly
   const [localElapsed, setLocalElapsed] = useState(0);
+
+  // Check for day change / midnight reset periodically
+  useEffect(() => {
+    checkDayChange();
+    const interval = setInterval(() => {
+      checkDayChange();
+    }, 10000);
+    return () => clearInterval(interval);
+  }, [checkDayChange]);
 
   useEffect(() => {
     if (!isRunning) {
@@ -144,7 +153,6 @@ export function Dashboard({ onLogout }: DashboardProps) {
       queryClient.invalidateQueries({ queryKey: ["todayStats"] });
       queryClient.invalidateQueries({ queryKey: ["weeklyStats"] });
       queryClient.invalidateQueries({ queryKey: ["todaySessions"] });
-      resetTimer(); // Reset focus block to 0
     } catch (err) {
       console.warn("API logging failed. Enqueueing session offline.", err);
       addPendingSession({
@@ -152,7 +160,6 @@ export function Dashboard({ onLogout }: DashboardProps) {
         endTime: endTimeIso,
         deviceId,
       });
-      resetTimer(); // Reset focus block to 0
     }
   };
 
