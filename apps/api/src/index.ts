@@ -1,5 +1,8 @@
 import express from "express";
 import { createServer } from "http";
+import cors from "cors";
+import helmet from "helmet";
+import { rateLimit } from "express-rate-limit";
 import { config } from "./config";
 import { connectDatabase } from "./db";
 import authRouter from "./routes/auth";
@@ -11,13 +14,42 @@ import { initSocket } from "./socket";
 const app = express();
 const port = config.PORT;
 
+// Standard Security Headers
+app.use(helmet());
+
+// Cross-Origin Resource Sharing
+app.use(cors());
+
 app.use(express.json());
+
+// General API rate limiter (500 requests per 15 minutes)
+const generalLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 500,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: "Too many requests, please try again later." },
+});
+
+// Stricter auth limiter (100 register/login requests per 15 minutes)
+const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 100,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: {
+    error:
+      "Too many authentication attempts. Please try again after 15 minutes.",
+  },
+});
+
+app.use(generalLimiter);
 
 app.get("/health", (req, res) => {
   res.json({ status: "OK", timestamp: new Date() });
 });
 
-app.use("/auth", authRouter);
+app.use("/auth", authLimiter, authRouter);
 app.use("/sessions", sessionRouter);
 app.use("/stats", statsRouter);
 app.use("/settings", settingsRouter);
