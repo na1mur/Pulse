@@ -1,5 +1,8 @@
 // Helper to calculate timer duration
-export function calculateDuration(startedAt: number, elapsedBeforeCurrentRun: number): number {
+export function calculateDuration(
+  startedAt: number,
+  elapsedBeforeCurrentRun: number,
+): number {
   return elapsedBeforeCurrentRun + (Date.now() - startedAt);
 }
 
