@@ -7,6 +7,7 @@ import {
   comparePassword,
   generateAccessToken,
   generateRefreshToken,
+  verifyRefreshToken,
 } from "../utils/auth";
 
 const router: Router = Router();
@@ -120,7 +121,77 @@ const loginHandler: RequestHandler = async (req, res) => {
   }
 };
 
+const refreshHandler: RequestHandler = async (req, res) => {
+  try {
+    const { refreshToken: oldToken } = req.body;
+    if (!oldToken) {
+      res.status(400).json({ error: "Refresh token is required" });
+      return;
+    }
+
+    // Verify token structure & expiry
+    let payload;
+    try {
+      payload = verifyRefreshToken(oldToken);
+    } catch {
+      res.status(401).json({ error: "Invalid or expired refresh token" });
+      return;
+    }
+
+    // Check if token exists in DB (not logged out / blacklisted)
+    const storedToken = await RefreshToken.findOne({ token: oldToken });
+    if (!storedToken) {
+      res.status(401).json({ error: "Invalid or expired refresh token" });
+      return;
+    }
+
+    // Delete old refresh token
+    await RefreshToken.deleteOne({ _id: storedToken._id });
+
+    // Generate new tokens (token rotation)
+    const newAccessToken = generateAccessToken(payload.userId);
+    const newRefreshTokenString = generateRefreshToken(payload.userId);
+
+    // Save new refresh token
+    const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000); // 7 days
+    const newRefreshTokenDoc = new RefreshToken({
+      token: newRefreshTokenString,
+      userId: storedToken.userId,
+      expiresAt,
+    });
+    await newRefreshTokenDoc.save();
+
+    res.json({
+      accessToken: newAccessToken,
+      refreshToken: newRefreshTokenString,
+    });
+  } catch (error) {
+    console.error("Token refresh error:", error);
+    res.status(500).json({ error: "Internal server error" });
+  }
+};
+
+const logoutHandler: RequestHandler = async (req, res) => {
+  try {
+    const { refreshToken } = req.body;
+    if (!refreshToken) {
+      res.status(400).json({ error: "Refresh token is required" });
+      return;
+    }
+
+    // Delete the refresh token from database to invalidate it
+    await RefreshToken.deleteOne({ token: refreshToken });
+
+    res.json({ message: "Logged out successfully" });
+  } catch (error) {
+    console.error("Logout error:", error);
+    res.status(500).json({ error: "Internal server error" });
+  }
+};
+
 router.post("/register", registerHandler);
 router.post("/login", loginHandler);
+router.post("/refresh", refreshHandler);
+router.post("/logout", logoutHandler);
 
 export default router;
