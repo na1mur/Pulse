@@ -2,6 +2,7 @@ import express from "express";
 import { config } from "./config";
 import { connectDatabase } from "./db";
 import authRouter from "./routes/auth";
+import sessionRouter from "./routes/session";
 
 const app = express();
 const port = config.PORT;
@@ -13,6 +14,7 @@ app.get("/health", (req, res) => {
 });
 
 app.use("/auth", authRouter);
+app.use("/sessions", sessionRouter);
 
 async function startServer() {
   await connectDatabase();
