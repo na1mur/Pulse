@@ -21,7 +21,8 @@ export interface Session {
 }
 
 export interface WorkSession {
-  id: string;
+  id?: string;
+  _id?: string;
   userId: string;
   deviceId: string;
   startTime: string;

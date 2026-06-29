@@ -20,8 +20,8 @@ export function useSocketSync() {
       return;
     }
 
-    // Connect to the Socket.IO server
-    socket = io("http://localhost:3001", {
+    const baseURL = import.meta.env.VITE_API_URL ?? "http://localhost:3001";
+    socket = io(baseURL, {
       auth: {
         token: accessToken,
       },
