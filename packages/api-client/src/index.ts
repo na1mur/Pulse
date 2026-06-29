@@ -11,6 +11,7 @@ export interface CreateApiClientOptions {
   baseURL: string;
   storage: TokenStorage;
   onSessionExpired?: () => void;
+  onTokenRefreshed?: () => void;
 }
 
 async function resolve<T>(value: T | Promise<T>): Promise<T> {
@@ -21,6 +22,7 @@ export function createApiClient({
   baseURL,
   storage,
   onSessionExpired,
+  onTokenRefreshed,
 }: CreateApiClientOptions): AxiosInstance {
   const api = axios.create({ baseURL });
 
@@ -55,6 +57,7 @@ export function createApiClient({
 
           const { accessToken, refreshToken: newRefreshToken } = response.data;
           await resolve(storage.setTokens(accessToken, newRefreshToken));
+          onTokenRefreshed?.();
 
           if (originalRequest.headers) {
             originalRequest.headers.Authorization = `Bearer ${accessToken}`;

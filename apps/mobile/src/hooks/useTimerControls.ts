@@ -3,7 +3,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { formatTime } from "@repo/utils";
 import { useTimerStore } from "@/store/useTimerStore";
 import { useOfflineStore } from "@/store/useOfflineStore";
-import { useSocketSync } from "@/hooks/useSocketSync";
+import { startTimer, pauseTimer } from "@/hooks/useSocketSync";
 import { api } from "@/utils/api";
 import { queryKeys } from "@repo/queries";
 
@@ -12,7 +12,6 @@ export function useTimerControls() {
   const { isRunning, startedAt, elapsedBeforeCurrentRun, checkDayChange } =
     useTimerStore();
   const { addPendingSession } = useOfflineStore();
-  const { startTimer, pauseTimer } = useSocketSync();
   const [localElapsed, setLocalElapsed] = useState(0);
 
   useEffect(() => {

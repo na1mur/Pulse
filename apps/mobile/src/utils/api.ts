@@ -45,11 +45,20 @@ export async function hasValidSession(): Promise<boolean> {
   return Boolean(access && refresh);
 }
 
+let tokenRefreshHandler: (() => void) | undefined;
+
+export function setTokenRefreshHandler(handler: () => void) {
+  tokenRefreshHandler = handler;
+}
+
 export const api = createApiClient({
   baseURL,
   storage: tokenStorage,
   onSessionExpired: () => {
     router.replace("/(auth)/login");
+  },
+  onTokenRefreshed: () => {
+    tokenRefreshHandler?.();
   },
 });
 
