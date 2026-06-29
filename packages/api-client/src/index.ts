@@ -21,6 +21,7 @@ export {
   GOAL_STORAGE_KEYS,
   migrateLegacyGoalStorage,
   PERSIST_STORE_KEYS,
+  parsePersistedJsonState,
   persistGoalSettingsToLocal,
   scopeStorageKey,
   type GoalSettingsSnapshot,

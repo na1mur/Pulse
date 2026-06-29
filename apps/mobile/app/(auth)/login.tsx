@@ -100,7 +100,7 @@ export default function LoginScreen() {
         <View className="w-full max-w-md self-center gap-6">
           <View className="items-center gap-2">
             <Image
-              source={require("../../../assets/branding/logo-wordmark.png")}
+              source={require("../../assets/branding/logo-wordmark.png")}
               style={{ width: 192, height: 192 }}
               resizeMode="contain"
               accessibilityLabel="Pulse"

@@ -101,9 +101,7 @@ export function createUserScopedPersistStorage(
     setItem: async (name, value) => {
       const userId = getUserId();
       if (!userId) return;
-      await resolve(
-        baseStorage.setItem(scopeStorageKey(userId, name), value),
-      );
+      await resolve(baseStorage.setItem(scopeStorageKey(userId, name), value));
     },
     removeItem: async (name) => {
       const userId = getUserId();
@@ -138,6 +136,24 @@ export async function persistGoalSettingsToLocal(
       storage.setItem(GOAL_STORAGE_KEYS.monthly, String(monthlyHours || 160)),
     );
   }
+}
+
+export function parsePersistedJsonState<T extends object>(
+  raw: string | null,
+  fallback: T,
+): T {
+  if (!raw) return fallback;
+
+  try {
+    const parsed = JSON.parse(raw) as { state?: Partial<T> };
+    if (parsed.state && typeof parsed.state === "object") {
+      return { ...fallback, ...parsed.state };
+    }
+  } catch {
+    // Ignore malformed persisted state.
+  }
+
+  return fallback;
 }
 
 export async function migrateLegacyGoalStorage(
