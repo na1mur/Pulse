@@ -1,4 +1,4 @@
-import { Router, Request, Response, RequestHandler } from "express";
+import { Router, RequestHandler } from "express";
 import { RegisterSchema, LoginSchema } from "@repo/validation";
 import { User } from "../models/User";
 import { RefreshToken } from "../models/RefreshToken";

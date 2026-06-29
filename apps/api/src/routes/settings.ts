@@ -1,31 +1,31 @@
-import { Router, Request, Response, RequestHandler } from "express";
-import { DailyTargetSchema } from "@repo/validation";
+import { Router, RequestHandler } from "express";
+import { DailyTargetSchema, TimezoneSchema } from "@repo/validation";
 import { requireAuth } from "../middleware/auth";
 import { User } from "../models/User";
 import { DailyStats } from "../models/DailyStats";
 import { broadcastToUser } from "../socket";
+import { getLocalDateString } from "../utils/dates";
 
 const router: Router = Router();
 
-// Helper to format Date to YYYY-MM-DD in a specific timezone
-function getLocalDateString(date: Date, timeZone: string): string {
+const getSettingsHandler: RequestHandler = async (req, res) => {
   try {
-    const formatter = new Intl.DateTimeFormat("en-US", {
-      timeZone: timeZone || "UTC",
-      year: "numeric",
-      month: "2-digit",
-      day: "2-digit",
+    const user = await User.findById(req.userId!);
+    if (!user) {
+      res.status(404).json({ error: "User not found" });
+      return;
+    }
+
+    res.json({
+      email: user.email,
+      timezone: user.timezone,
+      dailyTargetMinutes: user.dailyTargetMinutes,
     });
-    const parts = formatter.formatToParts(date);
-    const year = parts.find((p) => p.type === "year")?.value || "1970";
-    const month = parts.find((p) => p.type === "month")?.value || "01";
-    const day = parts.find((p) => p.type === "day")?.value || "01";
-    return `${year}-${month}-${day}`;
   } catch (error) {
-    console.error("Error formatting date for timezone:", timeZone, error);
-    return date.toISOString().split("T")[0] || "";
+    console.error("Get settings error:", error);
+    res.status(500).json({ error: "Internal server error" });
   }
-}
+};
 
 const updateDailyTargetHandler: RequestHandler = async (req, res) => {
   try {
@@ -38,7 +38,6 @@ const updateDailyTargetHandler: RequestHandler = async (req, res) => {
     const { dailyTargetMinutes } = result.data;
     const userId = req.userId!;
 
-    // Update user's target goal
     const user = await User.findByIdAndUpdate(
       userId,
       { dailyTargetMinutes },
@@ -50,21 +49,20 @@ const updateDailyTargetHandler: RequestHandler = async (req, res) => {
       return;
     }
 
-    // Update goalMinutes inside today's cached DailyStats (if exists)
     const todayKey = getLocalDateString(new Date(), user.timezone);
     await DailyStats.findOneAndUpdate(
       { userId, date: todayKey },
       { goalMinutes: dailyTargetMinutes },
     );
 
-    // Broadcast update to all other connected user devices in real time
     broadcastToUser(userId, "goal_updated", {
       dailyTargetMinutes: user.dailyTargetMinutes,
     });
 
     res.json({
-      dailyTargetMinutes: user.dailyTargetMinutes,
+      email: user.email,
       timezone: user.timezone,
+      dailyTargetMinutes: user.dailyTargetMinutes,
     });
   } catch (error) {
     console.error("Update target goal error:", error);
@@ -72,6 +70,47 @@ const updateDailyTargetHandler: RequestHandler = async (req, res) => {
   }
 };
 
+const updateTimezoneHandler: RequestHandler = async (req, res) => {
+  try {
+    const result = TimezoneSchema.safeParse(req.body);
+    if (!result.success) {
+      res.status(400).json({ error: result.error.format() });
+      return;
+    }
+
+    const { timezone } = result.data;
+
+    try {
+      Intl.DateTimeFormat(undefined, { timeZone: timezone });
+    } catch {
+      res.status(400).json({ error: "Invalid timezone" });
+      return;
+    }
+
+    const user = await User.findByIdAndUpdate(
+      req.userId!,
+      { timezone },
+      { new: true },
+    );
+
+    if (!user) {
+      res.status(404).json({ error: "User not found" });
+      return;
+    }
+
+    res.json({
+      email: user.email,
+      timezone: user.timezone,
+      dailyTargetMinutes: user.dailyTargetMinutes,
+    });
+  } catch (error) {
+    console.error("Update timezone error:", error);
+    res.status(500).json({ error: "Internal server error" });
+  }
+};
+
+router.get("/", requireAuth, getSettingsHandler);
 router.patch("/daily-target", requireAuth, updateDailyTargetHandler);
+router.patch("/timezone", requireAuth, updateTimezoneHandler);
 
 export default router;

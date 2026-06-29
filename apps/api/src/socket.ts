@@ -87,7 +87,7 @@ export function initSocket(server: HttpServer): Server {
 export function broadcastToUser(
   userId: string,
   event: string,
-  data: any,
+  data: unknown,
 ): void {
   if (io) {
     const room = `user_${userId}`;

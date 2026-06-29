@@ -1,46 +1,16 @@
-import { Router, Request, Response, RequestHandler } from "express";
+import { Router, Response, RequestHandler } from "express";
 import { requireAuth } from "../middleware/auth";
 import { DailyStats } from "../models/DailyStats";
 import { User } from "../models/User";
+import {
+  getCurrentWeekDateKeys,
+  getLocalDateString,
+  getMonthDateKeys,
+  getPastLocalDateKeys,
+  getWeekdayLabel,
+} from "../utils/dates";
 
 const router: Router = Router();
-
-// Helper to format Date to YYYY-MM-DD in a specific timezone
-function getLocalDateString(date: Date, timeZone: string): string {
-  try {
-    const formatter = new Intl.DateTimeFormat("en-US", {
-      timeZone: timeZone || "UTC",
-      year: "numeric",
-      month: "2-digit",
-      day: "2-digit",
-    });
-    const parts = formatter.formatToParts(date);
-    const year = parts.find((p) => p.type === "year")?.value || "1970";
-    const month = parts.find((p) => p.type === "month")?.value || "01";
-    const day = parts.find((p) => p.type === "day")?.value || "01";
-    return `${year}-${month}-${day}`;
-  } catch (error) {
-    console.error("Error formatting date for timezone:", timeZone, error);
-    return date.toISOString().split("T")[0] || "";
-  }
-}
-
-// Generate calendar date keys YYYY-MM-DD going back N days from the local date key
-function getPastLocalDateKeys(dateKey: string, count: number): string[] {
-  const dateKeys: string[] = [];
-  try {
-    const date = new Date(`${dateKey}T00:00:00Z`);
-    for (let i = count - 1; i >= 0; i--) {
-      const d = new Date(date.getTime());
-      d.setUTCDate(d.getUTCDate() - i);
-      const iso = d.toISOString().split("T")[0];
-      if (iso) dateKeys.push(iso);
-    }
-  } catch (err) {
-    console.error("Error generating local date keys:", err);
-  }
-  return dateKeys;
-}
 
 const getTodayStatsHandler: RequestHandler = async (req, res) => {
   try {
@@ -73,7 +43,7 @@ const getTodayStatsHandler: RequestHandler = async (req, res) => {
 
 const getStatsRange = async (
   userId: string,
-  count: number,
+  dateKeys: string[],
   res: Response,
 ): Promise<void> => {
   try {
@@ -83,10 +53,6 @@ const getStatsRange = async (
       return;
     }
 
-    const todayKey = getLocalDateString(new Date(), user.timezone);
-    const dateKeys = getPastLocalDateKeys(todayKey, count);
-
-    // Retrieve stats matching generated keys
     const statsList = await DailyStats.find({
       userId,
       date: { $in: dateKeys },
@@ -97,11 +63,11 @@ const getStatsRange = async (
       statsMap.set(s.date, { worked: s.workedMinutes, goal: s.goalMinutes });
     });
 
-    // Construct full sequential series, filling in missing dates with zero
     const result = dateKeys.map((date) => {
       const entry = statsMap.get(date);
       return {
         date,
+        day: getWeekdayLabel(date),
         workedMinutes: entry ? entry.worked : 0,
         goalMinutes: entry ? entry.goal : user.dailyTargetMinutes,
       };
@@ -115,11 +81,35 @@ const getStatsRange = async (
 };
 
 const getWeekStatsHandler: RequestHandler = async (req, res) => {
-  await getStatsRange(req.userId!, 7, res);
+  try {
+    const user = await User.findById(req.userId!);
+    if (!user) {
+      res.status(404).json({ error: "User not found" });
+      return;
+    }
+    const todayKey = getLocalDateString(new Date(), user.timezone);
+    const dateKeys = getCurrentWeekDateKeys(todayKey);
+    await getStatsRange(req.userId!, dateKeys, res);
+  } catch (error) {
+    console.error("Get week stats error:", error);
+    res.status(500).json({ error: "Internal server error" });
+  }
 };
 
 const getMonthStatsHandler: RequestHandler = async (req, res) => {
-  await getStatsRange(req.userId!, 30, res);
+  try {
+    const user = await User.findById(req.userId!);
+    if (!user) {
+      res.status(404).json({ error: "User not found" });
+      return;
+    }
+    const todayKey = getLocalDateString(new Date(), user.timezone);
+    const dateKeys = getPastLocalDateKeys(todayKey, 30);
+    await getStatsRange(req.userId!, dateKeys, res);
+  } catch (error) {
+    console.error("Get month stats error:", error);
+    res.status(500).json({ error: "Internal server error" });
+  }
 };
 
 const getHistoryStatsHandler: RequestHandler = async (req, res) => {
@@ -133,9 +123,134 @@ const getHistoryStatsHandler: RequestHandler = async (req, res) => {
   }
 };
 
+const getSummaryStatsHandler: RequestHandler = async (req, res) => {
+  try {
+    const userId = req.userId!;
+    const user = await User.findById(userId);
+    if (!user) {
+      res.status(404).json({ error: "User not found" });
+      return;
+    }
+
+    const todayKey = getLocalDateString(new Date(), user.timezone);
+    const weekKeys = getPastLocalDateKeys(todayKey, 7);
+    const monthKeys = getMonthDateKeys(todayKey);
+
+    const allStats = await DailyStats.find({ userId });
+    const statsByDate = new Map(allStats.map((s) => [s.date, s]));
+
+    const sumMinutes = (keys: string[]) =>
+      keys.reduce(
+        (sum, key) => sum + (statsByDate.get(key)?.workedMinutes ?? 0),
+        0,
+      );
+
+    const totalWorkedMinutes = allStats.reduce(
+      (sum, s) => sum + s.workedMinutes,
+      0,
+    );
+    const weeklyWorkedMinutes = sumMinutes(weekKeys);
+    const monthlyWorkedMinutes = sumMinutes(monthKeys);
+
+    const daysWithData = allStats.filter((s) => s.workedMinutes > 0);
+    const averageDailyMinutes =
+      daysWithData.length > 0
+        ? Math.round(totalWorkedMinutes / daysWithData.length)
+        : 0;
+
+    let bestDayMinutes = 0;
+    let bestDayDate: string | null = null;
+    for (const stat of allStats) {
+      if (stat.workedMinutes > bestDayMinutes) {
+        bestDayMinutes = stat.workedMinutes;
+        bestDayDate = stat.date;
+      }
+    }
+
+    let currentStreakDays = 0;
+    const streakKeys = getPastLocalDateKeys(todayKey, 365).reverse();
+    for (const key of streakKeys) {
+      const stat = statsByDate.get(key);
+      if (stat && stat.workedMinutes > 0) {
+        currentStreakDays++;
+      } else if (key !== todayKey) {
+        break;
+      } else if (!stat || stat.workedMinutes === 0) {
+        break;
+      }
+    }
+
+    const monthStats = allStats.filter((s) => monthKeys.includes(s.date));
+    const daysWithMonthData = monthStats.filter((s) => s.workedMinutes > 0);
+    const daysMeetingGoal = monthStats.filter(
+      (s) => s.goalMinutes > 0 && s.workedMinutes >= s.goalMinutes,
+    ).length;
+    const goalAchievementPercent =
+      daysWithMonthData.length > 0
+        ? Math.round((daysMeetingGoal / daysWithMonthData.length) * 1000) / 10
+        : 0;
+
+    res.json({
+      totalWorkedMinutes,
+      weeklyWorkedMinutes,
+      monthlyWorkedMinutes,
+      averageDailyMinutes,
+      bestDayMinutes,
+      bestDayDate,
+      currentStreakDays,
+      goalAchievementPercent,
+    });
+  } catch (error) {
+    console.error("Get summary stats error:", error);
+    res.status(500).json({ error: "Internal server error" });
+  }
+};
+
+const getWeeklyTrendHandler: RequestHandler = async (req, res) => {
+  try {
+    const userId = req.userId!;
+    const user = await User.findById(userId);
+    if (!user) {
+      res.status(404).json({ error: "User not found" });
+      return;
+    }
+
+    const count = Math.min(parseInt(String(req.query.count ?? "4"), 10) || 4, 12);
+    const todayKey = getLocalDateString(new Date(), user.timezone);
+    const allKeys = getPastLocalDateKeys(todayKey, count * 7);
+
+    const statsList = await DailyStats.find({
+      userId,
+      date: { $in: allKeys },
+    });
+    const statsMap = new Map(statsList.map((s) => [s.date, s.workedMinutes]));
+
+    const weeks: { week: string; hours: number; workedMinutes: number }[] = [];
+    for (let w = 0; w < count; w++) {
+      const weekKeys = allKeys.slice(w * 7, (w + 1) * 7);
+      const workedMinutes = weekKeys.reduce(
+        (sum, key) => sum + (statsMap.get(key) ?? 0),
+        0,
+      );
+      weeks.push({
+        week: `Week ${count - w}`,
+        hours: Math.round((workedMinutes / 60) * 10) / 10,
+        workedMinutes,
+      });
+    }
+
+    res.json(weeks.reverse());
+  } catch (error) {
+    console.error("Get weekly trend error:", error);
+    res.status(500).json({ error: "Internal server error" });
+  }
+};
+
 router.get("/today", requireAuth, getTodayStatsHandler);
 router.get("/week", requireAuth, getWeekStatsHandler);
 router.get("/month", requireAuth, getMonthStatsHandler);
 router.get("/history", requireAuth, getHistoryStatsHandler);
+router.get("/summary", requireAuth, getSummaryStatsHandler);
+router.get("/weeks", requireAuth, getWeeklyTrendHandler);
 
 export default router;

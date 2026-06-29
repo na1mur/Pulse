@@ -19,3 +19,9 @@ export const SessionSchema = z.object({
 export const DailyTargetSchema = z.object({
   dailyTargetMinutes: z.number().nonnegative("Target must be 0 or greater"),
 });
+
+export const TimezoneSchema = z.object({
+  timezone: z.string().min(1, "Timezone is required"),
+});
+
+export const SessionRangeSchema = z.enum(["today", "week", "month", "year"]);

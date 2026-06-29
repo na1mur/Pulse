@@ -23,7 +23,7 @@ export const requireAuth: RequestHandler = (
     req.userId = payload.userId;
 
     next();
-  } catch (error) {
+  } catch {
     res.status(401).json({ error: "Invalid or expired access token" });
     return;
   }
