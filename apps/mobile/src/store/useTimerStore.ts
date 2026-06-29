@@ -1,7 +1,8 @@
 import { create } from "zustand";
 import { persist, createJSONStorage } from "zustand/middleware";
 import type { TimerState } from "@repo/types";
-import { asyncStorage } from "./storage";
+import { PERSIST_STORE_KEYS } from "@repo/api-client";
+import { scopedPersistStorage } from "./scopedStorage";
 
 interface TimerStoreState extends TimerState {
   startTimer: () => void;
@@ -73,8 +74,8 @@ export const useTimerStore = create<TimerStoreState>()(
         }),
     }),
     {
-      name: "pulse-timer-storage",
-      storage: createJSONStorage(() => asyncStorage),
+      name: PERSIST_STORE_KEYS.timer,
+      storage: createJSONStorage(() => scopedPersistStorage),
     },
   ),
 );

@@ -1,17 +1,27 @@
-import { createContext, useContext, type ReactNode } from "react";
-import { useGoalState, type GoalStorage } from "@repo/queries";
-import { appStorage } from "@/utils/api";
+import { createContext, useContext, useEffect, type ReactNode } from "react";
+import {
+  registerGoalStorage,
+  useGoalState,
+  type GoalStorage,
+} from "@repo/queries";
+import { userScopedAppStorage } from "@/utils/api";
 
 type GoalContextValue = ReturnType<typeof useGoalState>;
 
 const GoalContext = createContext<GoalContextValue | null>(null);
 
 const mobileGoalStorage: GoalStorage = {
-  getItem: (key) => appStorage.getItem(key),
-  setItem: (key, value) => appStorage.setItem(key, value),
+  getItem: (key) => userScopedAppStorage.getItem(key),
+  setItem: (key, value) => userScopedAppStorage.setItem(key, value),
+  removeItem: (key) => userScopedAppStorage.removeItem(key),
 };
 
 export function GoalProvider({ children }: { children: ReactNode }) {
+  useEffect(() => {
+    registerGoalStorage(mobileGoalStorage);
+    return () => registerGoalStorage(null);
+  }, []);
+
   const goalState = useGoalState(mobileGoalStorage);
 
   return (

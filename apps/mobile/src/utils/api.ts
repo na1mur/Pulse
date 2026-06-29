@@ -1,8 +1,10 @@
 import { Platform } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import {
+  activateUserSession,
   createAsyncStorageAdapter,
   createApiClient,
+  createUserScopedStorage,
   ensureValidAccessToken,
   startTokenRefreshScheduler,
   stopTokenRefreshScheduler,
@@ -38,8 +40,11 @@ const storageBackend = Platform.OS === "web" ? webStorage : AsyncStorage;
 export const tokenStorage: TokenStorage =
   createAsyncStorageAdapter(storageBackend);
 
-/** Shared storage for non-token keys (theme, goal prefs, email). */
+/** Shared storage for non-token keys (theme). */
 export const appStorage = storageBackend;
+
+/** User-scoped storage for goals and other per-account prefs. */
+export const userScopedAppStorage = createUserScopedStorage(storageBackend);
 
 const tokenCallbacks = {
   onTokenRefreshed: () => {
@@ -48,6 +53,7 @@ const tokenCallbacks = {
   },
   onSessionExpired: () => {
     stopTokenRefresh();
+    activateUserSession(null);
     router.replace("/(auth)/login");
   },
 };

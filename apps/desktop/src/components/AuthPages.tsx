@@ -4,12 +4,13 @@ import ThemeToggle from "@/components/ThemeToggle";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { TOKEN_KEYS } from "@/utils/api";
+import type { User } from "@repo/types";
+import { storage, TOKEN_KEYS } from "@/utils/api";
 
 const baseURL = import.meta.env.VITE_API_URL ?? "http://localhost:3001";
 
 interface AuthPagesProps {
-  onAuthSuccess: (token: string) => void;
+  onAuthSuccess: (accessToken: string, userId: string) => void | Promise<void>;
 }
 
 export function AuthPages({ onAuthSuccess }: AuthPagesProps) {
@@ -34,11 +35,14 @@ export function AuthPages({ onAuthSuccess }: AuthPagesProps) {
 
     try {
       const response = await axios.post(url, { email, password });
-      const { accessToken, refreshToken } = response.data;
-      localStorage.setItem(TOKEN_KEYS.access, accessToken);
-      localStorage.setItem(TOKEN_KEYS.refresh, refreshToken);
+      const { accessToken, refreshToken, user } = response.data as {
+        accessToken: string;
+        refreshToken: string;
+        user: User;
+      };
+      storage.setTokens(accessToken, refreshToken);
       localStorage.setItem(TOKEN_KEYS.email, email);
-      onAuthSuccess(accessToken);
+      await onAuthSuccess(accessToken, user.id);
     } catch (err: unknown) {
       const axiosErr = err as {
         response?: { data?: { error?: unknown } };

@@ -9,6 +9,9 @@ import {
 } from "react-native";
 import { useRouter } from "expo-router";
 import axios from "axios";
+import { useQueryClient } from "@tanstack/react-query";
+import { bootstrapUserSession } from "@repo/queries";
+import type { User } from "@repo/types";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { ThemeShell, ThemedText } from "@/components/ThemeShell";
 import { Button } from "@/components/ui/Button";
@@ -19,11 +22,13 @@ import {
   tokenStorage,
   TOKEN_KEYS,
 } from "@/utils/api";
+import { rehydrateUserPersistedStores } from "@/store/rehydrateUserStores";
 
 const baseURL = process.env.EXPO_PUBLIC_API_URL ?? "http://localhost:3001";
 
 export default function LoginScreen() {
   const router = useRouter();
+  const queryClient = useQueryClient();
   const colors = useThemeColors();
   const [isLogin, setIsLogin] = useState(true);
   const [email, setEmail] = useState("");
@@ -54,9 +59,19 @@ export default function LoginScreen() {
 
     try {
       const response = await axios.post(url, { email, password });
-      const { accessToken, refreshToken } = response.data;
+      const { accessToken, refreshToken, user } = response.data as {
+        accessToken: string;
+        refreshToken: string;
+        user: User;
+      };
       await tokenStorage.setTokens(accessToken, refreshToken);
       await appStorage.setItem(TOKEN_KEYS.email, email);
+      await bootstrapUserSession({
+        userId: user.id,
+        queryClient,
+        rehydrateStores: rehydrateUserPersistedStores,
+        goalStorageBackend: appStorage,
+      });
       startSessionTokenRefresh();
       router.replace("/(tabs)");
     } catch (err: unknown) {

@@ -11,6 +11,7 @@ import type {
 import { useApi } from "./api-context";
 import { queryKeys } from "./query-keys";
 import { mergeGoalSettingsIntoCache } from "./goal-sync";
+import { syncGoalSettingsToLocal } from "./goal-local-storage";
 import { settingsQueryOptions } from "./settings-query";
 
 export { queryKeys, pulseQueryKeys } from "./query-keys";
@@ -20,7 +21,15 @@ export {
   mergeGoalSettingsIntoCache,
   type GoalTargetFields,
 } from "./goal-sync";
-export { useGoalState, GOAL_DEFAULTS, type GoalStorage } from "./useGoalState";
+export { useGoalState, GOAL_DEFAULTS, readStoredGoalHours, type GoalStorage } from "./useGoalState";
+export {
+  registerGoalStorage,
+  syncGoalSettingsToLocal,
+} from "./goal-local-storage";
+export {
+  bootstrapUserSession,
+  deactivateUserSession,
+} from "./user-session";
 export {
   subscribeGoalAchievements,
   emitGoalAchievement,
@@ -90,6 +99,7 @@ export function useUpdateDailyTarget() {
         .data as UserSettings,
     onSuccess: (data) => {
       mergeGoalSettingsIntoCache(queryClient, data, data);
+      void syncGoalSettingsToLocal(data);
       queryClient.invalidateQueries({ queryKey: queryKeys.todayStats });
       queryClient.invalidateQueries({ queryKey: queryKeys.statsSummary });
       queryClient.invalidateQueries({ queryKey: queryKeys.weekStats });
@@ -107,6 +117,7 @@ export function useUpdateWeeklyTarget() {
         .data as UserSettings,
     onSuccess: (data) => {
       mergeGoalSettingsIntoCache(queryClient, data, data);
+      void syncGoalSettingsToLocal(data);
       queryClient.invalidateQueries({ queryKey: queryKeys.statsSummary });
     },
   });
@@ -121,6 +132,7 @@ export function useUpdateMonthlyTarget() {
         .data as UserSettings,
     onSuccess: (data) => {
       mergeGoalSettingsIntoCache(queryClient, data, data);
+      void syncGoalSettingsToLocal(data);
       queryClient.invalidateQueries({ queryKey: queryKeys.statsSummary });
     },
   });

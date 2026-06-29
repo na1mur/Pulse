@@ -1,6 +1,8 @@
 import {
+  activateUserSession,
   createApiClient,
   createLocalStorageAdapter,
+  createUserScopedStorage,
   ensureValidAccessToken,
   startTokenRefreshScheduler,
   stopTokenRefreshScheduler,
@@ -13,7 +15,21 @@ import {
 
 const baseURL = import.meta.env.VITE_API_URL ?? "http://localhost:3001";
 
+const rawStorage = {
+  getItem: (key: string) => localStorage.getItem(key),
+  setItem: (key: string, value: string) => {
+    localStorage.setItem(key, value);
+  },
+  removeItem: (key: string) => {
+    localStorage.removeItem(key);
+  },
+};
+
 const storage = createLocalStorageAdapter();
+
+export const userScopedAppStorage = createUserScopedStorage(rawStorage);
+
+export { rawStorage };
 
 function notifySessionChanged() {
   window.dispatchEvent(new Event("pulse-session-changed"));
@@ -27,6 +43,7 @@ const tokenCallbacks = {
   },
   onSessionExpired: () => {
     stopSessionTokenRefresh();
+    activateUserSession(null);
     notifySessionChanged();
   },
 };

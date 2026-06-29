@@ -1,5 +1,6 @@
 import type { QueryClient } from "@tanstack/react-query";
 import type { UserSettings } from "@repo/types";
+import { syncGoalSettingsToLocal } from "./goal-local-storage";
 import { queryKeys } from "./query-keys";
 
 export type GoalTargetFields = Pick<
@@ -32,6 +33,7 @@ export function applyRemoteGoalUpdate(
   goals: GoalTargetFields,
 ) {
   mergeGoalSettingsIntoCache(queryClient, goals);
+  void syncGoalSettingsToLocal(goals);
   void queryClient.refetchQueries({ queryKey: queryKeys.settings });
   queryClient.invalidateQueries({ queryKey: queryKeys.todayStats });
   queryClient.invalidateQueries({ queryKey: queryKeys.statsSummary });

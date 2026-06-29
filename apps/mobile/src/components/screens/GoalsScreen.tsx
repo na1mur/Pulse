@@ -1,8 +1,9 @@
 import { View, Pressable, Text } from "react-native";
-import { appStorage } from "@/utils/api";
 import { Minus, Plus } from "lucide-react-native";
 import { hoursToMinutes, formatMinutes, minutesToHours } from "@repo/utils";
-import { GOAL_DEFAULTS } from "@repo/queries";
+import { GOAL_STORAGE_KEYS } from "@repo/api-client";
+import { GOAL_DEFAULTS, readStoredGoalHours } from "@repo/queries";
+import { userScopedAppStorage } from "@/utils/api";
 import { ScreenHeader } from "@/components/ScreenHeader";
 import { Screen, ScreenScroll } from "@/components/Screen";
 import { ThemedText } from "@/components/ThemeShell";
@@ -114,31 +115,25 @@ export function GoalsScreen() {
 
   const persistDailyGoal = (hours: number, enabled: boolean) => {
     updateDailyTarget.mutate(enabled ? hoursToMinutes(hours) : 0);
-    if (enabled && hours > 0) {
-      appStorage.setItem("pulse-last-goal-hours", String(hours));
-    }
   };
 
   const persistWeeklyGoal = (hours: number, enabled: boolean) => {
     updateWeeklyTarget.mutate(enabled ? hoursToMinutes(hours) : 0);
-    if (enabled && hours > 0) {
-      appStorage.setItem("pulse-last-weekly-goal-hours", String(hours));
-    }
   };
 
   const persistMonthlyGoal = (hours: number, enabled: boolean) => {
     updateMonthlyTarget.mutate(enabled ? hoursToMinutes(hours) : 0);
-    if (enabled && hours > 0) {
-      appStorage.setItem("pulse-last-monthly-goal-hours", String(hours));
-    }
   };
 
   const toggleDailyGoal = async () => {
     const next = !goalEnabled;
     setGoalEnabled(next);
     if (next) {
-      const stored = await appStorage.getItem("pulse-last-goal-hours");
-      const hours = stored ? parseInt(stored, 10) : GOAL_DEFAULTS.dailyHours;
+      const hours = await readStoredGoalHours(
+        userScopedAppStorage,
+        GOAL_STORAGE_KEYS.daily,
+        GOAL_DEFAULTS.dailyHours,
+      );
       setDailyGoalHours(hours);
       persistDailyGoal(hours, true);
     } else {
@@ -150,8 +145,11 @@ export function GoalsScreen() {
     const next = !weeklyGoalEnabled;
     setWeeklyGoalEnabled(next);
     if (next) {
-      const stored = await appStorage.getItem("pulse-last-weekly-goal-hours");
-      const hours = stored ? parseInt(stored, 10) : GOAL_DEFAULTS.weeklyHours;
+      const hours = await readStoredGoalHours(
+        userScopedAppStorage,
+        GOAL_STORAGE_KEYS.weekly,
+        GOAL_DEFAULTS.weeklyHours,
+      );
       setWeeklyGoalHours(hours);
       persistWeeklyGoal(hours, true);
     } else {
@@ -163,8 +161,11 @@ export function GoalsScreen() {
     const next = !monthlyGoalEnabled;
     setMonthlyGoalEnabled(next);
     if (next) {
-      const stored = await appStorage.getItem("pulse-last-monthly-goal-hours");
-      const hours = stored ? parseInt(stored, 10) : GOAL_DEFAULTS.monthlyHours;
+      const hours = await readStoredGoalHours(
+        userScopedAppStorage,
+        GOAL_STORAGE_KEYS.monthly,
+        GOAL_DEFAULTS.monthlyHours,
+      );
       setMonthlyGoalHours(hours);
       persistMonthlyGoal(hours, true);
     } else {

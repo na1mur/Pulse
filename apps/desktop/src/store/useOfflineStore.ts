@@ -1,5 +1,7 @@
 import { create } from "zustand";
-import { persist } from "zustand/middleware";
+import { persist, createJSONStorage } from "zustand/middleware";
+import { PERSIST_STORE_KEYS } from "@repo/api-client";
+import { scopedPersistStorage } from "./scopedStorage";
 
 export interface PendingSession {
   localId: string;
@@ -39,7 +41,8 @@ export const useOfflineStore = create<OfflineStoreState>()(
       clearPendingSessions: () => set({ pendingSessions: [] }),
     }),
     {
-      name: "pulse-offline-storage",
+      name: PERSIST_STORE_KEYS.offline,
+      storage: createJSONStorage(() => scopedPersistStorage),
     },
   ),
 );

@@ -1,7 +1,9 @@
 import { useEffect, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import type { UserSettings } from "@repo/types";
+import { GOAL_STORAGE_KEYS } from "@repo/api-client";
 import { useApi } from "./api-context";
+import { syncGoalSettingsToLocal, type GoalStorage } from "./goal-local-storage";
 import { settingsQueryOptions } from "./settings-query";
 
 export const GOAL_DEFAULTS = {
@@ -10,10 +12,7 @@ export const GOAL_DEFAULTS = {
   monthlyHours: 160,
 } as const;
 
-export interface GoalStorage {
-  getItem(key: string): Promise<string | null> | string | null;
-  setItem(key: string, value: string): Promise<void> | void;
-}
+export type { GoalStorage } from "./goal-local-storage";
 
 function syncFromSettings(
   settings: UserSettings,
@@ -32,9 +31,6 @@ function syncFromSettings(
   if (settings.dailyTargetMinutes > 0) {
     const hours = dailyHours || GOAL_DEFAULTS.dailyHours;
     setters.setDailyGoalHours(hours);
-    void Promise.resolve(
-      storage.setItem("pulse-last-goal-hours", String(hours)),
-    );
   }
 
   const weeklyHours = Math.round(settings.weeklyTargetMinutes / 60);
@@ -42,9 +38,6 @@ function syncFromSettings(
   if (settings.weeklyTargetMinutes > 0) {
     const hours = weeklyHours || GOAL_DEFAULTS.weeklyHours;
     setters.setWeeklyGoalHours(hours);
-    void Promise.resolve(
-      storage.setItem("pulse-last-weekly-goal-hours", String(hours)),
-    );
   }
 
   const monthlyHours = Math.round(settings.monthlyTargetMinutes / 60);
@@ -52,10 +45,20 @@ function syncFromSettings(
   if (settings.monthlyTargetMinutes > 0) {
     const hours = monthlyHours || GOAL_DEFAULTS.monthlyHours;
     setters.setMonthlyGoalHours(hours);
-    void Promise.resolve(
-      storage.setItem("pulse-last-monthly-goal-hours", String(hours)),
-    );
   }
+
+  void syncGoalSettingsToLocal(settings, storage);
+}
+
+export async function readStoredGoalHours(
+  storage: GoalStorage,
+  key: (typeof GOAL_STORAGE_KEYS)[keyof typeof GOAL_STORAGE_KEYS],
+  fallback: number,
+): Promise<number> {
+  const stored = await Promise.resolve(storage.getItem(key));
+  if (!stored) return fallback;
+  const parsed = parseInt(stored, 10);
+  return Number.isFinite(parsed) ? parsed : fallback;
 }
 
 export function useGoalState(storage: GoalStorage) {

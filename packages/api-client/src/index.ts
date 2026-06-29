@@ -2,6 +2,7 @@ import axios, { type AxiosInstance } from "axios";
 import { refreshTokens } from "./tokens";
 
 export {
+  decodeJwtPayload,
   ensureValidAccessToken,
   getAccessTokenExpiryMs,
   isAccessTokenExpired,
@@ -10,6 +11,22 @@ export {
   stopTokenRefreshScheduler,
   type RefreshTokensOptions,
 } from "./tokens";
+
+export {
+  activateUserSession,
+  createUserScopedPersistStorage,
+  createUserScopedStorage,
+  getActiveUserId,
+  getUserIdFromAccessToken,
+  GOAL_STORAGE_KEYS,
+  migrateLegacyGoalStorage,
+  PERSIST_STORE_KEYS,
+  persistGoalSettingsToLocal,
+  scopeStorageKey,
+  type GoalSettingsSnapshot,
+  type KeyValueStorage,
+  type PersistStateStorage,
+} from "./user-storage";
 
 export interface TokenStorage {
   getAccessToken(): Promise<string | null> | string | null;

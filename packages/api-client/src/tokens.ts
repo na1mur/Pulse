@@ -8,7 +8,9 @@ async function resolve<T>(value: T | Promise<T>): Promise<T> {
   return value;
 }
 
-function decodeJwtPayload(token: string): { exp?: number } | null {
+export function decodeJwtPayload(
+  token: string,
+): { userId?: string; exp?: number } | null {
   const parts = token.split(".");
   const encodedPayload = parts[1];
   if (!encodedPayload) return null;

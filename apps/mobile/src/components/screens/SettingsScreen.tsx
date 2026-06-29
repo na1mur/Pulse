@@ -1,6 +1,8 @@
 import { View, Pressable, Text } from "react-native";
 import { useRouter } from "expo-router";
+import { useQueryClient } from "@tanstack/react-query";
 import { LogOut } from "lucide-react-native";
+import { deactivateUserSession } from "@repo/queries";
 import { ScreenHeader } from "@/components/ScreenHeader";
 import { Screen, ScreenScroll } from "@/components/Screen";
 import { ThemeSelector } from "@/components/ThemeToggle";
@@ -21,12 +23,14 @@ const TIMEZONES = [
 
 export function SettingsScreen() {
   const router = useRouter();
+  const queryClient = useQueryClient();
   const colors = useThemeColors();
   const { data: settings } = useUserSettings();
   const updateTimezone = useUpdateTimezone();
 
   const handleLogout = async () => {
     stopSessionTokenRefresh();
+    deactivateUserSession(queryClient);
     await tokenStorage.clearTokens();
     router.replace("/(auth)/login");
   };

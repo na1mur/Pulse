@@ -1,23 +1,36 @@
 import { useEffect, useState } from "react";
 import type { AppPage } from "@repo/types";
-import { useGoalState, resetGoalAchievementDedup } from "@repo/queries";
+import {
+  bootstrapUserSession,
+  deactivateUserSession,
+  registerGoalStorage,
+  resetGoalAchievementDedup,
+  useGoalState,
+} from "@repo/queries";
+import { getUserIdFromAccessToken } from "@repo/api-client";
 import { AchievementNotifier } from "@/components/AchievementNotifier";
 import { AuthPages } from "@/components/AuthPages";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { useSocketSync } from "@/hooks/useSocketSync";
 import { useSyncManager } from "@/hooks/useSyncManager";
 import { useUserSettings } from "@/hooks/usePulseQueries";
+import { rehydrateUserPersistedStores } from "@/store/rehydrateUserStores";
+import { queryClient } from "@/main";
 import {
   hasValidSession,
+  rawStorage,
   startSessionTokenRefresh,
   stopSessionTokenRefresh,
   storage,
   TOKEN_KEYS,
+  userScopedAppStorage,
 } from "@/utils/api";
 
 const desktopGoalStorage = {
-  getItem: (key: string) => localStorage.getItem(key),
-  setItem: (key: string, value: string) => localStorage.setItem(key, value),
+  getItem: (key: string) => userScopedAppStorage.getItem(key),
+  setItem: (key: string, value: string) =>
+    userScopedAppStorage.setItem(key, value),
+  removeItem: (key: string) => userScopedAppStorage.removeItem(key),
 };
 
 function readAccessToken() {
@@ -27,6 +40,11 @@ function readAccessToken() {
 function PulseApp({ onLogout }: { onLogout: () => void }) {
   useSyncManager();
   useSocketSync();
+
+  useEffect(() => {
+    registerGoalStorage(desktopGoalStorage);
+    return () => registerGoalStorage(null);
+  }, []);
 
   const [currentPage, setCurrentPage] = useState<AppPage>("dashboard");
   const {
@@ -47,6 +65,7 @@ function PulseApp({ onLogout }: { onLogout: () => void }) {
 
   const handleLogout = () => {
     stopSessionTokenRefresh();
+    deactivateUserSession(queryClient);
     storage.clearTokens();
     resetGoalAchievementDedup();
     onLogout();
@@ -82,6 +101,20 @@ function PulseApp({ onLogout }: { onLogout: () => void }) {
   );
 }
 
+async function restoreUserSession(accessToken: string | null): Promise<void> {
+  if (!accessToken) return;
+
+  const userId = getUserIdFromAccessToken(accessToken);
+  if (!userId) return;
+
+  await bootstrapUserSession({
+    userId,
+    queryClient,
+    rehydrateStores: rehydrateUserPersistedStores,
+    goalStorageBackend: rawStorage,
+  });
+}
+
 export default function App() {
   const [sessionReady, setSessionReady] = useState(false);
   const [token, setToken] = useState<string | null>(null);
@@ -93,7 +126,12 @@ export default function App() {
       const valid = await hasValidSession();
       if (!active) return;
 
-      setToken(valid ? readAccessToken() : null);
+      const accessToken = valid ? readAccessToken() : null;
+      if (accessToken) {
+        await restoreUserSession(accessToken);
+      }
+
+      setToken(accessToken);
       setSessionReady(true);
       if (valid) {
         startSessionTokenRefresh();
@@ -123,7 +161,13 @@ export default function App() {
   if (!token) {
     return (
       <AuthPages
-        onAuthSuccess={(accessToken) => {
+        onAuthSuccess={async (accessToken, userId) => {
+          await bootstrapUserSession({
+            userId,
+            queryClient,
+            rehydrateStores: rehydrateUserPersistedStores,
+            goalStorageBackend: rawStorage,
+          });
           setToken(accessToken);
           startSessionTokenRefresh();
           window.dispatchEvent(new Event("pulse-session-changed"));
