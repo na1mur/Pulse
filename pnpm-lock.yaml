@@ -90,6 +90,9 @@ importers:
 
   apps/desktop:
     dependencies:
+      '@repo/api-client':
+        specifier: workspace:*
+        version: link:../../packages/api-client
       '@repo/types':
         specifier: workspace:*
         version: link:../../packages/types
@@ -169,6 +172,9 @@ importers:
       '@react-native-async-storage/async-storage':
         specifier: ^2.1.2
         version: 2.2.0(react-native@0.85.3(@babel/core@7.29.7)(@types/react@19.2.17)(react@19.2.7))
+      '@repo/api-client':
+        specifier: workspace:*
+        version: link:../../packages/api-client
       '@repo/types':
         specifier: workspace:*
         version: link:../../packages/types
@@ -212,6 +218,19 @@ importers:
       typescript:
         specifier: ~6.0.3
         version: 6.0.3
+
+  packages/api-client:
+    dependencies:
+      axios:
+        specifier: ^1.18.1
+        version: 1.18.1
+    devDependencies:
+      '@repo/typescript-config':
+        specifier: workspace:*
+        version: link:../typescript-config
+      typescript:
+        specifier: 5.9.2
+        version: 5.9.2
 
   packages/eslint-config:
     devDependencies:

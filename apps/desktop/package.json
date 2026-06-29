@@ -13,6 +13,7 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@repo/api-client": "workspace:*",
     "@repo/types": "workspace:*",
     "@repo/utils": "workspace:*",
     "@tanstack/react-query": "^5.101.2",
