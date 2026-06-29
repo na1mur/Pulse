@@ -87,9 +87,11 @@ export function AppLayout({
       <aside className="w-64 border-r border-border bg-sidebar flex flex-col">
         <div className="p-6 border-b border-sidebar-border">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-lg bg-sidebar-primary text-sidebar-primary-foreground flex items-center justify-center">
-              <span className="font-bold">P</span>
-            </div>
+            <img
+              src="/branding/logo-mark.png"
+              alt=""
+              className="w-10 h-10 rounded-lg"
+            />
             <div>
               <h1 className="font-semibold text-sidebar-foreground">Pulse</h1>
               <p className="text-xs text-muted-foreground">Time Tracker</p>

@@ -1,8 +1,14 @@
 import { useState } from "react";
-import { View, Text, TextInput, Pressable, ScrollView } from "react-native";
+import {
+  View,
+  Text,
+  TextInput,
+  Pressable,
+  ScrollView,
+  Image,
+} from "react-native";
 import { useRouter } from "expo-router";
 import axios from "axios";
-import { Clock } from "lucide-react-native";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { ThemeShell, ThemedText } from "@/components/ThemeShell";
 import { Button } from "@/components/ui/Button";
@@ -78,13 +84,12 @@ export default function LoginScreen() {
       >
         <View className="w-full max-w-md self-center gap-6">
           <View className="items-center gap-2">
-            <View
-              className="w-12 h-12 rounded-lg items-center justify-center"
-              style={{ backgroundColor: colors.primary }}
-            >
-              <Clock size={24} color={colors.primaryForeground} />
-            </View>
-            <ThemedText className="text-3xl font-semibold">Pulse</ThemedText>
+            <Image
+              source={require("../../../assets/branding/logo-wordmark.png")}
+              style={{ width: 192, height: 192 }}
+              resizeMode="contain"
+              accessibilityLabel="Pulse"
+            />
             <ThemedText className="text-neutral-500 text-center">
               {isLogin
                 ? "Welcome back. Let's track your productivity."

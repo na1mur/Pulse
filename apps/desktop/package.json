@@ -9,6 +9,7 @@
     "dev": "concurrently \"vite\" \"tsc -p tsconfig.electron.json --watch\" \"wait-on http://localhost:5173 && electron .\"",
     "build:electron": "tsc -p tsconfig.electron.json && node -e \"require('fs').writeFileSync('dist-electron/package.json', JSON.stringify({type: 'commonjs'}))\"",
     "build": "tsc -b && vite build && pnpm build:electron",
+    "dist:win": "pnpm build && electron-builder --win",
     "lint": "oxlint",
     "preview": "vite preview"
   },
@@ -47,5 +48,20 @@
     "typescript": "~6.0.2",
     "vite": "^8.1.0",
     "wait-on": "^9.0.10"
+  },
+  "build": {
+    "appId": "com.pulse.timetracker",
+    "productName": "Pulse",
+    "directories": {
+      "output": "release"
+    },
+    "files": [
+      "dist/**",
+      "dist-electron/**"
+    ],
+    "win": {
+      "target": "nsis",
+      "icon": "build/icons/icon.ico"
+    }
   }
 }

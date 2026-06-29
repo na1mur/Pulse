@@ -1,6 +1,5 @@
 import { useState } from "react";
 import axios from "axios";
-import { Clock } from "lucide-react";
 import ThemeToggle from "@/components/ThemeToggle";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -31,9 +30,7 @@ export function AuthPages({ onAuthSuccess }: AuthPagesProps) {
     }
 
     setIsLoading(true);
-    const url = isLogin
-      ? `${baseURL}/auth/login`
-      : `${baseURL}/auth/register`;
+    const url = isLogin ? `${baseURL}/auth/login` : `${baseURL}/auth/register`;
 
     try {
       const response = await axios.post(url, { email, password });
@@ -66,10 +63,11 @@ export function AuthPages({ onAuthSuccess }: AuthPagesProps) {
       <div className="w-full max-w-md">
         <div className="space-y-6">
           <div className="text-center space-y-2">
-            <div className="inline-flex items-center justify-center w-12 h-12 rounded-lg bg-primary text-primary-foreground">
-              <Clock className="w-6 h-6" />
-            </div>
-            <h1 className="text-3xl font-semibold text-foreground">Pulse</h1>
+            <img
+              src="/branding/logo-wordmark.png"
+              alt="Pulse"
+              className="h-24 w-auto mx-auto"
+            />
             <p className="text-muted-foreground">
               {isLogin
                 ? "Welcome back. Let's track your productivity."
@@ -132,7 +130,9 @@ export function AuthPages({ onAuthSuccess }: AuthPagesProps) {
 
           <div className="text-center text-sm">
             <span className="text-muted-foreground">
-              {isLogin ? "Don't have an account? " : "Already have an account? "}
+              {isLogin
+                ? "Don't have an account? "
+                : "Already have an account? "}
             </span>
             <button
               type="button"
