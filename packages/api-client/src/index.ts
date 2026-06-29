@@ -1,4 +1,15 @@
 import axios, { type AxiosInstance } from "axios";
+import { refreshTokens } from "./tokens";
+
+export {
+  ensureValidAccessToken,
+  getAccessTokenExpiryMs,
+  isAccessTokenExpired,
+  refreshTokens,
+  startTokenRefreshScheduler,
+  stopTokenRefreshScheduler,
+  type RefreshTokensOptions,
+} from "./tokens";
 
 export interface TokenStorage {
   getAccessToken(): Promise<string | null> | string | null;
@@ -44,41 +55,24 @@ export function createApiClient({
       if (
         error.response?.status === 401 &&
         originalRequest &&
-        !originalRequest._retry
+        !originalRequest._retry &&
+        !originalRequest.url?.includes("/auth/refresh")
       ) {
         originalRequest._retry = true;
-        try {
-          const refreshToken = await resolve(storage.getRefreshToken());
-          if (!refreshToken) throw new Error("No refresh token");
 
-          const response = await axios.post(`${baseURL}/auth/refresh`, {
-            refreshToken,
-          });
+        const accessToken = await refreshTokens(baseURL, storage, {
+          onTokenRefreshed,
+          onSessionExpired,
+        });
 
-          const { accessToken, refreshToken: newRefreshToken } = response.data;
-          await resolve(storage.setTokens(accessToken, newRefreshToken));
-          onTokenRefreshed?.();
-
+        if (accessToken) {
           if (originalRequest.headers) {
             originalRequest.headers.Authorization = `Bearer ${accessToken}`;
           }
           return api(originalRequest);
-        } catch (err) {
-          console.error("Session expired:", err);
-          const status =
-            typeof err === "object" &&
-            err !== null &&
-            "response" in err &&
-            typeof (err as { response?: { status?: number } }).response
-              ?.status === "number"
-              ? (err as { response: { status: number } }).response.status
-              : undefined;
-          if (status === 401 || status === 400) {
-            await resolve(storage.clearTokens());
-            onSessionExpired?.();
-          }
         }
       }
+
       return Promise.reject(error);
     },
   );

@@ -6,6 +6,7 @@ import {
   applyRemoteGoalUpdate,
   type GoalTargetFields,
 } from "@repo/queries";
+import { refreshTokens } from "@repo/api-client";
 import { tokenStorage, setTokenRefreshHandler } from "@/utils/api";
 import { useTimerStore } from "../store/useTimerStore";
 
@@ -100,9 +101,10 @@ function bindSocketEvents(activeSocket: Socket) {
 
   activeSocket.on("connect_error", async (err) => {
     console.warn("Mobile socket connect_error:", err.message);
-    const token = await tokenStorage.getAccessToken();
-    if (token && activeSocket) {
-      activeSocket.auth = { token };
+    const newToken = await refreshTokens(getBaseURL(), tokenStorage);
+    if (newToken && activeSocket) {
+      activeSocket.auth = { token: newToken };
+      activeSocket.connect();
     }
   });
 }

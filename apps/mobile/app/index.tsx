@@ -1,7 +1,11 @@
 import { useEffect, useState } from "react";
 import { Redirect } from "expo-router";
 import { View, ActivityIndicator } from "react-native";
-import { hasValidSession } from "@/utils/api";
+import {
+  hasValidSession,
+  startSessionTokenRefresh,
+  stopSessionTokenRefresh,
+} from "@/utils/api";
 
 export default function Index() {
   const [authenticated, setAuthenticated] = useState<boolean | undefined>(
@@ -9,7 +13,20 @@ export default function Index() {
   );
 
   useEffect(() => {
-    hasValidSession().then(setAuthenticated);
+    let active = true;
+
+    hasValidSession().then((valid) => {
+      if (!active) return;
+      setAuthenticated(valid);
+      if (valid) {
+        startSessionTokenRefresh();
+      }
+    });
+
+    return () => {
+      active = false;
+      stopSessionTokenRefresh();
+    };
   }, []);
 
   if (authenticated === undefined) {

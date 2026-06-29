@@ -7,7 +7,12 @@ import { ThemeToggle } from "@/components/ThemeToggle";
 import { ThemeShell, ThemedText } from "@/components/ThemeShell";
 import { Button } from "@/components/ui/Button";
 import { useThemeColors } from "@/hooks/useThemeColors";
-import { appStorage, tokenStorage, TOKEN_KEYS } from "@/utils/api";
+import {
+  appStorage,
+  startSessionTokenRefresh,
+  tokenStorage,
+  TOKEN_KEYS,
+} from "@/utils/api";
 
 const baseURL = process.env.EXPO_PUBLIC_API_URL ?? "http://localhost:3001";
 
@@ -46,6 +51,7 @@ export default function LoginScreen() {
       const { accessToken, refreshToken } = response.data;
       await tokenStorage.setTokens(accessToken, refreshToken);
       await appStorage.setItem(TOKEN_KEYS.email, email);
+      startSessionTokenRefresh();
       router.replace("/(tabs)");
     } catch (err: unknown) {
       const axiosErr = err as { response?: { data?: { error?: unknown } } };

@@ -6,10 +6,13 @@ import { AppLayout } from "@/components/layout/AppLayout";
 import { useSocketSync } from "@/hooks/useSocketSync";
 import { useSyncManager } from "@/hooks/useSyncManager";
 import { useUserSettings } from "@/hooks/usePulseQueries";
-import { TOKEN_KEYS } from "@/utils/api";
-import { createLocalStorageAdapter } from "@repo/api-client";
-
-const storage = createLocalStorageAdapter();
+import {
+  hasValidSession,
+  startSessionTokenRefresh,
+  stopSessionTokenRefresh,
+  storage,
+  TOKEN_KEYS,
+} from "@/utils/api";
 
 const desktopGoalStorage = {
   getItem: (key: string) => localStorage.getItem(key),
@@ -42,6 +45,7 @@ function PulseApp({ onLogout }: { onLogout: () => void }) {
   const { data: settings } = useUserSettings();
 
   const handleLogout = () => {
+    stopSessionTokenRefresh();
     storage.clearTokens();
     onLogout();
   };
@@ -74,25 +78,49 @@ function PulseApp({ onLogout }: { onLogout: () => void }) {
 }
 
 export default function App() {
-  const [token, setToken] = useState<string | null>(readAccessToken);
+  const [sessionReady, setSessionReady] = useState(false);
+  const [token, setToken] = useState<string | null>(null);
 
   useEffect(() => {
+    let active = true;
+
+    async function initSession() {
+      const valid = await hasValidSession();
+      if (!active) return;
+
+      setToken(valid ? readAccessToken() : null);
+      setSessionReady(true);
+      if (valid) {
+        startSessionTokenRefresh();
+      }
+    }
+
+    void initSession();
+
     const syncSession = () => {
       setToken(readAccessToken());
     };
     window.addEventListener("storage", syncSession);
     window.addEventListener("pulse-session-changed", syncSession);
+
     return () => {
+      active = false;
+      stopSessionTokenRefresh();
       window.removeEventListener("storage", syncSession);
       window.removeEventListener("pulse-session-changed", syncSession);
     };
   }, []);
+
+  if (!sessionReady) {
+    return null;
+  }
 
   if (!token) {
     return (
       <AuthPages
         onAuthSuccess={(accessToken) => {
           setToken(accessToken);
+          startSessionTokenRefresh();
           window.dispatchEvent(new Event("pulse-session-changed"));
         }}
       />

@@ -6,7 +6,9 @@ import {
   applyRemoteGoalUpdate,
   type GoalTargetFields,
 } from "@repo/queries";
+import { refreshTokens } from "@repo/api-client";
 import { useTimerStore } from "../store/useTimerStore";
+import { storage } from "@/utils/api";
 
 let socket: Socket | null = null;
 let queryClientRef: QueryClient | null = null;
@@ -16,7 +18,7 @@ function getBaseURL() {
 }
 
 function getAccessToken() {
-  return localStorage.getItem("pulse-access-token");
+  return storage.getAccessToken();
 }
 
 function teardownSocket() {
@@ -110,6 +112,15 @@ function bindSocketEvents(activeSocket: Socket) {
   activeSocket.on("disconnect", () => {
     console.log("Disconnected from Socket.IO sync server");
   });
+
+  activeSocket.on("connect_error", async (err) => {
+    console.warn("Socket connect_error:", err.message);
+    const newToken = await refreshTokens(getBaseURL(), storage);
+    if (newToken && activeSocket) {
+      activeSocket.auth = { token: newToken };
+      activeSocket.connect();
+    }
+  });
 }
 
 function connectSocket() {
@@ -123,6 +134,7 @@ function connectSocket() {
   socket = io(getBaseURL(), {
     auth: { token: accessToken },
     autoConnect: true,
+    reconnection: true,
   });
   bindSocketEvents(socket);
 }

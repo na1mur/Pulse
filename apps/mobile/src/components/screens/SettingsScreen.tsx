@@ -9,7 +9,7 @@ import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { useUserSettings, useUpdateTimezone } from "@/hooks/usePulseQueries";
 import { useThemeColors } from "@/hooks/useThemeColors";
-import { tokenStorage } from "@/utils/api";
+import { stopSessionTokenRefresh, tokenStorage } from "@/utils/api";
 
 const TIMEZONES = [
   { value: "America/New_York", label: "Eastern (EST)" },
@@ -26,6 +26,7 @@ export function SettingsScreen() {
   const updateTimezone = useUpdateTimezone();
 
   const handleLogout = async () => {
+    stopSessionTokenRefresh();
     await tokenStorage.clearTokens();
     router.replace("/(auth)/login");
   };

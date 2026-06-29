@@ -3,10 +3,14 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import {
   createAsyncStorageAdapter,
   createApiClient,
+  ensureValidAccessToken,
+  startTokenRefreshScheduler,
+  stopTokenRefreshScheduler,
   TOKEN_KEYS,
   type TokenStorage,
 } from "@repo/api-client";
 import { router } from "expo-router";
+import { reconnectTimerSocket } from "@/hooks/useSocketSync";
 
 const baseURL = process.env.EXPO_PUBLIC_API_URL ?? "http://localhost:3001";
 
@@ -37,30 +41,46 @@ export const tokenStorage: TokenStorage =
 /** Shared storage for non-token keys (theme, goal prefs, email). */
 export const appStorage = storageBackend;
 
-export async function hasValidSession(): Promise<boolean> {
-  const [access, refresh] = await Promise.all([
-    tokenStorage.getAccessToken(),
-    tokenStorage.getRefreshToken(),
-  ]);
-  return Boolean(access && refresh);
-}
+const tokenCallbacks = {
+  onTokenRefreshed: () => {
+    tokenRefreshHandler?.();
+    void reconnectTimerSocket();
+  },
+  onSessionExpired: () => {
+    stopTokenRefresh();
+    router.replace("/(auth)/login");
+  },
+};
 
 let tokenRefreshHandler: (() => void) | undefined;
+let stopTokenRefresh = () => {};
 
 export function setTokenRefreshHandler(handler: () => void) {
   tokenRefreshHandler = handler;
 }
 
+export async function hasValidSession(): Promise<boolean> {
+  return ensureValidAccessToken(baseURL, tokenStorage, tokenCallbacks);
+}
+
+export function startSessionTokenRefresh(): void {
+  stopTokenRefresh();
+  stopTokenRefresh = startTokenRefreshScheduler(
+    baseURL,
+    tokenStorage,
+    tokenCallbacks,
+  );
+}
+
+export function stopSessionTokenRefresh(): void {
+  stopTokenRefresh();
+  stopTokenRefreshScheduler(tokenStorage);
+}
+
 export const api = createApiClient({
   baseURL,
   storage: tokenStorage,
-  onSessionExpired: () => {
-    router.replace("/(auth)/login");
-  },
-  onTokenRefreshed: () => {
-    tokenRefreshHandler?.();
-    void reconnectTimerSocket();
-  },
+  ...tokenCallbacks,
 });
 
 export { TOKEN_KEYS };
