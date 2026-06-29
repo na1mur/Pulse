@@ -6,7 +6,13 @@ dotenv.config();
 
 const envSchema = z.object({
   PORT: z.coerce.number().default(3001),
-  MONGODB_URI: z.string().url("Invalid MONGODB_URI"),
+  MONGODB_URI: z
+    .string()
+    .min(1)
+    .refine(
+      (uri) => uri.startsWith("mongodb://") || uri.startsWith("mongodb+srv://"),
+      "Invalid MONGODB_URI",
+    ),
   JWT_SECRET: z
     .string()
     .min(8, "JWT_SECRET must be at least 8 characters long"),
