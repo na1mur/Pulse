@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { io, Socket } from "socket.io-client";
 import { useQueryClient } from "@tanstack/react-query";
+import { queryKeys } from "@repo/queries";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useTimerStore } from "../store/useTimerStore";
 
@@ -61,7 +62,11 @@ export function useSocketSync() {
           startedAt: undefined,
           elapsedBeforeCurrentRun: data.elapsedBeforeCurrentRun || 0,
         });
-        queryClient.invalidateQueries();
+        queryClient.invalidateQueries({ queryKey: queryKeys.todayStats });
+        queryClient.invalidateQueries({ queryKey: queryKeys.statsSummary });
+        queryClient.invalidateQueries({ queryKey: queryKeys.weekStats });
+        queryClient.invalidateQueries({ queryKey: queryKeys.weeklyTrend });
+        queryClient.invalidateQueries({ queryKey: queryKeys.todaySessions });
       });
 
       socket.on("timer_reset", () => {
@@ -92,12 +97,17 @@ export function useSocketSync() {
 
       socket.on("goal_updated", () => {
         console.log("Mobile sync: goal_updated received");
-        queryClient.invalidateQueries();
+        queryClient.invalidateQueries({ queryKey: queryKeys.todayStats });
+        queryClient.invalidateQueries({ queryKey: queryKeys.settings });
       });
 
       socket.on("session_created", () => {
         console.log("Mobile sync: session_created received");
-        queryClient.invalidateQueries();
+        queryClient.invalidateQueries({ queryKey: queryKeys.todayStats });
+        queryClient.invalidateQueries({ queryKey: queryKeys.statsSummary });
+        queryClient.invalidateQueries({ queryKey: queryKeys.weekStats });
+        queryClient.invalidateQueries({ queryKey: queryKeys.weeklyTrend });
+        queryClient.invalidateQueries({ queryKey: queryKeys.todaySessions });
       });
 
       socket.on("disconnect", () => {

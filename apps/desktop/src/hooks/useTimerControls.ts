@@ -5,7 +5,7 @@ import { useTimerStore } from "@/store/useTimerStore";
 import { useOfflineStore } from "@/store/useOfflineStore";
 import { useSocketSync } from "@/hooks/useSocketSync";
 import { api } from "@/utils/api";
-import { queryKeys } from "@/hooks/usePulseQueries";
+import { queryKeys } from "@repo/queries";
 
 export function useTimerControls() {
   const queryClient = useQueryClient();

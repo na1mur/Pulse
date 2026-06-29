@@ -96,6 +96,9 @@ importers:
       '@repo/api-client':
         specifier: workspace:*
         version: link:../../packages/api-client
+      '@repo/queries':
+        specifier: workspace:*
+        version: link:../../packages/queries
       '@repo/types':
         specifier: workspace:*
         version: link:../../packages/types
@@ -193,6 +196,9 @@ importers:
       '@repo/api-client':
         specifier: workspace:*
         version: link:../../packages/api-client
+      '@repo/queries':
+        specifier: workspace:*
+        version: link:../../packages/queries
       '@repo/types':
         specifier: workspace:*
         version: link:../../packages/types
@@ -339,6 +345,31 @@ importers:
       typescript-eslint:
         specifier: ^8.50.0
         version: 8.62.0(eslint@9.39.4(jiti@2.7.0))(typescript@5.9.2)
+
+  packages/queries:
+    dependencies:
+      '@repo/types':
+        specifier: workspace:*
+        version: link:../types
+      '@tanstack/react-query':
+        specifier: ^5.101.2
+        version: 5.101.2(react@19.2.7)
+      axios:
+        specifier: ^1.18.1
+        version: 1.18.1
+      react:
+        specifier: ^19.0.0
+        version: 19.2.7
+    devDependencies:
+      '@repo/typescript-config':
+        specifier: workspace:*
+        version: link:../typescript-config
+      '@types/react':
+        specifier: ^19.2.17
+        version: 19.2.17
+      typescript:
+        specifier: 5.9.2
+        version: 5.9.2
 
   packages/types:
     devDependencies:

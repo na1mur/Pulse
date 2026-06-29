@@ -1,6 +1,7 @@
 import { useEffect, useRef } from "react";
 import { io, Socket } from "socket.io-client";
 import { useQueryClient } from "@tanstack/react-query";
+import { queryKeys } from "@repo/queries";
 import { useTimerStore } from "../store/useTimerStore";
 
 let socket: Socket | null = null;
@@ -53,8 +54,11 @@ export function useSocketSync() {
         startedAt: undefined,
         elapsedBeforeCurrentRun: data.elapsedBeforeCurrentRun || 0,
       });
-      // Invalidate stats and sessions queries to reload new data
-      queryClient.invalidateQueries();
+      queryClient.invalidateQueries({ queryKey: queryKeys.todayStats });
+      queryClient.invalidateQueries({ queryKey: queryKeys.statsSummary });
+      queryClient.invalidateQueries({ queryKey: queryKeys.weekStats });
+      queryClient.invalidateQueries({ queryKey: queryKeys.weeklyTrend });
+      queryClient.invalidateQueries({ queryKey: queryKeys.todaySessions });
     });
 
     // Inbound listener: Another device reset the timer
@@ -93,12 +97,17 @@ export function useSocketSync() {
     // Inbound listener: Goal target or session update
     socket.on("goal_updated", () => {
       console.log("Sync event: goal_updated received");
-      queryClient.invalidateQueries();
+      queryClient.invalidateQueries({ queryKey: queryKeys.todayStats });
+      queryClient.invalidateQueries({ queryKey: queryKeys.settings });
     });
 
     socket.on("session_created", () => {
       console.log("Sync event: session_created received");
-      queryClient.invalidateQueries();
+      queryClient.invalidateQueries({ queryKey: queryKeys.todayStats });
+      queryClient.invalidateQueries({ queryKey: queryKeys.statsSummary });
+      queryClient.invalidateQueries({ queryKey: queryKeys.weekStats });
+      queryClient.invalidateQueries({ queryKey: queryKeys.weeklyTrend });
+      queryClient.invalidateQueries({ queryKey: queryKeys.todaySessions });
     });
 
     socket.on("disconnect", () => {

@@ -1,12 +1,13 @@
 import { useState, useEffect } from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import type { AppPage } from "@repo/types";
+import { ApiProvider } from "@repo/queries";
 import { AuthPages } from "@/components/AuthPages";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { useSocketSync } from "@/hooks/useSocketSync";
 import { useSyncManager } from "@/hooks/useSyncManager";
 import { useUserSettings } from "@/hooks/usePulseQueries";
-import { TOKEN_KEYS } from "@/utils/api";
+import { api, TOKEN_KEYS } from "@/utils/api";
 import { createLocalStorageAdapter } from "@repo/api-client";
 
 const queryClient = new QueryClient();
@@ -63,15 +64,19 @@ export default function App() {
 
   if (!token) {
     return (
-      <QueryClientProvider client={queryClient}>
-        <AuthPages onAuthSuccess={(accessToken) => setToken(accessToken)} />
-      </QueryClientProvider>
+      <ApiProvider api={api}>
+        <QueryClientProvider client={queryClient}>
+          <AuthPages onAuthSuccess={(accessToken) => setToken(accessToken)} />
+        </QueryClientProvider>
+      </ApiProvider>
     );
   }
 
   return (
-    <QueryClientProvider client={queryClient}>
-      <PulseApp onLogout={() => setToken(null)} />
-    </QueryClientProvider>
+    <ApiProvider api={api}>
+      <QueryClientProvider client={queryClient}>
+        <PulseApp onLogout={() => setToken(null)} />
+      </QueryClientProvider>
+    </ApiProvider>
   );
 }
