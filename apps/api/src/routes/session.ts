@@ -5,6 +5,7 @@ import { WorkSession } from "../models/WorkSession";
 import { DailyStats } from "../models/DailyStats";
 import { User } from "../models/User";
 import { broadcastToUser } from "../socket";
+import { detectGoalAchievements } from "../utils/goals";
 import {
   getLocalDateString,
   getLocalDayRange,
@@ -50,7 +51,10 @@ const createSessionHandler: RequestHandler = async (req, res) => {
 
     const dateKey = getLocalDateString(startTime, user.timezone);
 
-    await DailyStats.findOneAndUpdate(
+    const previousStats = await DailyStats.findOne({ userId, date: dateKey });
+    const previousDailyWorked = previousStats?.workedMinutes ?? 0;
+
+    const updatedStats = await DailyStats.findOneAndUpdate(
       { userId, date: dateKey },
       {
         $inc: { workedMinutes: durationMinutes },
@@ -59,7 +63,21 @@ const createSessionHandler: RequestHandler = async (req, res) => {
       { upsert: true, new: true, setDefaultsOnInsert: true },
     );
 
+    const achievements = await detectGoalAchievements({
+      userId,
+      user,
+      dateKey,
+      previousDailyWorked,
+      newDailyWorked:
+        updatedStats?.workedMinutes ?? previousDailyWorked + durationMinutes,
+      durationMinutes,
+    });
+
     broadcastToUser(userId, "session_created", session);
+
+    for (const achievement of achievements) {
+      broadcastToUser(userId, "goal_achieved", achievement);
+    }
 
     res.status(201).json(session);
   } catch (error) {

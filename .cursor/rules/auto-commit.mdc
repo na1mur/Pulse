@@ -1,0 +1,70 @@
+---
+description: Automatically commit completed work with clear, descriptive messages
+alwaysApply: true
+---
+
+# Auto-Commit on Meaningful Changes
+
+Commit without waiting for the user to ask when a coherent unit of work is finished and the repo is in a good state.
+
+## When to Commit
+
+Commit automatically after completing any of these:
+
+- **New feature** — a user-facing capability or API endpoint is working end-to-end
+- **Feature update** — meaningful enhancement to existing behavior (not a half-done tweak)
+- **Bug fix** — root cause addressed and verified
+- **Refactor** — structural change that preserves behavior and is complete
+- **Important infra** — dependencies, CI, config, migrations, or shared types that other work depends on
+- **Multi-step task done** — the user's request (or a clear sub-task of it) is fully implemented
+
+Do **not** commit mid-task, for exploratory spikes, or for tiny incremental edits that belong in the same upcoming commit.
+
+## When to Skip
+
+- Work is incomplete or broken
+- Changes are purely formatting with no functional intent
+- Files likely contain secrets (`.env`, credentials) — warn instead
+- User explicitly says not to commit yet
+
+## Commit Message Style
+
+Match existing repo tone: imperative, concise, focused on **why** the change matters.
+
+```
+Add weekly and monthly target goals to user model and settings
+Enhance goal management with weekly and monthly targets in desktop and mobile apps
+Refactor socket synchronization logic for improved clarity and functionality
+Fix session expiry redirect on mobile web
+```
+
+Prefer one clear sentence. Use `fix`, `add`, `enhance`, `refactor`, or `update` as the leading verb.
+
+## Git Safety
+
+- NEVER update git config or skip hooks (`--no-verify`)
+- NEVER force-push to main/master
+- NEVER amend unless the last commit was yours, unpushed, and the user asked — or a hook auto-modified files after a successful commit
+- NEVER push unless the user explicitly asks
+- Do not create empty commits
+
+## Workflow
+
+After a commit-worthy milestone:
+
+1. Run `git status`, `git diff`, and `git log -5 --oneline` in parallel
+2. Stage relevant files (exclude secrets and unrelated noise)
+3. Commit with a HEREDOC message:
+
+```bash
+git commit -m "$(cat <<'EOF'
+Your message here.
+
+EOF
+)"
+```
+
+4. Run `git status` to confirm success
+5. Briefly tell the user what was committed and why
+
+If a pre-commit hook fails, fix the issue and create a **new** commit — do not amend a failed commit.

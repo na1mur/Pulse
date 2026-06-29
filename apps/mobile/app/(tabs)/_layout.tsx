@@ -1,4 +1,4 @@
-import { Platform } from "react-native";
+import { Platform, View } from "react-native";
 import { Tabs } from "expo-router";
 import {
   LayoutDashboard,
@@ -12,6 +12,7 @@ import { useSyncManager } from "@/hooks/useSyncManager";
 import { useThemeColors } from "@/hooks/useThemeColors";
 import { GoalProvider } from "@/context/GoalContext";
 import { AuthGate } from "@/components/AuthGate";
+import { AchievementNotifier } from "@/components/AchievementNotifier";
 
 function SyncBootstrap() {
   useSyncManager();
@@ -33,56 +34,59 @@ export default function TabsLayout() {
   return (
     <AuthGate>
       <GoalProvider>
-        <SyncBootstrap />
-        <Tabs
-          screenOptions={{
-            headerShown: false,
-            sceneStyle: { backgroundColor: colors.background },
-            tabBarActiveTintColor: colors.tabActive,
-            tabBarInactiveTintColor: colors.tabInactive,
-            tabBarStyle: {
-              backgroundColor: colors.tabBar,
-              borderTopColor: colors.tabBarBorder,
-              paddingBottom: tabBarPaddingBottom,
-              height: tabBarContentHeight + tabBarPaddingBottom,
-            },
-            tabBarLabelStyle: Platform.select({
-              web: { lineHeight: 14, marginBottom: 2 },
-              default: undefined,
-            }),
-          }}
-        >
-          <Tabs.Screen
-            name="index"
-            options={{
-              title: "Dashboard",
-              tabBarIcon: ({ color: c }) => (
-                <LayoutDashboard size={20} color={c} />
-              ),
+        <View className="flex-1">
+          <SyncBootstrap />
+          <Tabs
+            screenOptions={{
+              headerShown: false,
+              sceneStyle: { backgroundColor: colors.background },
+              tabBarActiveTintColor: colors.tabActive,
+              tabBarInactiveTintColor: colors.tabInactive,
+              tabBarStyle: {
+                backgroundColor: colors.tabBar,
+                borderTopColor: colors.tabBarBorder,
+                paddingBottom: tabBarPaddingBottom,
+                height: tabBarContentHeight + tabBarPaddingBottom,
+              },
+              tabBarLabelStyle: Platform.select({
+                web: { lineHeight: 14, marginBottom: 2 },
+                default: undefined,
+              }),
             }}
-          />
-          <Tabs.Screen
-            name="history"
-            options={{
-              title: "History",
-              tabBarIcon: ({ color: c }) => <History size={20} color={c} />,
-            }}
-          />
-          <Tabs.Screen
-            name="statistics"
-            options={{
-              title: "Statistics",
-              tabBarIcon: ({ color: c }) => <BarChart3 size={20} color={c} />,
-            }}
-          />
-          <Tabs.Screen
-            name="goals"
-            options={{
-              title: "Goals",
-              tabBarIcon: ({ color: c }) => <Target size={20} color={c} />,
-            }}
-          />
-        </Tabs>
+          >
+            <Tabs.Screen
+              name="index"
+              options={{
+                title: "Dashboard",
+                tabBarIcon: ({ color: c }) => (
+                  <LayoutDashboard size={20} color={c} />
+                ),
+              }}
+            />
+            <Tabs.Screen
+              name="history"
+              options={{
+                title: "History",
+                tabBarIcon: ({ color: c }) => <History size={20} color={c} />,
+              }}
+            />
+            <Tabs.Screen
+              name="statistics"
+              options={{
+                title: "Statistics",
+                tabBarIcon: ({ color: c }) => <BarChart3 size={20} color={c} />,
+              }}
+            />
+            <Tabs.Screen
+              name="goals"
+              options={{
+                title: "Goals",
+                tabBarIcon: ({ color: c }) => <Target size={20} color={c} />,
+              }}
+            />
+          </Tabs>
+          <AchievementNotifier />
+        </View>
       </GoalProvider>
     </AuthGate>
   );

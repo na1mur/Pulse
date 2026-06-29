@@ -4,8 +4,10 @@ import { useQueryClient, type QueryClient } from "@tanstack/react-query";
 import {
   queryKeys,
   applyRemoteGoalUpdate,
+  emitGoalAchievement,
   type GoalTargetFields,
 } from "@repo/queries";
+import type { GoalAchievementEvent } from "@repo/types";
 import { refreshTokens } from "@repo/api-client";
 import { tokenStorage, setTokenRefreshHandler } from "@/utils/api";
 import { useTimerStore } from "../store/useTimerStore";
@@ -85,6 +87,10 @@ function bindSocketEvents(activeSocket: Socket) {
     if (queryClientRef) {
       applyRemoteGoalUpdate(queryClientRef, data);
     }
+  });
+
+  activeSocket.on("goal_achieved", (data: GoalAchievementEvent) => {
+    emitGoalAchievement(data);
   });
 
   activeSocket.on("session_created", () => {

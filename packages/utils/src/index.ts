@@ -108,3 +108,31 @@ export function minutesToHours(minutes: number): number {
 export function hoursToMinutes(hours: number): number {
   return Math.round(hours * 60);
 }
+
+export function getGoalAchievementLabel(type: GoalAchievementType): string {
+  switch (type) {
+    case "daily":
+      return "Daily goal reached!";
+    case "weekly":
+      return "Weekly goal reached!";
+    case "monthly":
+      return "Monthly goal reached!";
+  }
+}
+
+export function getGoalAchievementMessage(
+  type: GoalAchievementType,
+  workedMinutes: number,
+): string {
+  const worked = formatMinutes(workedMinutes);
+  switch (type) {
+    case "daily":
+      return `You've logged ${worked} today. Great work!`;
+    case "weekly":
+      return `You've logged ${worked} this week. Keep it up!`;
+    case "monthly":
+      return `You've logged ${worked} this month. Amazing progress!`;
+  }
+}
+
+import type { GoalAchievementType } from "@repo/types";

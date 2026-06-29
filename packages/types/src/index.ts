@@ -86,3 +86,12 @@ export type SessionRange = "today" | "week" | "month" | "year";
 
 export type AppPage =
   "dashboard" | "history" | "statistics" | "goals" | "settings";
+
+export type GoalAchievementType = "daily" | "weekly" | "monthly";
+
+export interface GoalAchievementEvent {
+  type: GoalAchievementType;
+  workedMinutes: number;
+  targetMinutes: number;
+  periodKey: string;
+}

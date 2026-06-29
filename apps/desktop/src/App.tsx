@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import type { AppPage } from "@repo/types";
-import { useGoalState } from "@repo/queries";
+import { useGoalState, resetGoalAchievementDedup } from "@repo/queries";
+import { AchievementNotifier } from "@/components/AchievementNotifier";
 import { AuthPages } from "@/components/AuthPages";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { useSocketSync } from "@/hooks/useSocketSync";
@@ -47,6 +48,7 @@ function PulseApp({ onLogout }: { onLogout: () => void }) {
   const handleLogout = () => {
     stopSessionTokenRefresh();
     storage.clearTokens();
+    resetGoalAchievementDedup();
     onLogout();
   };
 
@@ -56,24 +58,27 @@ function PulseApp({ onLogout }: { onLogout: () => void }) {
     "user@example.com";
 
   return (
-    <AppLayout
-      currentPage={currentPage}
-      onPageChange={setCurrentPage}
-      goalEnabled={goalEnabled}
-      onGoalEnabledChange={setGoalEnabled}
-      dailyGoalHours={dailyGoalHours}
-      onDailyGoalHoursChange={setDailyGoalHours}
-      weeklyGoalEnabled={weeklyGoalEnabled}
-      onWeeklyGoalEnabledChange={setWeeklyGoalEnabled}
-      weeklyGoalHours={weeklyGoalHours}
-      onWeeklyGoalHoursChange={setWeeklyGoalHours}
-      monthlyGoalEnabled={monthlyGoalEnabled}
-      onMonthlyGoalEnabledChange={setMonthlyGoalEnabled}
-      monthlyGoalHours={monthlyGoalHours}
-      onMonthlyGoalHoursChange={setMonthlyGoalHours}
-      userEmail={userEmail}
-      onLogout={handleLogout}
-    />
+    <>
+      <AppLayout
+        currentPage={currentPage}
+        onPageChange={setCurrentPage}
+        goalEnabled={goalEnabled}
+        onGoalEnabledChange={setGoalEnabled}
+        dailyGoalHours={dailyGoalHours}
+        onDailyGoalHoursChange={setDailyGoalHours}
+        weeklyGoalEnabled={weeklyGoalEnabled}
+        onWeeklyGoalEnabledChange={setWeeklyGoalEnabled}
+        weeklyGoalHours={weeklyGoalHours}
+        onWeeklyGoalHoursChange={setWeeklyGoalHours}
+        monthlyGoalEnabled={monthlyGoalEnabled}
+        onMonthlyGoalEnabledChange={setMonthlyGoalEnabled}
+        monthlyGoalHours={monthlyGoalHours}
+        onMonthlyGoalHoursChange={setMonthlyGoalHours}
+        userEmail={userEmail}
+        onLogout={handleLogout}
+      />
+      <AchievementNotifier />
+    </>
   );
 }
 

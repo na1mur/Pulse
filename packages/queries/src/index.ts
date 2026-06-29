@@ -10,7 +10,7 @@ import type {
 } from "@repo/types";
 import { useApi } from "./api-context";
 import { queryKeys } from "./query-keys";
-import { applyRemoteGoalUpdate, mergeGoalSettingsIntoCache } from "./goal-sync";
+import { mergeGoalSettingsIntoCache } from "./goal-sync";
 import { settingsQueryOptions } from "./settings-query";
 
 export { queryKeys, pulseQueryKeys } from "./query-keys";
@@ -21,6 +21,11 @@ export {
   type GoalTargetFields,
 } from "./goal-sync";
 export { useGoalState, GOAL_DEFAULTS, type GoalStorage } from "./useGoalState";
+export {
+  subscribeGoalAchievements,
+  emitGoalAchievement,
+  resetGoalAchievementDedup,
+} from "./goal-achievements";
 
 export function useTodayStats() {
   const api = useApi();

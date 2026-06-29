@@ -417,6 +417,10 @@ importers:
         version: 5.9.2
 
   packages/utils:
+    dependencies:
+      '@repo/types':
+        specifier: workspace:*
+        version: link:../types
     devDependencies:
       '@repo/typescript-config':
         specifier: workspace:*
