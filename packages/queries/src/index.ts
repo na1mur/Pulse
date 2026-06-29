@@ -87,6 +87,34 @@ export function useUpdateDailyTarget() {
   });
 }
 
+export function useUpdateWeeklyTarget() {
+  const api = useApi();
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (weeklyTargetMinutes: number) =>
+      (await api.patch("/settings/weekly-target", { weeklyTargetMinutes }))
+        .data,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.statsSummary });
+      queryClient.invalidateQueries({ queryKey: queryKeys.settings });
+    },
+  });
+}
+
+export function useUpdateMonthlyTarget() {
+  const api = useApi();
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (monthlyTargetMinutes: number) =>
+      (await api.patch("/settings/monthly-target", { monthlyTargetMinutes }))
+        .data,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.statsSummary });
+      queryClient.invalidateQueries({ queryKey: queryKeys.settings });
+    },
+  });
+}
+
 export function useUpdateTimezone() {
   const api = useApi();
   const queryClient = useQueryClient();

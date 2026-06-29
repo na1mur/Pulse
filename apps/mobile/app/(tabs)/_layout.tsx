@@ -1,3 +1,4 @@
+import { Platform } from "react-native";
 import { Tabs } from "expo-router";
 import {
   LayoutDashboard,
@@ -5,6 +6,7 @@ import {
   BarChart3,
   Target,
 } from "lucide-react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useSocketSync } from "@/hooks/useSocketSync";
 import { useSyncManager } from "@/hooks/useSyncManager";
 import { useThemeColors } from "@/hooks/useThemeColors";
@@ -19,6 +21,14 @@ function SyncBootstrap() {
 
 export default function TabsLayout() {
   const colors = useThemeColors();
+  const insets = useSafeAreaInsets();
+  const tabBarContentHeight = Platform.select({
+    ios: 49,
+    android: 56,
+    web: 60,
+    default: 56,
+  })!;
+  const tabBarPaddingBottom = insets.bottom;
 
   return (
     <AuthGate>
@@ -33,7 +43,13 @@ export default function TabsLayout() {
             tabBarStyle: {
               backgroundColor: colors.tabBar,
               borderTopColor: colors.tabBarBorder,
+              paddingBottom: tabBarPaddingBottom,
+              height: tabBarContentHeight + tabBarPaddingBottom,
             },
+            tabBarLabelStyle: Platform.select({
+              web: { lineHeight: 14, marginBottom: 2 },
+              default: undefined,
+            }),
           }}
         >
           <Tabs.Screen

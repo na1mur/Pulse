@@ -2,6 +2,8 @@ export interface User {
   id: string;
   email: string;
   dailyTargetMinutes: number;
+  weeklyTargetMinutes: number;
+  monthlyTargetMinutes: number;
   timezone: string;
 }
 
@@ -9,6 +11,8 @@ export interface UserSettings {
   email: string;
   timezone: string;
   dailyTargetMinutes: number;
+  weeklyTargetMinutes: number;
+  monthlyTargetMinutes: number;
 }
 
 export interface Session {
@@ -81,8 +85,4 @@ export interface TimerState {
 export type SessionRange = "today" | "week" | "month" | "year";
 
 export type AppPage =
-  | "dashboard"
-  | "history"
-  | "statistics"
-  | "goals"
-  | "settings";
+  "dashboard" | "history" | "statistics" | "goals" | "settings";

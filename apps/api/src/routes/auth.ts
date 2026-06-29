@@ -59,6 +59,8 @@ const registerHandler: RequestHandler = async (req, res) => {
         id: user.id,
         email: user.email,
         dailyTargetMinutes: user.dailyTargetMinutes,
+        weeklyTargetMinutes: user.weeklyTargetMinutes,
+        monthlyTargetMinutes: user.monthlyTargetMinutes,
         timezone: user.timezone,
       },
     });
@@ -112,6 +114,8 @@ const loginHandler: RequestHandler = async (req, res) => {
         id: user.id,
         email: user.email,
         dailyTargetMinutes: user.dailyTargetMinutes,
+        weeklyTargetMinutes: user.weeklyTargetMinutes,
+        monthlyTargetMinutes: user.monthlyTargetMinutes,
         timezone: user.timezone,
       },
     });

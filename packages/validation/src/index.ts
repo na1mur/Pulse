@@ -20,6 +20,14 @@ export const DailyTargetSchema = z.object({
   dailyTargetMinutes: z.number().nonnegative("Target must be 0 or greater"),
 });
 
+export const WeeklyTargetSchema = z.object({
+  weeklyTargetMinutes: z.number().nonnegative("Target must be 0 or greater"),
+});
+
+export const MonthlyTargetSchema = z.object({
+  monthlyTargetMinutes: z.number().nonnegative("Target must be 0 or greater"),
+});
+
 export const TimezoneSchema = z.object({
   timezone: z.string().min(1, "Timezone is required"),
 });

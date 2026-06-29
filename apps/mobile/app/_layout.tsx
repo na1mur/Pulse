@@ -2,6 +2,7 @@ import "../global.css";
 import { Stack } from "expo-router";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { StatusBar } from "expo-status-bar";
+import { SafeAreaProvider } from "react-native-safe-area-context";
 import { isAxiosError } from "axios";
 import { ApiProvider } from "@repo/queries";
 import { ThemeProvider, useTheme } from "@/hooks/useTheme";
@@ -38,8 +39,10 @@ function RootLayoutInner() {
 
 export default function RootLayout() {
   return (
-    <ThemeProvider>
-      <RootLayoutInner />
-    </ThemeProvider>
+    <SafeAreaProvider>
+      <ThemeProvider>
+        <RootLayoutInner />
+      </ThemeProvider>
+    </SafeAreaProvider>
   );
 }
