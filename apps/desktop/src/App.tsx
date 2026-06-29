@@ -1,37 +1,45 @@
-import { useState, useEffect } from "react";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { useEffect, useState } from "react";
 import type { AppPage } from "@repo/types";
-import { ApiProvider } from "@repo/queries";
+import { useGoalState } from "@repo/queries";
 import { AuthPages } from "@/components/AuthPages";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { useSocketSync } from "@/hooks/useSocketSync";
 import { useSyncManager } from "@/hooks/useSyncManager";
 import { useUserSettings } from "@/hooks/usePulseQueries";
-import { api, TOKEN_KEYS } from "@/utils/api";
+import { TOKEN_KEYS } from "@/utils/api";
 import { createLocalStorageAdapter } from "@repo/api-client";
 
-const queryClient = new QueryClient();
 const storage = createLocalStorageAdapter();
+
+const desktopGoalStorage = {
+  getItem: (key: string) => localStorage.getItem(key),
+  setItem: (key: string, value: string) => localStorage.setItem(key, value),
+};
+
+function readAccessToken() {
+  return localStorage.getItem(TOKEN_KEYS.access);
+}
 
 function PulseApp({ onLogout }: { onLogout: () => void }) {
   useSyncManager();
   useSocketSync();
 
   const [currentPage, setCurrentPage] = useState<AppPage>("dashboard");
-  const [goalEnabled, setGoalEnabled] = useState(false);
-  const [dailyGoalHours, setDailyGoalHours] = useState(8);
+  const {
+    goalEnabled,
+    setGoalEnabled,
+    dailyGoalHours,
+    setDailyGoalHours,
+    weeklyGoalEnabled,
+    setWeeklyGoalEnabled,
+    weeklyGoalHours,
+    setWeeklyGoalHours,
+    monthlyGoalEnabled,
+    setMonthlyGoalEnabled,
+    monthlyGoalHours,
+    setMonthlyGoalHours,
+  } = useGoalState(desktopGoalStorage);
   const { data: settings } = useUserSettings();
-
-  useEffect(() => {
-    if (settings) {
-      const hours = Math.round(settings.dailyTargetMinutes / 60);
-      setGoalEnabled(settings.dailyTargetMinutes > 0);
-      if (settings.dailyTargetMinutes > 0) {
-        setDailyGoalHours(hours || 8);
-        localStorage.setItem("pulse-last-goal-hours", String(hours || 8));
-      }
-    }
-  }, [settings]);
 
   const handleLogout = () => {
     storage.clearTokens();
@@ -51,6 +59,14 @@ function PulseApp({ onLogout }: { onLogout: () => void }) {
       onGoalEnabledChange={setGoalEnabled}
       dailyGoalHours={dailyGoalHours}
       onDailyGoalHoursChange={setDailyGoalHours}
+      weeklyGoalEnabled={weeklyGoalEnabled}
+      onWeeklyGoalEnabledChange={setWeeklyGoalEnabled}
+      weeklyGoalHours={weeklyGoalHours}
+      onWeeklyGoalHoursChange={setWeeklyGoalHours}
+      monthlyGoalEnabled={monthlyGoalEnabled}
+      onMonthlyGoalEnabledChange={setMonthlyGoalEnabled}
+      monthlyGoalHours={monthlyGoalHours}
+      onMonthlyGoalHoursChange={setMonthlyGoalHours}
       userEmail={userEmail}
       onLogout={handleLogout}
     />
@@ -58,25 +74,37 @@ function PulseApp({ onLogout }: { onLogout: () => void }) {
 }
 
 export default function App() {
-  const [token, setToken] = useState<string | null>(
-    localStorage.getItem(TOKEN_KEYS.access),
-  );
+  const [token, setToken] = useState<string | null>(readAccessToken);
+
+  useEffect(() => {
+    const syncSession = () => {
+      setToken(readAccessToken());
+    };
+    window.addEventListener("storage", syncSession);
+    window.addEventListener("pulse-session-changed", syncSession);
+    return () => {
+      window.removeEventListener("storage", syncSession);
+      window.removeEventListener("pulse-session-changed", syncSession);
+    };
+  }, []);
 
   if (!token) {
     return (
-      <ApiProvider api={api}>
-        <QueryClientProvider client={queryClient}>
-          <AuthPages onAuthSuccess={(accessToken) => setToken(accessToken)} />
-        </QueryClientProvider>
-      </ApiProvider>
+      <AuthPages
+        onAuthSuccess={(accessToken) => {
+          setToken(accessToken);
+          window.dispatchEvent(new Event("pulse-session-changed"));
+        }}
+      />
     );
   }
 
   return (
-    <ApiProvider api={api}>
-      <QueryClientProvider client={queryClient}>
-        <PulseApp onLogout={() => setToken(null)} />
-      </QueryClientProvider>
-    </ApiProvider>
+    <PulseApp
+      onLogout={() => {
+        setToken(null);
+        window.dispatchEvent(new Event("pulse-session-changed"));
+      }}
+    />
   );
 }

@@ -1,7 +1,11 @@
 import { useEffect } from "react";
 import { io, type Socket } from "socket.io-client";
 import { useQueryClient, type QueryClient } from "@tanstack/react-query";
-import { queryKeys } from "@repo/queries";
+import {
+  queryKeys,
+  applyRemoteGoalUpdate,
+  type GoalTargetFields,
+} from "@repo/queries";
 import { useTimerStore } from "../store/useTimerStore";
 
 let socket: Socket | null = null;
@@ -23,9 +27,20 @@ function teardownSocket() {
   }
 }
 
+let tokenRefreshHandler: (() => void) | null = null;
+
+export function setTokenRefreshHandler(handler: () => void) {
+  tokenRefreshHandler = handler;
+}
+
+export function runTokenRefreshHandler() {
+  tokenRefreshHandler?.();
+}
+
 function bindSocketEvents(activeSocket: Socket) {
   activeSocket.on("connect", () => {
     console.log("Connected to Socket.IO sync server");
+    void queryClientRef?.refetchQueries({ queryKey: queryKeys.settings });
     activeSocket.emit("timer_status_request");
   });
 
@@ -78,9 +93,10 @@ function bindSocketEvents(activeSocket: Socket) {
     });
   });
 
-  activeSocket.on("goal_updated", () => {
-    queryClientRef?.invalidateQueries({ queryKey: queryKeys.todayStats });
-    queryClientRef?.invalidateQueries({ queryKey: queryKeys.settings });
+  activeSocket.on("goal_updated", (data: GoalTargetFields) => {
+    if (queryClientRef) {
+      applyRemoteGoalUpdate(queryClientRef, data);
+    }
   });
 
   activeSocket.on("session_created", () => {
@@ -151,10 +167,14 @@ export function useSocketSync() {
 
   useEffect(() => {
     queryClientRef = queryClient;
+    setTokenRefreshHandler(() => {
+      void queryClient.refetchQueries({ queryKey: queryKeys.settings });
+    });
     connectSocket();
 
     return () => {
       queryClientRef = null;
+      setTokenRefreshHandler(() => {});
       teardownSocket();
     };
   }, [queryClient]);

@@ -1,5 +1,6 @@
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
+import { randomUUID } from "crypto";
 import { config } from "../config";
 
 const ACCESS_TOKEN_EXPIRY = "15m";
@@ -24,7 +25,7 @@ export function generateAccessToken(userId: string): string {
 }
 
 export function generateRefreshToken(userId: string): string {
-  return jwt.sign({ userId }, config.JWT_REFRESH_SECRET, {
+  return jwt.sign({ userId, jti: randomUUID() }, config.JWT_REFRESH_SECRET, {
     expiresIn: REFRESH_TOKEN_EXPIRY,
   });
 }

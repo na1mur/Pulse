@@ -28,6 +28,14 @@ interface AppLayoutProps {
   onGoalEnabledChange: (enabled: boolean) => void;
   dailyGoalHours: number;
   onDailyGoalHoursChange: (hours: number) => void;
+  weeklyGoalEnabled: boolean;
+  onWeeklyGoalEnabledChange: (enabled: boolean) => void;
+  weeklyGoalHours: number;
+  onWeeklyGoalHoursChange: (hours: number) => void;
+  monthlyGoalEnabled: boolean;
+  onMonthlyGoalEnabledChange: (enabled: boolean) => void;
+  monthlyGoalHours: number;
+  onMonthlyGoalHoursChange: (hours: number) => void;
   userEmail: string;
   onLogout: () => void;
 }
@@ -51,6 +59,14 @@ export function AppLayout({
   onGoalEnabledChange,
   dailyGoalHours,
   onDailyGoalHoursChange,
+  weeklyGoalEnabled,
+  onWeeklyGoalEnabledChange,
+  weeklyGoalHours,
+  onWeeklyGoalHoursChange,
+  monthlyGoalEnabled,
+  onMonthlyGoalEnabledChange,
+  monthlyGoalHours,
+  onMonthlyGoalHoursChange,
   userEmail,
   onLogout,
 }: AppLayoutProps) {
@@ -147,10 +163,7 @@ export function AppLayout({
                   <Settings className="w-4 h-4 mr-2" />
                   Account
                 </DropdownMenuItem>
-                <DropdownMenuItem
-                  variant="destructive"
-                  onClick={onLogout}
-                >
+                <DropdownMenuItem variant="destructive" onClick={onLogout}>
                   <LogOut className="w-4 h-4 mr-2" />
                   Logout
                 </DropdownMenuItem>
@@ -174,11 +187,17 @@ export function AppLayout({
               onGoalEnabledChange={onGoalEnabledChange}
               dailyGoalHours={dailyGoalHours}
               onDailyGoalHoursChange={onDailyGoalHoursChange}
+              weeklyGoalEnabled={weeklyGoalEnabled}
+              onWeeklyGoalEnabledChange={onWeeklyGoalEnabledChange}
+              weeklyGoalHours={weeklyGoalHours}
+              onWeeklyGoalHoursChange={onWeeklyGoalHoursChange}
+              monthlyGoalEnabled={monthlyGoalEnabled}
+              onMonthlyGoalEnabledChange={onMonthlyGoalEnabledChange}
+              monthlyGoalHours={monthlyGoalHours}
+              onMonthlyGoalHoursChange={onMonthlyGoalHoursChange}
             />
           )}
-          {currentPage === "settings" && (
-            <SettingsPage onLogout={onLogout} />
-          )}
+          {currentPage === "settings" && <SettingsPage onLogout={onLogout} />}
         </main>
       </div>
     </div>

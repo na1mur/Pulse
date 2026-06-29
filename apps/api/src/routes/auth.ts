@@ -154,16 +154,30 @@ const refreshHandler: RequestHandler = async (req, res) => {
 
     // Generate new tokens (token rotation)
     const newAccessToken = generateAccessToken(payload.userId);
-    const newRefreshTokenString = generateRefreshToken(payload.userId);
 
-    // Save new refresh token
+    // Save new refresh token (retry once on rare duplicate-key collision)
     const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000); // 7 days
-    const newRefreshTokenDoc = new RefreshToken({
-      token: newRefreshTokenString,
-      userId: storedToken.userId,
-      expiresAt,
-    });
-    await newRefreshTokenDoc.save();
+    let newRefreshTokenString = generateRefreshToken(payload.userId);
+    for (let attempt = 0; attempt < 2; attempt++) {
+      try {
+        const newRefreshTokenDoc = new RefreshToken({
+          token: newRefreshTokenString,
+          userId: storedToken.userId,
+          expiresAt,
+        });
+        await newRefreshTokenDoc.save();
+        break;
+      } catch (saveError) {
+        const isDuplicateKey =
+          saveError instanceof Error &&
+          "code" in saveError &&
+          saveError.code === 11000;
+        if (!isDuplicateKey || attempt === 1) {
+          throw saveError;
+        }
+        newRefreshTokenString = generateRefreshToken(payload.userId);
+      }
+    }
 
     res.json({
       accessToken: newAccessToken,

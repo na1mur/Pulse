@@ -1,6 +1,6 @@
-import { useEffect, useState } from "react";
 import { Minus, Plus } from "lucide-react";
 import { hoursToMinutes, formatMinutes, minutesToHours } from "@repo/utils";
+import { GOAL_DEFAULTS } from "@repo/queries";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -10,11 +10,8 @@ import {
   useUpdateDailyTarget,
   useUpdateMonthlyTarget,
   useUpdateWeeklyTarget,
-  useUserSettings,
 } from "@/hooks/usePulseQueries";
 
-const WEEKLY_GOAL_DEFAULT_HOURS = 40;
-const MONTHLY_GOAL_DEFAULT_HOURS = 160;
 const PERIOD_GOAL_STEP_HOURS = 10;
 
 interface GoalsPageProps {
@@ -22,6 +19,14 @@ interface GoalsPageProps {
   onGoalEnabledChange: (enabled: boolean) => void;
   dailyGoalHours: number;
   onDailyGoalHoursChange: (hours: number) => void;
+  weeklyGoalEnabled: boolean;
+  onWeeklyGoalEnabledChange: (enabled: boolean) => void;
+  weeklyGoalHours: number;
+  onWeeklyGoalHoursChange: (hours: number) => void;
+  monthlyGoalEnabled: boolean;
+  onMonthlyGoalEnabledChange: (enabled: boolean) => void;
+  monthlyGoalHours: number;
+  onMonthlyGoalHoursChange: (hours: number) => void;
 }
 
 export function GoalsPage({
@@ -29,44 +34,19 @@ export function GoalsPage({
   onGoalEnabledChange,
   dailyGoalHours,
   onDailyGoalHoursChange,
+  weeklyGoalEnabled,
+  onWeeklyGoalEnabledChange,
+  weeklyGoalHours,
+  onWeeklyGoalHoursChange,
+  monthlyGoalEnabled,
+  onMonthlyGoalEnabledChange,
+  monthlyGoalHours,
+  onMonthlyGoalHoursChange,
 }: GoalsPageProps) {
   const { data: summary } = useStatsSummary();
-  const { data: settings } = useUserSettings();
   const updateDailyTarget = useUpdateDailyTarget();
   const updateWeeklyTarget = useUpdateWeeklyTarget();
   const updateMonthlyTarget = useUpdateMonthlyTarget();
-
-  const [weeklyGoalEnabled, setWeeklyGoalEnabled] = useState(false);
-  const [monthlyGoalEnabled, setMonthlyGoalEnabled] = useState(false);
-  const [weeklyGoalHours, setWeeklyGoalHours] = useState(
-    WEEKLY_GOAL_DEFAULT_HOURS,
-  );
-  const [monthlyGoalHours, setMonthlyGoalHours] = useState(
-    MONTHLY_GOAL_DEFAULT_HOURS,
-  );
-
-  useEffect(() => {
-    if (settings) {
-      const weeklyHours = Math.round(settings.weeklyTargetMinutes / 60);
-      const monthlyHours = Math.round(settings.monthlyTargetMinutes / 60);
-      setWeeklyGoalEnabled(settings.weeklyTargetMinutes > 0);
-      setMonthlyGoalEnabled(settings.monthlyTargetMinutes > 0);
-      if (settings.weeklyTargetMinutes > 0) {
-        setWeeklyGoalHours(weeklyHours || WEEKLY_GOAL_DEFAULT_HOURS);
-        localStorage.setItem(
-          "pulse-last-weekly-goal-hours",
-          String(weeklyHours || WEEKLY_GOAL_DEFAULT_HOURS),
-        );
-      }
-      if (settings.monthlyTargetMinutes > 0) {
-        setMonthlyGoalHours(monthlyHours || MONTHLY_GOAL_DEFAULT_HOURS);
-        localStorage.setItem(
-          "pulse-last-monthly-goal-hours",
-          String(monthlyHours || MONTHLY_GOAL_DEFAULT_HOURS),
-        );
-      }
-    }
-  }, [settings]);
 
   const weeklyWorked = minutesToHours(summary?.weeklyWorkedMinutes ?? 0);
   const monthlyWorked = minutesToHours(summary?.monthlyWorkedMinutes ?? 0);
@@ -108,7 +88,8 @@ export function GoalsPage({
     onGoalEnabledChange(checked);
     if (checked) {
       const restored = parseInt(
-        localStorage.getItem("pulse-last-goal-hours") ?? "8",
+        localStorage.getItem("pulse-last-goal-hours") ??
+          String(GOAL_DEFAULTS.dailyHours),
         10,
       );
       onDailyGoalHoursChange(restored);
@@ -119,14 +100,14 @@ export function GoalsPage({
   };
 
   const handleToggleWeeklyGoal = (checked: boolean) => {
-    setWeeklyGoalEnabled(checked);
+    onWeeklyGoalEnabledChange(checked);
     if (checked) {
       const restored = parseInt(
         localStorage.getItem("pulse-last-weekly-goal-hours") ??
-          String(WEEKLY_GOAL_DEFAULT_HOURS),
+          String(GOAL_DEFAULTS.weeklyHours),
         10,
       );
-      setWeeklyGoalHours(restored);
+      onWeeklyGoalHoursChange(restored);
       persistWeeklyGoal(restored, true);
     } else {
       persistWeeklyGoal(weeklyGoalHours, false);
@@ -134,14 +115,14 @@ export function GoalsPage({
   };
 
   const handleToggleMonthlyGoal = (checked: boolean) => {
-    setMonthlyGoalEnabled(checked);
+    onMonthlyGoalEnabledChange(checked);
     if (checked) {
       const restored = parseInt(
         localStorage.getItem("pulse-last-monthly-goal-hours") ??
-          String(MONTHLY_GOAL_DEFAULT_HOURS),
+          String(GOAL_DEFAULTS.monthlyHours),
         10,
       );
-      setMonthlyGoalHours(restored);
+      onMonthlyGoalHoursChange(restored);
       persistMonthlyGoal(restored, true);
     } else {
       persistMonthlyGoal(monthlyGoalHours, false);
@@ -240,7 +221,7 @@ export function GoalsPage({
                       PERIOD_GOAL_STEP_HOURS,
                       weeklyGoalHours - PERIOD_GOAL_STEP_HOURS,
                     );
-                    setWeeklyGoalHours(next);
+                    onWeeklyGoalHoursChange(next);
                     persistWeeklyGoal(next, true);
                   }}
                   className="h-10 w-10"
@@ -255,7 +236,7 @@ export function GoalsPage({
                   size="icon"
                   onClick={() => {
                     const next = weeklyGoalHours + PERIOD_GOAL_STEP_HOURS;
-                    setWeeklyGoalHours(next);
+                    onWeeklyGoalHoursChange(next);
                     persistWeeklyGoal(next, true);
                   }}
                   className="h-10 w-10"
@@ -310,7 +291,7 @@ export function GoalsPage({
                       PERIOD_GOAL_STEP_HOURS,
                       monthlyGoalHours - PERIOD_GOAL_STEP_HOURS,
                     );
-                    setMonthlyGoalHours(next);
+                    onMonthlyGoalHoursChange(next);
                     persistMonthlyGoal(next, true);
                   }}
                   className="h-10 w-10"
@@ -325,7 +306,7 @@ export function GoalsPage({
                   size="icon"
                   onClick={() => {
                     const next = monthlyGoalHours + PERIOD_GOAL_STEP_HOURS;
-                    setMonthlyGoalHours(next);
+                    onMonthlyGoalHoursChange(next);
                     persistMonthlyGoal(next, true);
                   }}
                   className="h-10 w-10"

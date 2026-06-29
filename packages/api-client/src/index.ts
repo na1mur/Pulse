@@ -65,8 +65,18 @@ export function createApiClient({
           return api(originalRequest);
         } catch (err) {
           console.error("Session expired:", err);
-          await resolve(storage.clearTokens());
-          onSessionExpired?.();
+          const status =
+            typeof err === "object" &&
+            err !== null &&
+            "response" in err &&
+            typeof (err as { response?: { status?: number } }).response
+              ?.status === "number"
+              ? (err as { response: { status: number } }).response.status
+              : undefined;
+          if (status === 401 || status === 400) {
+            await resolve(storage.clearTokens());
+            onSessionExpired?.();
+          }
         }
       }
       return Promise.reject(error);

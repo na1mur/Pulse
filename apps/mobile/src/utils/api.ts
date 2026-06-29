@@ -59,6 +59,7 @@ export const api = createApiClient({
   },
   onTokenRefreshed: () => {
     tokenRefreshHandler?.();
+    void reconnectTimerSocket();
   },
 });
 

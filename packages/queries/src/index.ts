@@ -10,9 +10,17 @@ import type {
 } from "@repo/types";
 import { useApi } from "./api-context";
 import { queryKeys } from "./query-keys";
+import { applyRemoteGoalUpdate, mergeGoalSettingsIntoCache } from "./goal-sync";
+import { settingsQueryOptions } from "./settings-query";
 
 export { queryKeys, pulseQueryKeys } from "./query-keys";
 export { ApiProvider, useApi } from "./api-context";
+export {
+  applyRemoteGoalUpdate,
+  mergeGoalSettingsIntoCache,
+  type GoalTargetFields,
+} from "./goal-sync";
+export { useGoalState, GOAL_DEFAULTS, type GoalStorage } from "./useGoalState";
 
 export function useTodayStats() {
   const api = useApi();
@@ -65,10 +73,7 @@ export function useSessions(range: SessionRange) {
 
 export function useUserSettings() {
   const api = useApi();
-  return useQuery<UserSettings>({
-    queryKey: queryKeys.settings,
-    queryFn: async () => (await api.get("/settings")).data,
-  });
+  return useQuery<UserSettings>(settingsQueryOptions(api));
 }
 
 export function useUpdateDailyTarget() {
@@ -76,13 +81,14 @@ export function useUpdateDailyTarget() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async (dailyTargetMinutes: number) =>
-      (await api.patch("/settings/daily-target", { dailyTargetMinutes })).data,
-    onSuccess: () => {
+      (await api.patch("/settings/daily-target", { dailyTargetMinutes }))
+        .data as UserSettings,
+    onSuccess: (data) => {
+      mergeGoalSettingsIntoCache(queryClient, data, data);
       queryClient.invalidateQueries({ queryKey: queryKeys.todayStats });
       queryClient.invalidateQueries({ queryKey: queryKeys.statsSummary });
       queryClient.invalidateQueries({ queryKey: queryKeys.weekStats });
       queryClient.invalidateQueries({ queryKey: queryKeys.weeklyTrend });
-      queryClient.invalidateQueries({ queryKey: queryKeys.settings });
     },
   });
 }
@@ -93,10 +99,10 @@ export function useUpdateWeeklyTarget() {
   return useMutation({
     mutationFn: async (weeklyTargetMinutes: number) =>
       (await api.patch("/settings/weekly-target", { weeklyTargetMinutes }))
-        .data,
-    onSuccess: () => {
+        .data as UserSettings,
+    onSuccess: (data) => {
+      mergeGoalSettingsIntoCache(queryClient, data, data);
       queryClient.invalidateQueries({ queryKey: queryKeys.statsSummary });
-      queryClient.invalidateQueries({ queryKey: queryKeys.settings });
     },
   });
 }
@@ -107,10 +113,10 @@ export function useUpdateMonthlyTarget() {
   return useMutation({
     mutationFn: async (monthlyTargetMinutes: number) =>
       (await api.patch("/settings/monthly-target", { monthlyTargetMinutes }))
-        .data,
-    onSuccess: () => {
+        .data as UserSettings,
+    onSuccess: (data) => {
+      mergeGoalSettingsIntoCache(queryClient, data, data);
       queryClient.invalidateQueries({ queryKey: queryKeys.statsSummary });
-      queryClient.invalidateQueries({ queryKey: queryKeys.settings });
     },
   });
 }

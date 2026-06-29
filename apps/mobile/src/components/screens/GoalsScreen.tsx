@@ -1,8 +1,8 @@
-import { useEffect, useState } from "react";
 import { View, Pressable, Text } from "react-native";
 import { appStorage } from "@/utils/api";
 import { Minus, Plus } from "lucide-react-native";
 import { hoursToMinutes, formatMinutes, minutesToHours } from "@repo/utils";
+import { GOAL_DEFAULTS } from "@repo/queries";
 import { ScreenHeader } from "@/components/ScreenHeader";
 import { Screen, ScreenScroll } from "@/components/Screen";
 import { ThemedText } from "@/components/ThemeShell";
@@ -15,12 +15,9 @@ import {
   useUpdateDailyTarget,
   useUpdateMonthlyTarget,
   useUpdateWeeklyTarget,
-  useUserSettings,
 } from "@/hooks/usePulseQueries";
 import { useThemeColors } from "@/hooks/useThemeColors";
 
-const WEEKLY_GOAL_DEFAULT_HOURS = 40;
-const MONTHLY_GOAL_DEFAULT_HOURS = 160;
 const PERIOD_GOAL_STEP_HOURS = 10;
 
 function GoalCheckbox({
@@ -84,45 +81,24 @@ function PeriodGoalControls({
 }
 
 export function GoalsScreen() {
-  const { goalEnabled, setGoalEnabled, dailyGoalHours, setDailyGoalHours } =
-    useGoalContext();
+  const {
+    goalEnabled,
+    setGoalEnabled,
+    dailyGoalHours,
+    setDailyGoalHours,
+    weeklyGoalEnabled,
+    setWeeklyGoalEnabled,
+    weeklyGoalHours,
+    setWeeklyGoalHours,
+    monthlyGoalEnabled,
+    setMonthlyGoalEnabled,
+    monthlyGoalHours,
+    setMonthlyGoalHours,
+  } = useGoalContext();
   const { data: summary } = useStatsSummary();
-  const { data: settings } = useUserSettings();
   const updateDailyTarget = useUpdateDailyTarget();
   const updateWeeklyTarget = useUpdateWeeklyTarget();
   const updateMonthlyTarget = useUpdateMonthlyTarget();
-
-  const [weeklyGoalEnabled, setWeeklyGoalEnabled] = useState(false);
-  const [monthlyGoalEnabled, setMonthlyGoalEnabled] = useState(false);
-  const [weeklyGoalHours, setWeeklyGoalHours] = useState(
-    WEEKLY_GOAL_DEFAULT_HOURS,
-  );
-  const [monthlyGoalHours, setMonthlyGoalHours] = useState(
-    MONTHLY_GOAL_DEFAULT_HOURS,
-  );
-
-  useEffect(() => {
-    if (settings) {
-      const weeklyHours = Math.round(settings.weeklyTargetMinutes / 60);
-      const monthlyHours = Math.round(settings.monthlyTargetMinutes / 60);
-      setWeeklyGoalEnabled(settings.weeklyTargetMinutes > 0);
-      setMonthlyGoalEnabled(settings.monthlyTargetMinutes > 0);
-      if (settings.weeklyTargetMinutes > 0) {
-        setWeeklyGoalHours(weeklyHours || WEEKLY_GOAL_DEFAULT_HOURS);
-        appStorage.setItem(
-          "pulse-last-weekly-goal-hours",
-          String(weeklyHours || WEEKLY_GOAL_DEFAULT_HOURS),
-        );
-      }
-      if (settings.monthlyTargetMinutes > 0) {
-        setMonthlyGoalHours(monthlyHours || MONTHLY_GOAL_DEFAULT_HOURS);
-        appStorage.setItem(
-          "pulse-last-monthly-goal-hours",
-          String(monthlyHours || MONTHLY_GOAL_DEFAULT_HOURS),
-        );
-      }
-    }
-  }, [settings]);
 
   const weeklyWorked = minutesToHours(summary?.weeklyWorkedMinutes ?? 0);
   const monthlyWorked = minutesToHours(summary?.monthlyWorkedMinutes ?? 0);
@@ -162,7 +138,7 @@ export function GoalsScreen() {
     setGoalEnabled(next);
     if (next) {
       const stored = await appStorage.getItem("pulse-last-goal-hours");
-      const hours = stored ? parseInt(stored, 10) : 8;
+      const hours = stored ? parseInt(stored, 10) : GOAL_DEFAULTS.dailyHours;
       setDailyGoalHours(hours);
       persistDailyGoal(hours, true);
     } else {
@@ -175,7 +151,7 @@ export function GoalsScreen() {
     setWeeklyGoalEnabled(next);
     if (next) {
       const stored = await appStorage.getItem("pulse-last-weekly-goal-hours");
-      const hours = stored ? parseInt(stored, 10) : WEEKLY_GOAL_DEFAULT_HOURS;
+      const hours = stored ? parseInt(stored, 10) : GOAL_DEFAULTS.weeklyHours;
       setWeeklyGoalHours(hours);
       persistWeeklyGoal(hours, true);
     } else {
@@ -188,7 +164,7 @@ export function GoalsScreen() {
     setMonthlyGoalEnabled(next);
     if (next) {
       const stored = await appStorage.getItem("pulse-last-monthly-goal-hours");
-      const hours = stored ? parseInt(stored, 10) : MONTHLY_GOAL_DEFAULT_HOURS;
+      const hours = stored ? parseInt(stored, 10) : GOAL_DEFAULTS.monthlyHours;
       setMonthlyGoalHours(hours);
       persistMonthlyGoal(hours, true);
     } else {
