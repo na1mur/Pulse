@@ -30,7 +30,8 @@ export function useSocketSync() {
         socket.disconnect();
       }
 
-      socket = io("http://localhost:3001", {
+      const baseURL = process.env.EXPO_PUBLIC_API_URL ?? "http://localhost:3001";
+      socket = io(baseURL, {
         auth: {
           token: accessToken,
         },

@@ -1,18 +1,19 @@
 {
   "expo": {
-    "name": "mobile",
+    "name": "Pulse",
     "slug": "mobile",
     "version": "1.0.0",
     "orientation": "portrait",
+    "scheme": "pulse",
+    "userInterfaceStyle": "automatic",
     "icon": "./assets/icon.png",
-    "userInterfaceStyle": "light",
-    "main": "index.ts",
+    "plugins": ["expo-router"],
     "ios": {
       "supportsTablet": true
     },
     "android": {
       "adaptiveIcon": {
-        "backgroundColor": "#E6F4FE",
+        "backgroundColor": "#fafafa",
         "foregroundImage": "./assets/android-icon-foreground.png",
         "backgroundImage": "./assets/android-icon-background.png",
         "monochromeImage": "./assets/android-icon-monochrome.png"
@@ -20,8 +21,8 @@
       "predictiveBackGestureEnabled": false
     },
     "web": {
+      "bundler": "metro",
       "favicon": "./assets/favicon.png"
     }
   }
 }
-
