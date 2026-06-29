@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { io, Socket } from "socket.io-client";
 import { useQueryClient } from "@tanstack/react-query";
 import { queryKeys } from "@repo/queries";
-import AsyncStorage from "@react-native-async-storage/async-storage";
+import { tokenStorage } from "@/utils/api";
 import { useTimerStore } from "../store/useTimerStore";
 
 let socket: Socket | null = null;
@@ -17,7 +17,7 @@ export function useSocketSync() {
     let active = true;
 
     const setupSocket = async () => {
-      const accessToken = await AsyncStorage.getItem("pulse-access-token");
+      const accessToken = await tokenStorage.getAccessToken();
       if (!accessToken) {
         if (socket) {
           socket.disconnect();
@@ -31,7 +31,8 @@ export function useSocketSync() {
         socket.disconnect();
       }
 
-      const baseURL = process.env.EXPO_PUBLIC_API_URL ?? "http://localhost:3001";
+      const baseURL =
+        process.env.EXPO_PUBLIC_API_URL ?? "http://localhost:3001";
       socket = io(baseURL, {
         auth: {
           token: accessToken,

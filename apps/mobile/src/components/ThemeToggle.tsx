@@ -1,6 +1,7 @@
 import { Pressable, View } from "react-native";
 import { Laptop, Moon, Sun } from "lucide-react-native";
 import { useTheme, type Theme } from "@/hooks/useTheme";
+import { useThemeColors } from "@/hooks/useThemeColors";
 import { ThemedText } from "@/components/ThemeShell";
 
 const options: { value: Theme; label: string; Icon: typeof Sun }[] = [
@@ -10,9 +11,8 @@ const options: { value: Theme; label: string; Icon: typeof Sun }[] = [
 ];
 
 export function ThemeToggle() {
-  const { theme, setTheme, mounted, resolvedScheme } = useTheme();
-
-  if (!mounted) return null;
+  const { theme, setTheme, resolvedScheme } = useTheme();
+  const colors = useThemeColors();
 
   const ActiveIcon =
     options.find((o) => o.value === theme)?.Icon ??
@@ -26,37 +26,36 @@ export function ThemeToggle() {
         setTheme(next.value);
       }}
       className="h-10 w-10 items-center justify-center rounded-lg"
+      style={{ backgroundColor: colors.mutedSurface }}
     >
-      <ActiveIcon
-        size={18}
-        color={resolvedScheme === "dark" ? "#f5f5f5" : "#262626"}
-      />
+      <ActiveIcon size={18} color={colors.foreground} />
     </Pressable>
   );
 }
 
 export function ThemeSelector() {
-  const { theme, setTheme, resolvedScheme } = useTheme();
+  const { theme, setTheme } = useTheme();
+  const colors = useThemeColors();
 
   return (
     <View className="flex-row flex-wrap gap-2">
-      {options.map(({ value, label, Icon }) => (
-        <Pressable
-          key={value}
-          onPress={() => setTheme(value)}
-          className={`flex-row items-center gap-2 px-3 py-2 rounded-lg border ${
-            theme === value
-              ? "border-neutral-400 bg-neutral-100"
-              : "border-neutral-200"
-          }`}
-        >
-          <Icon
-            size={16}
-            color={resolvedScheme === "dark" ? "#f5f5f5" : "#262626"}
-          />
-          <ThemedText className="text-sm">{label}</ThemedText>
-        </Pressable>
-      ))}
+      {options.map(({ value, label, Icon }) => {
+        const selected = theme === value;
+        return (
+          <Pressable
+            key={value}
+            onPress={() => setTheme(value)}
+            className="flex-row items-center gap-2 px-3 py-2 rounded-lg border"
+            style={{
+              borderColor: selected ? colors.foreground : colors.border,
+              backgroundColor: selected ? colors.mutedSurface : colors.card,
+            }}
+          >
+            <Icon size={16} color={colors.foreground} />
+            <ThemedText className="text-sm">{label}</ThemedText>
+          </Pressable>
+        );
+      })}
     </View>
   );
 }

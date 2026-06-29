@@ -1,5 +1,11 @@
-import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
-import AsyncStorage from "@react-native-async-storage/async-storage";
+import {
+  createContext,
+  useContext,
+  useEffect,
+  useState,
+  type ReactNode,
+} from "react";
+import { appStorage } from "@/utils/api";
 import { useUserSettings } from "@/hooks/usePulseQueries";
 
 interface GoalContextValue {
@@ -22,7 +28,7 @@ export function GoalProvider({ children }: { children: ReactNode }) {
       setGoalEnabled(settings.dailyTargetMinutes > 0);
       if (settings.dailyTargetMinutes > 0) {
         setDailyGoalHours(hours || 8);
-        AsyncStorage.setItem("pulse-last-goal-hours", String(hours || 8));
+        appStorage.setItem("pulse-last-goal-hours", String(hours || 8));
       }
     }
   }, [settings]);

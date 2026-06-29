@@ -1,69 +1,86 @@
 import { Pressable, Text, type PressableProps } from "react-native";
-import { cva, type VariantProps } from "class-variance-authority";
+import { type VariantProps } from "class-variance-authority";
+import { useThemeColors } from "@/hooks/useThemeColors";
 import { cn } from "@/lib/utils";
 
-const buttonVariants = cva(
-  "flex-row items-center justify-center rounded-lg",
-  {
-    variants: {
-      variant: {
-        default: "bg-primary",
-        outline: "border border-border bg-background",
-        ghost: "bg-transparent",
-        destructive: "bg-destructive/10",
-      },
-      size: {
-        default: "h-10 px-4",
-        sm: "h-8 px-3",
-        lg: "h-12 px-6",
-        icon: "h-10 w-10",
-      },
-    },
-    defaultVariants: {
-      variant: "default",
-      size: "default",
-    },
-  },
-);
+type ButtonVariant = "default" | "outline" | "ghost" | "destructive";
+type ButtonSize = "default" | "sm" | "lg" | "icon";
 
-const buttonTextVariants = cva("text-sm font-medium", {
-  variants: {
-    variant: {
-      default: "text-primary-foreground",
-      outline: "text-foreground",
-      ghost: "text-foreground",
-      destructive: "text-destructive",
-    },
-  },
-  defaultVariants: {
-    variant: "default",
-  },
-});
-
-interface ButtonProps extends PressableProps, VariantProps<typeof buttonVariants> {
+interface ButtonProps extends PressableProps {
+  variant?: ButtonVariant;
+  size?: ButtonSize;
   label?: string;
   children?: React.ReactNode;
   className?: string;
   textClassName?: string;
 }
 
+const sizeStyles: Record<
+  ButtonSize,
+  { height: number; paddingHorizontal: number }
+> = {
+  default: { height: 40, paddingHorizontal: 16 },
+  sm: { height: 32, paddingHorizontal: 12 },
+  lg: { height: 48, paddingHorizontal: 24 },
+  icon: { height: 40, paddingHorizontal: 0 },
+};
+
 export function Button({
-  variant,
-  size,
+  variant = "default",
+  size = "default",
   label,
   children,
   className,
   textClassName,
+  style,
   ...props
 }: ButtonProps) {
+  const colors = useThemeColors();
+  const dimensions = sizeStyles[size];
+
+  let backgroundColor = colors.primary;
+  let textColor = colors.primaryForeground;
+  let borderColor = "transparent";
+  let borderWidth = 0;
+
+  if (variant === "outline") {
+    backgroundColor = colors.background;
+    textColor = colors.foreground;
+    borderColor = colors.border;
+    borderWidth = 1;
+  } else if (variant === "ghost") {
+    backgroundColor = "transparent";
+    textColor = colors.foreground;
+  } else if (variant === "destructive") {
+    backgroundColor = `${colors.destructive}1a`;
+    textColor = colors.destructive;
+  }
+
   return (
     <Pressable
-      className={cn(buttonVariants({ variant, size }), className)}
+      className={cn(
+        "flex-row items-center justify-center rounded-lg",
+        size === "icon" && "w-10",
+        className,
+      )}
+      style={[
+        {
+          height: dimensions.height,
+          paddingHorizontal: size === "icon" ? 0 : dimensions.paddingHorizontal,
+          backgroundColor,
+          borderColor,
+          borderWidth,
+        },
+        style,
+      ]}
       {...props}
     >
       {children ??
         (label ? (
-          <Text className={cn(buttonTextVariants({ variant }), textClassName)}>
+          <Text
+            className={cn("text-sm font-medium", textClassName)}
+            style={{ color: textColor }}
+          >
             {label}
           </Text>
         ) : null)}

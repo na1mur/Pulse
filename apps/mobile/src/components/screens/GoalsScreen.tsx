@@ -1,27 +1,23 @@
-import { View, ScrollView, Pressable } from "react-native";
-import AsyncStorage from "@react-native-async-storage/async-storage";
+import { View, Pressable, Text } from "react-native";
+import { appStorage } from "@/utils/api";
 import { Minus, Plus } from "lucide-react-native";
 import { hoursToMinutes, formatMinutes, minutesToHours } from "@repo/utils";
 import { ScreenHeader } from "@/components/ScreenHeader";
+import { Screen, ScreenScroll } from "@/components/Screen";
 import { ThemedText } from "@/components/ThemeShell";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { Progress } from "@/components/ui/Progress";
 import { useGoalContext } from "@/context/GoalContext";
 import { useStatsSummary, useUpdateDailyTarget } from "@/hooks/usePulseQueries";
-import { useTheme } from "@/hooks/useTheme";
+import { useThemeColors } from "@/hooks/useThemeColors";
 
 export function GoalsScreen() {
-  const {
-    goalEnabled,
-    setGoalEnabled,
-    dailyGoalHours,
-    setDailyGoalHours,
-  } = useGoalContext();
+  const { goalEnabled, setGoalEnabled, dailyGoalHours, setDailyGoalHours } =
+    useGoalContext();
   const { data: summary } = useStatsSummary();
   const updateTarget = useUpdateDailyTarget();
-  const { resolvedScheme } = useTheme();
-  const iconColor = resolvedScheme === "dark" ? "#f5f5f5" : "#262626";
+  const colors = useThemeColors();
 
   const weeklyTargetHours = dailyGoalHours * 5;
   const monthlyTargetHours = dailyGoalHours * 20;
@@ -40,14 +36,14 @@ export function GoalsScreen() {
   const persistGoal = (hours: number, enabled: boolean) => {
     updateTarget.mutate(enabled ? hoursToMinutes(hours) : 0);
     if (enabled && hours > 0) {
-      AsyncStorage.setItem("pulse-last-goal-hours", String(hours));
+      appStorage.setItem("pulse-last-goal-hours", String(hours));
     }
   };
 
   return (
-    <View className="flex-1">
+    <Screen>
       <ScreenHeader title="Goals" />
-      <ScrollView className="flex-1 p-4" contentContainerClassName="gap-4 pb-8">
+      <ScreenScroll>
         <Card className="p-6 gap-6">
           <Pressable
             className="flex-row items-center gap-3"
@@ -55,7 +51,9 @@ export function GoalsScreen() {
               const next = !goalEnabled;
               setGoalEnabled(next);
               if (next) {
-                const stored = await AsyncStorage.getItem("pulse-last-goal-hours");
+                const stored = await appStorage.getItem(
+                  "pulse-last-goal-hours",
+                );
                 const hours = stored ? parseInt(stored, 10) : 8;
                 setDailyGoalHours(hours);
                 persistGoal(hours, true);
@@ -65,37 +63,55 @@ export function GoalsScreen() {
             }}
           >
             <View
-              className={`w-5 h-5 rounded border items-center justify-center ${
-                goalEnabled ? "bg-neutral-900 border-neutral-900" : "border-neutral-300"
-              }`}
+              className="w-5 h-5 rounded border items-center justify-center"
+              style={{
+                backgroundColor: goalEnabled ? colors.primary : "transparent",
+                borderColor: goalEnabled ? colors.primary : colors.border,
+              }}
             >
               {goalEnabled && (
-                <ThemedText className="text-white text-xs">✓</ThemedText>
+                <Text style={{ color: colors.primaryForeground, fontSize: 12 }}>
+                  ✓
+                </Text>
               )}
             </View>
-            <ThemedText className="text-lg font-semibold">Set Daily Goal</ThemedText>
+            <ThemedText className="text-lg font-semibold">
+              Set Daily Goal
+            </ThemedText>
           </Pressable>
 
           {goalEnabled ? (
             <View className="items-center gap-4">
               <View className="flex-row items-center gap-6">
-                <Button size="icon" variant="outline" onPress={() => {
-                  const next = Math.max(1, dailyGoalHours - 1);
-                  setDailyGoalHours(next);
-                  persistGoal(next, true);
-                }}>
-                  <Minus size={20} color={iconColor} />
+                <Button
+                  size="icon"
+                  variant="outline"
+                  onPress={() => {
+                    const next = Math.max(1, dailyGoalHours - 1);
+                    setDailyGoalHours(next);
+                    persistGoal(next, true);
+                  }}
+                >
+                  <Minus size={20} color={colors.foreground} />
                 </Button>
-                <ThemedText className="text-6xl font-light">{dailyGoalHours}</ThemedText>
-                <Button size="icon" variant="outline" onPress={() => {
-                  const next = dailyGoalHours + 1;
-                  setDailyGoalHours(next);
-                  persistGoal(next, true);
-                }}>
-                  <Plus size={20} color={iconColor} />
+                <ThemedText className="text-6xl font-light">
+                  {dailyGoalHours}
+                </ThemedText>
+                <Button
+                  size="icon"
+                  variant="outline"
+                  onPress={() => {
+                    const next = dailyGoalHours + 1;
+                    setDailyGoalHours(next);
+                    persistGoal(next, true);
+                  }}
+                >
+                  <Plus size={20} color={colors.foreground} />
                 </Button>
               </View>
-              <ThemedText className="text-sm text-neutral-500">hours per day</ThemedText>
+              <ThemedText className="text-sm text-neutral-500">
+                hours per day
+              </ThemedText>
             </View>
           ) : (
             <ThemedText className="text-center text-neutral-500 py-4">
@@ -129,10 +145,14 @@ export function GoalsScreen() {
             <Card key={item.title} className="p-4 gap-3">
               <ThemedText className="font-semibold">{item.title}</ThemedText>
               {item.target !== null && (
-                <ThemedText className="text-2xl font-light">{item.target} hours</ThemedText>
+                <ThemedText className="text-2xl font-light">
+                  {item.target} hours
+                </ThemedText>
               )}
               {item.isAchievement && (
-                <ThemedText className="text-2xl font-light">{achievement}%</ThemedText>
+                <ThemedText className="text-2xl font-light">
+                  {achievement}%
+                </ThemedText>
               )}
               <Progress value={Math.min(item.progress, 100)} />
               {item.worked !== null && (
@@ -143,7 +163,7 @@ export function GoalsScreen() {
             </Card>
           ))}
         </View>
-      </ScrollView>
-    </View>
+      </ScreenScroll>
+    </Screen>
   );
 }

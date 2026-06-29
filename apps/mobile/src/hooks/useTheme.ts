@@ -1,6 +1,6 @@
 import { useEffect, useState, useCallback } from "react";
-import { useColorScheme as useSystemColorScheme } from "react-native";
-import AsyncStorage from "@react-native-async-storage/async-storage";
+import { Platform, useColorScheme as useSystemColorScheme } from "react-native";
+import { appStorage } from "@/utils/api";
 
 export type Theme = "light" | "dark" | "system";
 
@@ -12,7 +12,7 @@ export function useTheme() {
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
-    AsyncStorage.getItem(STORAGE_KEY).then((stored) => {
+    appStorage.getItem(STORAGE_KEY).then((stored) => {
       if (stored === "light" || stored === "dark" || stored === "system") {
         setThemeState(stored);
       }
@@ -20,12 +20,20 @@ export function useTheme() {
     });
   }, []);
 
-  const resolvedScheme =
-    theme === "system" ? (systemScheme ?? "light") : theme;
+  const resolvedScheme = theme === "system" ? (systemScheme ?? "light") : theme;
+
+  useEffect(() => {
+    if (Platform.OS === "web" && typeof document !== "undefined") {
+      document.documentElement.classList.toggle(
+        "dark",
+        resolvedScheme === "dark",
+      );
+    }
+  }, [resolvedScheme]);
 
   const setTheme = useCallback(async (newTheme: Theme) => {
     setThemeState(newTheme);
-    await AsyncStorage.setItem(STORAGE_KEY, newTheme);
+    await appStorage.setItem(STORAGE_KEY, newTheme);
   }, []);
 
   return { theme, setTheme, resolvedScheme, mounted };

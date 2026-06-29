@@ -1,9 +1,9 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { Redirect } from "expo-router";
 import { View, ActivityIndicator } from "react-native";
 import { hasValidSession } from "@/utils/api";
 
-export default function Index() {
+export function AuthGate({ children }: { children: ReactNode }) {
   const [authenticated, setAuthenticated] = useState<boolean | undefined>(
     undefined,
   );
@@ -20,9 +20,9 @@ export default function Index() {
     );
   }
 
-  if (authenticated) {
-    return <Redirect href="/(tabs)" />;
+  if (!authenticated) {
+    return <Redirect href="/(auth)/login" />;
   }
 
-  return <Redirect href="/(auth)/login" />;
+  return children;
 }

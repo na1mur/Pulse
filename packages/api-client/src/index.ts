@@ -10,6 +10,7 @@ export interface TokenStorage {
 export interface CreateApiClientOptions {
   baseURL: string;
   storage: TokenStorage;
+  onSessionExpired?: () => void;
 }
 
 async function resolve<T>(value: T | Promise<T>): Promise<T> {
@@ -19,6 +20,7 @@ async function resolve<T>(value: T | Promise<T>): Promise<T> {
 export function createApiClient({
   baseURL,
   storage,
+  onSessionExpired,
 }: CreateApiClientOptions): AxiosInstance {
   const api = axios.create({ baseURL });
 
@@ -52,9 +54,7 @@ export function createApiClient({
           });
 
           const { accessToken, refreshToken: newRefreshToken } = response.data;
-          await resolve(
-            storage.setTokens(accessToken, newRefreshToken),
-          );
+          await resolve(storage.setTokens(accessToken, newRefreshToken));
 
           if (originalRequest.headers) {
             originalRequest.headers.Authorization = `Bearer ${accessToken}`;
@@ -63,6 +63,7 @@ export function createApiClient({
         } catch (err) {
           console.error("Session expired:", err);
           await resolve(storage.clearTokens());
+          onSessionExpired?.();
         }
       }
       return Promise.reject(error);
@@ -94,13 +95,11 @@ export function createLocalStorageAdapter(): TokenStorage {
   };
 }
 
-export function createAsyncStorageAdapter(
-  asyncStorage: {
-    getItem(key: string): Promise<string | null>;
-    setItem(key: string, value: string): Promise<void>;
-    removeItem(key: string): Promise<void>;
-  },
-): TokenStorage {
+export function createAsyncStorageAdapter(asyncStorage: {
+  getItem(key: string): Promise<string | null>;
+  setItem(key: string, value: string): Promise<void>;
+  removeItem(key: string): Promise<void>;
+}): TokenStorage {
   return {
     getAccessToken: () => asyncStorage.getItem(TOKEN_KEYS.access),
     getRefreshToken: () => asyncStorage.getItem(TOKEN_KEYS.refresh),

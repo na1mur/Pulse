@@ -6,21 +6,30 @@ import { Clock } from "lucide-react-native";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { ThemeShell, ThemedText } from "@/components/ThemeShell";
 import { Button } from "@/components/ui/Button";
-import { TOKEN_KEYS } from "@/utils/api";
-import { createAsyncStorageAdapter } from "@repo/api-client";
-import AsyncStorage from "@react-native-async-storage/async-storage";
+import { useThemeColors } from "@/hooks/useThemeColors";
+import { appStorage, tokenStorage, TOKEN_KEYS } from "@/utils/api";
 
 const baseURL = process.env.EXPO_PUBLIC_API_URL ?? "http://localhost:3001";
-const storage = createAsyncStorageAdapter(AsyncStorage);
 
 export default function LoginScreen() {
   const router = useRouter();
+  const colors = useThemeColors();
   const [isLogin, setIsLogin] = useState(true);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+
+  const inputStyle = {
+    height: 44,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: colors.inputBorder,
+    backgroundColor: colors.input,
+    paddingHorizontal: 12,
+    color: colors.foreground,
+  };
 
   const handleSubmit = async () => {
     setError(null);
@@ -30,15 +39,13 @@ export default function LoginScreen() {
     }
 
     setIsLoading(true);
-    const url = isLogin
-      ? `${baseURL}/auth/login`
-      : `${baseURL}/auth/register`;
+    const url = isLogin ? `${baseURL}/auth/login` : `${baseURL}/auth/register`;
 
     try {
       const response = await axios.post(url, { email, password });
       const { accessToken, refreshToken } = response.data;
-      await storage.setTokens(accessToken, refreshToken);
-      await AsyncStorage.setItem(TOKEN_KEYS.email, email);
+      await tokenStorage.setTokens(accessToken, refreshToken);
+      await appStorage.setItem(TOKEN_KEYS.email, email);
       router.replace("/(tabs)");
     } catch (err: unknown) {
       const axiosErr = err as { response?: { data?: { error?: unknown } } };
@@ -59,11 +66,17 @@ export default function LoginScreen() {
         <ThemeToggle />
       </View>
 
-      <ScrollView contentContainerClassName="grow justify-center">
+      <ScrollView
+        contentContainerClassName="grow justify-center"
+        style={{ backgroundColor: colors.background }}
+      >
         <View className="w-full max-w-md self-center gap-6">
           <View className="items-center gap-2">
-            <View className="w-12 h-12 rounded-lg bg-neutral-900 items-center justify-center">
-              <Clock size={24} color="#fafafa" />
+            <View
+              className="w-12 h-12 rounded-lg items-center justify-center"
+              style={{ backgroundColor: colors.primary }}
+            >
+              <Clock size={24} color={colors.primaryForeground} />
             </View>
             <ThemedText className="text-3xl font-semibold">Pulse</ThemedText>
             <ThemedText className="text-neutral-500 text-center">
@@ -74,7 +87,15 @@ export default function LoginScreen() {
           </View>
 
           {error && (
-            <Text className="text-red-500 text-sm text-center">{error}</Text>
+            <Text
+              style={{
+                color: colors.destructive,
+                fontSize: 14,
+                textAlign: "center",
+              }}
+            >
+              {error}
+            </Text>
           )}
 
           <View className="gap-4">
@@ -86,8 +107,8 @@ export default function LoginScreen() {
                 placeholder="you@example.com"
                 keyboardType="email-address"
                 autoCapitalize="none"
-                className="h-11 rounded-lg border border-neutral-200 px-3 text-neutral-900"
-                placeholderTextColor="#737373"
+                style={inputStyle}
+                placeholderTextColor={colors.muted}
               />
             </View>
 
@@ -98,8 +119,8 @@ export default function LoginScreen() {
                 onChangeText={setPassword}
                 placeholder="••••••••"
                 secureTextEntry
-                className="h-11 rounded-lg border border-neutral-200 px-3 text-neutral-900"
-                placeholderTextColor="#737373"
+                style={inputStyle}
+                placeholderTextColor={colors.muted}
               />
             </View>
 
@@ -113,8 +134,8 @@ export default function LoginScreen() {
                   onChangeText={setConfirmPassword}
                   placeholder="••••••••"
                   secureTextEntry
-                  className="h-11 rounded-lg border border-neutral-200 px-3 text-neutral-900"
-                  placeholderTextColor="#737373"
+                  style={inputStyle}
+                  placeholderTextColor={colors.muted}
                 />
               </View>
             )}
@@ -128,10 +149,15 @@ export default function LoginScreen() {
             />
           </View>
 
-          <Pressable onPress={() => setIsLogin(!isLogin)} className="items-center">
+          <Pressable
+            onPress={() => setIsLogin(!isLogin)}
+            className="items-center"
+          >
             <ThemedText className="text-sm text-neutral-500">
-              {isLogin ? "Don't have an account? " : "Already have an account? "}
-              <Text className="text-neutral-900 font-medium">
+              {isLogin
+                ? "Don't have an account? "
+                : "Already have an account? "}
+              <Text style={{ color: colors.foreground, fontWeight: "500" }}>
                 {isLogin ? "Sign up" : "Sign in"}
               </Text>
             </ThemedText>

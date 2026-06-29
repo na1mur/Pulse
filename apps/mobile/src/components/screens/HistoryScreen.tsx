@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { View, ScrollView } from "react-native";
+import { View } from "react-native";
 import type { SessionRange } from "@repo/types";
 import {
   formatMinutes,
@@ -7,10 +7,12 @@ import {
   formatSessionClock,
 } from "@repo/utils";
 import { ScreenHeader } from "@/components/ScreenHeader";
+import { Screen, ScreenScroll } from "@/components/Screen";
 import { ThemedText } from "@/components/ThemeShell";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { useSessions, useUserSettings } from "@/hooks/usePulseQueries";
+import { useThemeColors } from "@/hooks/useThemeColors";
 
 const FILTERS: { label: string; value: SessionRange }[] = [
   { label: "Today", value: "today" },
@@ -24,11 +26,12 @@ export function HistoryScreen() {
   const { data: sessions = [], isLoading } = useSessions(range);
   const { data: settings } = useUserSettings();
   const timezone = settings?.timezone ?? "UTC";
+  const colors = useThemeColors();
 
   return (
-    <View className="flex-1">
+    <Screen>
       <ScreenHeader title="History" />
-      <ScrollView className="flex-1 p-4" contentContainerClassName="gap-4 pb-8">
+      <ScreenScroll>
         <View className="flex-row flex-wrap gap-2">
           {FILTERS.map((filter) => (
             <Button
@@ -54,7 +57,11 @@ export function HistoryScreen() {
               return (
                 <View
                   key={session.id ?? session._id ?? session.startTime}
-                  className="p-4 border-b border-neutral-100 gap-1"
+                  className="p-4 gap-1"
+                  style={{
+                    borderBottomWidth: 1,
+                    borderBottomColor: colors.border,
+                  }}
                 >
                   <ThemedText className="font-medium">
                     {formatRelativeDate(dateKey, timezone)}
@@ -69,7 +76,7 @@ export function HistoryScreen() {
             })
           )}
         </Card>
-      </ScrollView>
-    </View>
+      </ScreenScroll>
+    </Screen>
   );
 }

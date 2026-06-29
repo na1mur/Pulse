@@ -1,22 +1,19 @@
-import { View, type ViewProps } from "react-native";
-import { useTheme } from "@/hooks/useTheme";
+import { View, Text, type ViewProps, type TextProps } from "react-native";
+import { useThemeColors } from "@/hooks/useThemeColors";
 import { cn } from "@/lib/utils";
 
 export function ThemeShell({
   className,
+  style,
   children,
   ...props
 }: ViewProps & { className?: string }) {
-  const { resolvedScheme } = useTheme();
-  const isDark = resolvedScheme === "dark";
+  const colors = useThemeColors();
 
   return (
     <View
-      className={cn(
-        "flex-1",
-        isDark ? "bg-neutral-950" : "bg-neutral-50",
-        className,
-      )}
+      className={cn("flex-1", className)}
+      style={[{ backgroundColor: colors.background }, style]}
       {...props}
     >
       {children}
@@ -26,21 +23,27 @@ export function ThemeShell({
 
 export function ThemedText({
   className,
+  style,
   children,
+  muted,
+  destructive,
   ...props
-}: React.ComponentProps<typeof import("react-native").Text> & {
+}: TextProps & {
   className?: string;
+  muted?: boolean;
+  destructive?: boolean;
 }) {
-  const { Text } = require("react-native");
-  const { resolvedScheme } = useTheme();
+  const colors = useThemeColors();
+  const isMuted = muted ?? Boolean(className?.includes("text-neutral-500"));
+  const isDestructive =
+    destructive ?? Boolean(className?.includes("text-red-"));
+
+  let color = colors.foreground;
+  if (isMuted) color = colors.muted;
+  if (isDestructive) color = colors.destructive;
+
   return (
-    <Text
-      className={cn(
-        resolvedScheme === "dark" ? "text-neutral-100" : "text-neutral-900",
-        className,
-      )}
-      {...props}
-    >
+    <Text className={className} style={[{ color }, style]} {...props}>
       {children}
     </Text>
   );

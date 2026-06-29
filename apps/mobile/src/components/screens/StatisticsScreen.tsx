@@ -1,6 +1,7 @@
-import { View, ScrollView } from "react-native";
+import { View } from "react-native";
 import { formatMinutes, minutesToHours } from "@repo/utils";
 import { ScreenHeader } from "@/components/ScreenHeader";
+import { Screen, ScreenScroll } from "@/components/Screen";
 import { ThemedText } from "@/components/ThemeShell";
 import { Card } from "@/components/ui/Card";
 import {
@@ -8,7 +9,7 @@ import {
   useWeekStats,
   useWeeklyTrend,
 } from "@/hooks/usePulseQueries";
-import { useTheme } from "@/hooks/useTheme";
+import { useThemeColors } from "@/hooks/useThemeColors";
 
 function SimpleBarChart({
   data,
@@ -19,7 +20,7 @@ function SimpleBarChart({
   labelKey: string;
   valueKey: string;
 }) {
-  const { resolvedScheme } = useTheme();
+  const colors = useThemeColors();
   const max = Math.max(...data.map((d) => Number(d[valueKey]) || 0), 1);
 
   return (
@@ -33,7 +34,7 @@ function SimpleBarChart({
               className="w-full rounded-t-md"
               style={{
                 height: barHeight,
-                backgroundColor: resolvedScheme === "dark" ? "#d4d4d4" : "#262626",
+                backgroundColor: colors.primary,
               }}
             />
             <ThemedText className="text-xs text-neutral-500">
@@ -52,12 +53,27 @@ export function StatisticsScreen() {
   const { data: weeklyTrend = [] } = useWeeklyTrend();
 
   const stats = [
-    { label: "Total Hours", value: formatMinutes(summary?.totalWorkedMinutes ?? 0) },
-    { label: "Weekly Hours", value: formatMinutes(summary?.weeklyWorkedMinutes ?? 0) },
-    { label: "Monthly Hours", value: formatMinutes(summary?.monthlyWorkedMinutes ?? 0) },
-    { label: "Average/Day", value: formatMinutes(summary?.averageDailyMinutes ?? 0) },
+    {
+      label: "Total Hours",
+      value: formatMinutes(summary?.totalWorkedMinutes ?? 0),
+    },
+    {
+      label: "Weekly Hours",
+      value: formatMinutes(summary?.weeklyWorkedMinutes ?? 0),
+    },
+    {
+      label: "Monthly Hours",
+      value: formatMinutes(summary?.monthlyWorkedMinutes ?? 0),
+    },
+    {
+      label: "Average/Day",
+      value: formatMinutes(summary?.averageDailyMinutes ?? 0),
+    },
     { label: "Best Day", value: formatMinutes(summary?.bestDayMinutes ?? 0) },
-    { label: "Goal Achievement", value: `${summary?.goalAchievementPercent ?? 0}%` },
+    {
+      label: "Goal Achievement",
+      value: `${summary?.goalAchievementPercent ?? 0}%`,
+    },
   ];
 
   const dailyData = weekStats.map((d) => ({
@@ -71,14 +87,18 @@ export function StatisticsScreen() {
   }));
 
   return (
-    <View className="flex-1">
+    <Screen>
       <ScreenHeader title="Statistics" />
-      <ScrollView className="flex-1 p-4" contentContainerClassName="gap-4 pb-8">
+      <ScreenScroll>
         <View className="flex-row flex-wrap gap-3">
           {stats.map((stat) => (
             <Card key={stat.label} className="p-4 min-w-[46%] flex-1 gap-1">
-              <ThemedText className="text-sm text-neutral-500">{stat.label}</ThemedText>
-              <ThemedText className="text-2xl font-semibold">{stat.value}</ThemedText>
+              <ThemedText className="text-sm text-neutral-500">
+                {stat.label}
+              </ThemedText>
+              <ThemedText className="text-2xl font-semibold">
+                {stat.value}
+              </ThemedText>
             </Card>
           ))}
         </View>
@@ -92,7 +112,7 @@ export function StatisticsScreen() {
           <ThemedText className="font-semibold">Weekly Trend</ThemedText>
           <SimpleBarChart data={weeklyData} labelKey="week" valueKey="hours" />
         </Card>
-      </ScrollView>
-    </View>
+      </ScreenScroll>
+    </Screen>
   );
 }

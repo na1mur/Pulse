@@ -7,8 +7,9 @@ import {
 } from "lucide-react-native";
 import { useSocketSync } from "@/hooks/useSocketSync";
 import { useSyncManager } from "@/hooks/useSyncManager";
-import { useTheme } from "@/hooks/useTheme";
+import { useThemeColors } from "@/hooks/useThemeColors";
 import { GoalProvider } from "@/context/GoalContext";
+import { AuthGate } from "@/components/AuthGate";
 
 function SyncBootstrap() {
   useSyncManager();
@@ -17,53 +18,56 @@ function SyncBootstrap() {
 }
 
 export default function TabsLayout() {
-  const { resolvedScheme } = useTheme();
-  const color = resolvedScheme === "dark" ? "#f5f5f5" : "#262626";
-  const inactive = resolvedScheme === "dark" ? "#737373" : "#a3a3a3";
+  const colors = useThemeColors();
 
   return (
-    <GoalProvider>
-      <SyncBootstrap />
-      <Tabs
-        screenOptions={{
-          headerShown: false,
-          tabBarActiveTintColor: color,
-          tabBarInactiveTintColor: inactive,
-          tabBarStyle: {
-            backgroundColor: resolvedScheme === "dark" ? "#171717" : "#ffffff",
-            borderTopColor: resolvedScheme === "dark" ? "#262626" : "#f0f0f0",
-          },
-        }}
-      >
-        <Tabs.Screen
-          name="index"
-          options={{
-            title: "Dashboard",
-            tabBarIcon: ({ color: c }) => <LayoutDashboard size={20} color={c} />,
+    <AuthGate>
+      <GoalProvider>
+        <SyncBootstrap />
+        <Tabs
+          screenOptions={{
+            headerShown: false,
+            sceneStyle: { backgroundColor: colors.background },
+            tabBarActiveTintColor: colors.tabActive,
+            tabBarInactiveTintColor: colors.tabInactive,
+            tabBarStyle: {
+              backgroundColor: colors.tabBar,
+              borderTopColor: colors.tabBarBorder,
+            },
           }}
-        />
-        <Tabs.Screen
-          name="history"
-          options={{
-            title: "History",
-            tabBarIcon: ({ color: c }) => <History size={20} color={c} />,
-          }}
-        />
-        <Tabs.Screen
-          name="statistics"
-          options={{
-            title: "Statistics",
-            tabBarIcon: ({ color: c }) => <BarChart3 size={20} color={c} />,
-          }}
-        />
-        <Tabs.Screen
-          name="goals"
-          options={{
-            title: "Goals",
-            tabBarIcon: ({ color: c }) => <Target size={20} color={c} />,
-          }}
-        />
-      </Tabs>
-    </GoalProvider>
+        >
+          <Tabs.Screen
+            name="index"
+            options={{
+              title: "Dashboard",
+              tabBarIcon: ({ color: c }) => (
+                <LayoutDashboard size={20} color={c} />
+              ),
+            }}
+          />
+          <Tabs.Screen
+            name="history"
+            options={{
+              title: "History",
+              tabBarIcon: ({ color: c }) => <History size={20} color={c} />,
+            }}
+          />
+          <Tabs.Screen
+            name="statistics"
+            options={{
+              title: "Statistics",
+              tabBarIcon: ({ color: c }) => <BarChart3 size={20} color={c} />,
+            }}
+          />
+          <Tabs.Screen
+            name="goals"
+            options={{
+              title: "Goals",
+              tabBarIcon: ({ color: c }) => <Target size={20} color={c} />,
+            }}
+          />
+        </Tabs>
+      </GoalProvider>
+    </AuthGate>
   );
 }
