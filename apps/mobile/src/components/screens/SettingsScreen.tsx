@@ -32,7 +32,7 @@ export function SettingsScreen() {
 
   return (
     <Screen>
-      <ScreenHeader title="Settings" />
+      <ScreenHeader title="Settings" showBack hideSettings />
       <ScreenScroll>
         <Card className="p-4 gap-3">
           <ThemedText className="text-lg font-semibold">General</ThemedText>

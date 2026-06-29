@@ -1,13 +1,31 @@
 import { View, Pressable } from "react-native";
 import { useRouter } from "expo-router";
-import { Settings } from "lucide-react-native";
+import { ChevronLeft, Settings } from "lucide-react-native";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { ThemedText } from "@/components/ThemeShell";
 import { useThemeColors } from "@/hooks/useThemeColors";
 
-export function ScreenHeader({ title }: { title: string }) {
+interface ScreenHeaderProps {
+  title: string;
+  showBack?: boolean;
+  hideSettings?: boolean;
+}
+
+export function ScreenHeader({
+  title,
+  showBack = false,
+  hideSettings = false,
+}: ScreenHeaderProps) {
   const router = useRouter();
   const colors = useThemeColors();
+
+  const handleBack = () => {
+    if (router.canGoBack()) {
+      router.back();
+    } else {
+      router.replace("/(tabs)");
+    }
+  };
 
   return (
     <View
@@ -18,16 +36,31 @@ export function ScreenHeader({ title }: { title: string }) {
         borderBottomColor: colors.border,
       }}
     >
-      <ThemedText className="text-xl font-semibold">{title}</ThemedText>
+      <View className="flex-row items-center gap-2 flex-1">
+        {showBack && (
+          <Pressable
+            onPress={handleBack}
+            className="h-10 w-10 items-center justify-center rounded-lg"
+            style={{ backgroundColor: colors.mutedSurface }}
+            accessibilityLabel="Go back"
+          >
+            <ChevronLeft size={20} color={colors.foreground} />
+          </Pressable>
+        )}
+        <ThemedText className="text-xl font-semibold">{title}</ThemedText>
+      </View>
       <View className="flex-row items-center gap-1">
         <ThemeToggle />
-        <Pressable
-          onPress={() => router.push("/settings")}
-          className="h-10 w-10 items-center justify-center rounded-lg"
-          style={{ backgroundColor: colors.mutedSurface }}
-        >
-          <Settings size={18} color={colors.foreground} />
-        </Pressable>
+        {!hideSettings && (
+          <Pressable
+            onPress={() => router.push("/settings")}
+            className="h-10 w-10 items-center justify-center rounded-lg"
+            style={{ backgroundColor: colors.mutedSurface }}
+            accessibilityLabel="Open settings"
+          >
+            <Settings size={18} color={colors.foreground} />
+          </Pressable>
+        )}
       </View>
     </View>
   );

@@ -4,7 +4,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { StatusBar } from "expo-status-bar";
 import { isAxiosError } from "axios";
 import { ApiProvider } from "@repo/queries";
-import { useTheme } from "@/hooks/useTheme";
+import { ThemeProvider, useTheme } from "@/hooks/useTheme";
 import { ThemeShell } from "@/components/ThemeShell";
 import { api } from "@/utils/api";
 
@@ -21,7 +21,7 @@ const queryClient = new QueryClient({
   },
 });
 
-export default function RootLayout() {
+function RootLayoutInner() {
   const { resolvedScheme } = useTheme();
 
   return (
@@ -33,5 +33,13 @@ export default function RootLayout() {
         </ThemeShell>
       </QueryClientProvider>
     </ApiProvider>
+  );
+}
+
+export default function RootLayout() {
+  return (
+    <ThemeProvider>
+      <RootLayoutInner />
+    </ThemeProvider>
   );
 }
