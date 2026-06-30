@@ -13,6 +13,11 @@ dist-electron
 dist-ssr
 *.local
 
+# env files (see root .gitignore; keep .env.example tracked)
+.env
+.env.*
+!.env.example
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json
