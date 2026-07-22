@@ -1,6 +1,17 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { View, Modal, Pressable, Text, ScrollView } from "react-native";
-import { Pause, Play, Clock } from "lucide-react-native";
+import {
+  Pause,
+  Play,
+  Clock,
+  Calendar,
+  Activity,
+  FolderOpen,
+  Star,
+  Flame,
+  Target,
+} from "lucide-react-native";
+import type { ComponentType } from "react";
 import { formatMinutes, formatSessionClock, minutesToHours } from "@repo/utils";
 import { ScreenHeader } from "@/components/ScreenHeader";
 import { Screen, ScreenScroll } from "@/components/Screen";
@@ -8,6 +19,7 @@ import { ThemedText } from "@/components/ThemeShell";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { Progress } from "@/components/ui/Progress";
+import { Sparkline } from "@/components/Sparkline";
 import { useGoalContext } from "@/context/GoalContext";
 import {
   useStatsSummary,
@@ -17,10 +29,84 @@ import {
 } from "@/hooks/usePulseQueries";
 import { useTimerControls } from "@/hooks/useTimerControls";
 import { useThemeColors } from "@/hooks/useThemeColors";
+import { appStorage, TOKEN_KEYS } from "@/utils/api";
+
+function getDisplayName(email: string) {
+  const part = email.split("@")[0] ?? "there";
+  return part.charAt(0).toUpperCase() + part.slice(1);
+}
+
+function formatBestDayDate(dateStr: string | null | undefined) {
+  if (!dateStr) return null;
+  try {
+    const date = new Date(dateStr + "T00:00:00");
+    return date.toLocaleDateString("en-GB", {
+      day: "numeric",
+      month: "long",
+      year: "numeric",
+    });
+  } catch {
+    return null;
+  }
+}
+
+interface StatCardProps {
+  label: string;
+  value: string;
+  icon: ComponentType<{ size?: number; color?: string }>;
+  iconBg: string;
+  iconColor: string;
+  sparkColor: string;
+  subtitle?: string;
+  onPress?: () => void;
+}
+
+function StatCard({
+  label,
+  value,
+  icon: Icon,
+  iconBg,
+  iconColor,
+  sparkColor,
+  subtitle,
+  onPress,
+}: StatCardProps) {
+  const content = (
+    <Card className="p-4 gap-3 flex-1 min-w-[46%]">
+      <View
+        className="w-9 h-9 rounded-lg items-center justify-center"
+        style={{ backgroundColor: iconBg }}
+      >
+        <Icon size={16} color={iconColor} />
+      </View>
+      <View>
+        <ThemedText className="text-sm text-neutral-500">{label}</ThemedText>
+        <ThemedText className="text-2xl font-bold mt-1">{value}</ThemedText>
+        {subtitle && (
+          <ThemedText className="text-xs text-neutral-500 mt-1">
+            {subtitle}
+          </ThemedText>
+        )}
+      </View>
+      <Sparkline color={sparkColor} />
+    </Card>
+  );
+
+  if (onPress) {
+    return (
+      <Pressable onPress={onPress} className="min-w-[46%] flex-1">
+        {content}
+      </Pressable>
+    );
+  }
+
+  return content;
+}
 
 export function DashboardScreen() {
   const { goalEnabled, dailyGoalHours } = useGoalContext();
   const [showSessions, setShowSessions] = useState(false);
+  const [displayName, setDisplayName] = useState("there");
   const { data: todayStats } = useTodayStats();
   const { data: summary } = useStatsSummary();
   const { data: todaySessions = [] } = useTodaySessions();
@@ -28,6 +114,12 @@ export function DashboardScreen() {
   const { isRunning, displayTime, handlePlay, handlePause } =
     useTimerControls();
   const colors = useThemeColors();
+
+  useEffect(() => {
+    appStorage.getItem(TOKEN_KEYS.email).then((email) => {
+      if (email) setDisplayName(getDisplayName(email));
+    });
+  }, []);
 
   const timezone = settings?.timezone ?? "UTC";
   const workedMinutes = todayStats?.workedMinutes ?? 0;
@@ -37,34 +129,65 @@ export function DashboardScreen() {
       ? Math.round((workedHours / dailyGoalHours) * 100)
       : (todayStats?.percentage ?? 0);
   const remainingHours = Math.max(0, dailyGoalHours - workedHours);
+  const bestDayDate = formatBestDayDate(summary?.bestDayDate);
 
   return (
     <Screen>
-      <ScreenHeader title="Dashboard" />
+      <ScreenHeader
+        title={`Welcome back, ${displayName} 👋`}
+        subtitle="Stay focused and keep building."
+      />
       <ScreenScroll>
-        <Card className="p-8 gap-6">
-          <View className="items-center gap-2">
-            <ThemedText className="text-sm text-neutral-500">
-              Current Session
-            </ThemedText>
-            <ThemedText className="text-5xl font-black" style={{ fontWeight: '900' }}>
+        <Card
+          glow
+          className="p-8 gap-6"
+          style={{ borderColor: colors.accentPurple + "33" }}
+        >
+          <View className="items-center gap-3">
+            <View
+              className="flex-row items-center gap-2 px-3 py-1 rounded-full"
+              style={{ backgroundColor: colors.accentPurpleBg }}
+            >
+              <View
+                className="w-1.5 h-1.5 rounded-full"
+                style={{ backgroundColor: colors.accentPurple }}
+              />
+              <Text
+                style={{
+                  color: colors.accentPurple,
+                  fontSize: 12,
+                  fontWeight: "500",
+                }}
+              >
+                Current Session
+              </Text>
+            </View>
+
+            <ThemedText
+              className="text-5xl font-black tracking-tight"
+              style={{ fontWeight: "900" }}
+            >
               {displayTime}
             </ThemedText>
+
             {isRunning && (
-              <View className="flex-row items-center gap-2 pt-2">
+              <View className="flex-row items-center gap-2">
                 <View
-                  className="w-3 h-3 rounded-full"
-                  style={{ backgroundColor: colors.primary }}
+                  className="w-2 h-2 rounded-full"
+                  style={{ backgroundColor: colors.accentGreen }}
                 />
-                <ThemedText className="text-sm">Currently Working</ThemedText>
+                <ThemedText className="text-sm text-neutral-500">
+                  Currently Working
+                </ThemedText>
               </View>
             )}
           </View>
+
           <View className="items-center pt-2">
             <Button
               size="lg"
               onPress={isRunning ? handlePause : handlePlay}
-              className="px-8"
+              className="min-w-[140px]"
             >
               {isRunning ? (
                 <>
@@ -74,7 +197,7 @@ export function DashboardScreen() {
                       color: colors.primaryForeground,
                       marginLeft: 8,
                       fontSize: 14,
-                      fontWeight: "500",
+                      fontWeight: "600",
                     }}
                   >
                     Pause
@@ -88,7 +211,7 @@ export function DashboardScreen() {
                       color: colors.primaryForeground,
                       marginLeft: 8,
                       fontSize: 14,
-                      fontWeight: "500",
+                      fontWeight: "600",
                     }}
                   >
                     Play
@@ -100,78 +223,95 @@ export function DashboardScreen() {
         </Card>
 
         <View className="flex-row flex-wrap gap-3">
-          <Card className="p-4 gap-2 min-w-[46%] flex-1">
-            <ThemedText className="text-sm text-neutral-500">
-              Worked Today
-            </ThemedText>
-            <ThemedText className="text-2xl font-semibold">
-              {formatMinutes(workedMinutes)}
-            </ThemedText>
-          </Card>
+          <StatCard
+            label="Worked Today"
+            value={formatMinutes(workedMinutes)}
+            icon={Calendar}
+            iconBg={colors.accentPurpleBg}
+            iconColor={colors.accentPurple}
+            sparkColor={colors.accentPurple}
+            subtitle={goalEnabled ? `Goal: ${dailyGoalHours}h` : undefined}
+          />
 
           {goalEnabled && (
-            <Card className="p-4 gap-2 min-w-[46%] flex-1">
-              <ThemedText className="text-sm text-neutral-500">
-                Progress
-              </ThemedText>
-              <ThemedText className="text-2xl font-semibold">
-                {progressPercentage}%
-              </ThemedText>
-              <Progress value={Math.min(progressPercentage, 100)} />
+            <Card className="p-4 gap-3 min-w-[46%] flex-1">
+              <View
+                className="w-9 h-9 rounded-lg items-center justify-center"
+                style={{ backgroundColor: colors.accentPurpleBg }}
+              >
+                <Target size={16} color={colors.accentPurple} />
+              </View>
+              <View>
+                <ThemedText className="text-sm text-neutral-500">
+                  Progress
+                </ThemedText>
+                <ThemedText
+                  className="text-2xl font-bold mt-1"
+                  style={{ color: colors.accentPurple }}
+                >
+                  {progressPercentage}%
+                </ThemedText>
+                <Progress
+                  value={Math.min(progressPercentage, 100)}
+                  className="mt-2"
+                />
+              </View>
+              <Sparkline color={colors.accentPurple} />
             </Card>
           )}
 
           {goalEnabled && (
-            <Card className="p-4 gap-2 min-w-[46%] flex-1">
-              <ThemedText className="text-sm text-neutral-500">
-                Remaining
-              </ThemedText>
-              <ThemedText className="text-2xl font-semibold">
-                {formatMinutes(Math.round(remainingHours * 60))}
-              </ThemedText>
-            </Card>
+            <StatCard
+              label="Remaining"
+              value={formatMinutes(Math.round(remainingHours * 60))}
+              icon={Clock}
+              iconBg={colors.accentAmberBg}
+              iconColor={colors.accentAmber}
+              sparkColor={colors.accentAmber}
+            />
           )}
 
-          <Pressable
+          <StatCard
+            label="Sessions Today"
+            value={String(todaySessions.length)}
+            icon={Activity}
+            iconBg={colors.accentGreenBg}
+            iconColor={colors.accentGreen}
+            sparkColor={colors.accentGreen}
+            subtitle="Click to view all"
             onPress={() => setShowSessions(true)}
-            className="min-w-[46%] flex-1"
-          >
-            <Card className="p-4 gap-2">
-              <ThemedText className="text-sm text-neutral-500">
-                Sessions Today
-              </ThemedText>
-              <ThemedText className="text-2xl font-semibold">
-                {todaySessions.length}
-              </ThemedText>
-            </Card>
-          </Pressable>
+          />
 
-          <Card className="p-4 gap-2 min-w-[46%] flex-1">
-            <ThemedText className="text-sm text-neutral-500">
-              This Week
-            </ThemedText>
-            <ThemedText className="text-2xl font-semibold">
-              {formatMinutes(summary?.weeklyWorkedMinutes ?? 0)}
-            </ThemedText>
-          </Card>
+          <StatCard
+            label="This Week"
+            value={formatMinutes(summary?.weeklyWorkedMinutes ?? 0)}
+            icon={FolderOpen}
+            iconBg={colors.accentAmberBg}
+            iconColor={colors.accentAmber}
+            sparkColor={colors.accentAmber}
+          />
 
-          <Card className="p-4 gap-2 min-w-[46%] flex-1">
-            <ThemedText className="text-sm text-neutral-500">
-              Best Day
-            </ThemedText>
-            <ThemedText className="text-2xl font-semibold">
-              {formatMinutes(summary?.bestDayMinutes ?? 0)}
-            </ThemedText>
-          </Card>
+          <StatCard
+            label="Best Day"
+            value={formatMinutes(summary?.bestDayMinutes ?? 0)}
+            icon={Star}
+            iconBg={colors.accentBlueBg}
+            iconColor={colors.accentBlue}
+            sparkColor={colors.accentBlue}
+            subtitle={bestDayDate ?? undefined}
+          />
 
-          <Card className="p-4 gap-2 min-w-[46%] flex-1">
-            <ThemedText className="text-sm text-neutral-500">
-              Current Streak
-            </ThemedText>
-            <ThemedText className="text-2xl font-semibold">
-              {summary?.currentStreakDays ?? 0} days
-            </ThemedText>
-          </Card>
+          <StatCard
+            label="Current Streak"
+            value={`${summary?.currentStreakDays ?? 0} days`}
+            icon={Flame}
+            iconBg={colors.accentRedBg}
+            iconColor={colors.accentRed}
+            sparkColor={colors.accentRed}
+            subtitle={
+              (summary?.currentStreakDays ?? 0) > 0 ? "Keep it up!" : undefined
+            }
+          />
         </View>
       </ScreenScroll>
 
@@ -181,28 +321,34 @@ export function DashboardScreen() {
           style={{ backgroundColor: colors.overlay }}
         >
           <Card className="p-6 gap-4 max-h-[80%]">
-            <ThemedText className="text-2xl font-semibold">
+            <ThemedText className="text-2xl font-bold">
               Sessions Today
             </ThemedText>
             <ScrollView className="max-h-64">
-              {todaySessions.map((session) => (
-                <View
-                  key={session.id ?? session._id ?? session.startTime}
-                  className="p-3 rounded-lg mb-2 gap-1"
-                  style={{ borderWidth: 1, borderColor: colors.border }}
-                >
-                  <View className="flex-row items-center gap-2">
-                    <Clock size={14} color={colors.muted} />
-                    <ThemedText className="font-medium">
-                      {formatSessionClock(session.startTime, timezone)} -{" "}
-                      {formatSessionClock(session.endTime, timezone)}
+              {todaySessions.length === 0 ? (
+                <ThemedText className="text-sm text-neutral-500 text-center py-4">
+                  No sessions logged today yet.
+                </ThemedText>
+              ) : (
+                todaySessions.map((session) => (
+                  <View
+                    key={session.id ?? session._id ?? session.startTime}
+                    className="p-3 rounded-xl mb-2 gap-1"
+                    style={{ borderWidth: 1, borderColor: colors.border }}
+                  >
+                    <View className="flex-row items-center gap-2">
+                      <Clock size={14} color={colors.accentPurple} />
+                      <ThemedText className="font-medium">
+                        {formatSessionClock(session.startTime, timezone)} -{" "}
+                        {formatSessionClock(session.endTime, timezone)}
+                      </ThemedText>
+                    </View>
+                    <ThemedText className="text-sm text-neutral-500">
+                      Duration: {formatMinutes(session.durationMinutes)}
                     </ThemedText>
                   </View>
-                  <ThemedText className="text-sm text-neutral-500">
-                    Duration: {formatMinutes(session.durationMinutes)}
-                  </ThemedText>
-                </View>
-              ))}
+                ))
+              )}
             </ScrollView>
             <Button
               label="Close"

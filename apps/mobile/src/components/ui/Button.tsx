@@ -21,7 +21,7 @@ const sizeStyles: Record<
 > = {
   default: { height: 40, paddingHorizontal: 16 },
   sm: { height: 32, paddingHorizontal: 12 },
-  lg: { height: 48, paddingHorizontal: 24 },
+  lg: { height: 48, paddingHorizontal: 32, borderRadius: 24 },
   icon: { height: 40, paddingHorizontal: 0 },
 };
 
@@ -59,7 +59,8 @@ export function Button({
   return (
     <Pressable
       className={cn(
-        "flex-row items-center justify-center rounded-lg",
+        "flex-row items-center justify-center",
+        size === "lg" ? "rounded-full" : "rounded-lg",
         size === "icon" && "w-10",
         className,
       )}

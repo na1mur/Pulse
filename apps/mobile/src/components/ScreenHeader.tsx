@@ -7,12 +7,14 @@ import { useThemeColors } from "@/hooks/useThemeColors";
 
 interface ScreenHeaderProps {
   title: string;
+  subtitle?: string;
   showBack?: boolean;
   hideSettings?: boolean;
 }
 
 export function ScreenHeader({
   title,
+  subtitle,
   showBack = false,
   hideSettings = false,
 }: ScreenHeaderProps) {
@@ -29,7 +31,7 @@ export function ScreenHeader({
 
   return (
     <View
-      className="h-16 px-4 flex-row items-center justify-between"
+      className="h-auto min-h-16 px-4 py-3 flex-row items-center justify-between"
       style={{
         backgroundColor: colors.background,
         borderBottomWidth: 1,
@@ -47,7 +49,14 @@ export function ScreenHeader({
             <ChevronLeft size={20} color={colors.foreground} />
           </Pressable>
         )}
-        <ThemedText className="text-xl font-semibold">{title}</ThemedText>
+        <View className="flex-1">
+          <ThemedText className="text-lg font-bold">{title}</ThemedText>
+          {subtitle && (
+            <ThemedText className="text-sm text-neutral-500 mt-0.5">
+              {subtitle}
+            </ThemedText>
+          )}
+        </View>
       </View>
       <View className="flex-row items-center gap-1">
         <ThemeToggle />

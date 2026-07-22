@@ -6,26 +6,26 @@ module.exports = {
   theme: {
     extend: {
       colors: {
-        background: "#ffffff",
+        background: "#fafafa",
         foreground: "#09090b",
         card: "#ffffff",
         "card-foreground": "#09090b",
-        primary: "#09090b",
-        "primary-foreground": "#fafafa",
+        primary: "#7c3aed",
+        "primary-foreground": "#ffffff",
         secondary: "#f4f4f5",
         "secondary-foreground": "#09090b",
         muted: "#f4f4f5",
         "muted-foreground": "#71717a",
         accent: "#f4f4f5",
-        "accent-foreground": "#09090b",
+        "accent-foreground": "#7c3aed",
         destructive: "#ef4444",
         border: "#e4e4e7",
         input: "#e4e4e7",
-        ring: "#a1a1aa",
+        ring: "#7c3aed",
         sidebar: "#fafafa",
         "sidebar-foreground": "#09090b",
-        "sidebar-primary": "#09090b",
-        "sidebar-primary-foreground": "#fafafa",
+        "sidebar-primary": "#7c3aed",
+        "sidebar-primary-foreground": "#ffffff",
         "sidebar-accent": "#f4f4f5",
         "sidebar-border": "#e4e4e7",
       },
@@ -33,4 +33,3 @@ module.exports = {
   },
   plugins: [],
 };
-

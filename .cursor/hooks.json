@@ -1,0 +1,10 @@
+{
+  "version": 1,
+  "hooks": {
+    "stop": [
+      {
+        "command": "powershell.exe -NoProfile -NonInteractive -ExecutionPolicy Bypass -File .cursor/hooks/play-task-complete.ps1"
+      }
+    ]
+  }
+}

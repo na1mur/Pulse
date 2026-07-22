@@ -1,3 +1,4 @@
+import { useState, useEffect } from "react";
 import {
   LayoutDashboard,
   History,
@@ -5,6 +6,8 @@ import {
   Target,
   LogOut,
   Settings,
+  ChevronsLeft,
+  ChevronsRight,
 } from "lucide-react";
 import type { AppPage } from "@repo/types";
 import ThemeToggle from "@/components/ThemeToggle";
@@ -45,12 +48,28 @@ const navItems = [
   { id: "history" as const, icon: History, label: "History" },
   { id: "statistics" as const, icon: BarChart3, label: "Statistics" },
   { id: "goals" as const, icon: Target, label: "Goals" },
+  { id: "settings" as const, icon: Settings, label: "Settings" },
 ];
 
 function getInitials(email: string) {
   const part = email.split("@")[0] ?? "U";
   return part.slice(0, 2).toUpperCase();
 }
+
+function getDisplayName(email: string) {
+  const part = email.split("@")[0] ?? "there";
+  return part.charAt(0).toUpperCase() + part.slice(1);
+}
+
+const SIDEBAR_COLLAPSED_KEY = "pulse-sidebar-collapsed";
+
+const pageTitles: Record<string, string> = {
+  dashboard: "Dashboard",
+  history: "History",
+  statistics: "Statistics",
+  goals: "Goals",
+  settings: "Settings",
+};
 
 export function AppLayout({
   currentPage,
@@ -70,97 +89,129 @@ export function AppLayout({
   userEmail,
   onLogout,
 }: AppLayoutProps) {
-  const pageTitle =
-    currentPage === "settings"
-      ? "Settings"
-      : {
-          dashboard: "Dashboard",
-          history: "History",
-          statistics: "Statistics",
-          goals: "Goals",
-        }[currentPage as "dashboard" | "history" | "statistics" | "goals"];
-
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(true);
+  const displayName = getDisplayName(userEmail);
   const initials = getInitials(userEmail);
+  const pageTitle = pageTitles[currentPage] ?? "Dashboard";
+
+  useEffect(() => {
+    const stored = localStorage.getItem(SIDEBAR_COLLAPSED_KEY);
+    if (stored !== null) {
+      setSidebarCollapsed(stored === "true");
+    }
+  }, []);
+
+  const toggleSidebar = () => {
+    setSidebarCollapsed((prev) => {
+      const next = !prev;
+      localStorage.setItem(SIDEBAR_COLLAPSED_KEY, String(next));
+      return next;
+    });
+  };
 
   return (
     <div className="flex h-screen bg-background text-foreground">
-      <aside className="w-64 border-r border-border bg-sidebar flex flex-col">
-        <div className="p-6 border-b border-sidebar-border">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-lg overflow-hidden bg-white flex-shrink-0">
+      <aside
+        className={`${
+          sidebarCollapsed ? "w-[72px]" : "w-64"
+        } border-r border-sidebar-border bg-sidebar glass flex flex-col transition-all duration-300`}
+      >
+        <div className="p-4 border-b border-sidebar-border">
+          <div
+            className={`flex items-center ${sidebarCollapsed ? "justify-center" : "gap-3"}`}
+          >
+            <div className="w-10 h-10 rounded-xl overflow-hidden bg-primary flex-shrink-0 glow-purple-sm flex items-center justify-center">
               <img
                 src="./branding/logo-mark.png"
-                alt=""
-                className="w-full h-full object-cover"
+                alt="Pulse"
+                className="w-6 h-6 object-contain"
               />
             </div>
-            <div>
-              <h1 className="font-semibold text-sidebar-foreground">Pulse</h1>
-              <p className="text-xs text-muted-foreground">Time Tracker</p>
-            </div>
+            {!sidebarCollapsed && (
+              <div>
+                <h1 className="font-semibold text-sidebar-accent-foreground">
+                  Pulse
+                </h1>
+                <p className="text-xs text-muted-foreground">Time Tracker</p>
+              </div>
+            )}
           </div>
         </div>
 
-        <nav className="flex-1 p-4 space-y-2">
+        <nav className="flex-1 p-3 space-y-1">
           {navItems.map((item) => {
             const Icon = item.icon;
-            const isActive = currentPage === item.id;
+            const isActive =
+              currentPage === item.id ||
+              (item.id === "settings" && currentPage === "settings");
             return (
               <button
                 key={item.id}
                 type="button"
                 onClick={() => onPageChange(item.id)}
-                className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${
+                title={item.label}
+                className={`w-full flex items-center ${
+                  sidebarCollapsed ? "justify-center px-0" : "gap-3 px-3"
+                } py-2.5 rounded-xl transition-all ${
                   isActive
-                    ? "bg-sidebar-primary text-sidebar-primary-foreground"
-                    : "text-sidebar-foreground hover:bg-sidebar-accent"
+                    ? "bg-sidebar-accent text-sidebar-accent-foreground glow-purple-sm"
+                    : "text-sidebar-foreground hover:bg-sidebar-accent/50 hover:text-sidebar-accent-foreground"
                 }`}
               >
-                <Icon className="w-4 h-4" />
-                <span className="text-sm font-medium">{item.label}</span>
+                <Icon
+                  className={`w-5 h-5 flex-shrink-0 ${isActive ? "text-primary" : ""}`}
+                />
+                {!sidebarCollapsed && (
+                  <span className="text-sm font-medium">{item.label}</span>
+                )}
               </button>
             );
           })}
         </nav>
 
-        <div className="p-4 border-t border-sidebar-border space-y-3">
-          <div className="flex items-center gap-3 px-4 py-3 rounded-lg bg-sidebar-accent">
-            <div className="w-8 h-8 rounded-full bg-sidebar-primary text-sidebar-primary-foreground flex items-center justify-center text-xs font-bold">
-              {initials}
-            </div>
-            <div className="flex-1 min-w-0">
-              <p className="text-sm font-medium text-sidebar-foreground truncate">
-                {userEmail.split("@")[0]}
-              </p>
-              <p className="text-xs text-muted-foreground truncate">
-                {userEmail}
-              </p>
-            </div>
-          </div>
-          <Button
-            variant="ghost"
-            size="sm"
-            className="w-full"
-            onClick={onLogout}
+        <div className="p-3 border-t border-sidebar-border">
+          <button
+            type="button"
+            onClick={toggleSidebar}
+            className={`w-full flex items-center ${
+              sidebarCollapsed ? "justify-center" : "gap-3 px-3"
+            } py-2.5 rounded-xl text-sidebar-foreground hover:bg-sidebar-accent/50 transition-colors`}
+            title={sidebarCollapsed ? "Expand sidebar" : "Collapse sidebar"}
           >
-            <LogOut className="w-4 h-4 mr-2" />
-            Logout
-          </Button>
+            {sidebarCollapsed ? (
+              <ChevronsRight className="w-5 h-5" />
+            ) : (
+              <>
+                <ChevronsLeft className="w-5 h-5" />
+                <span className="text-sm">Collapse</span>
+              </>
+            )}
+          </button>
         </div>
       </aside>
 
       <div className="flex-1 flex flex-col min-w-0">
-        <header className="h-16 border-b border-border bg-background px-6 flex items-center justify-between">
-          <h2 className="text-xl font-semibold text-foreground">{pageTitle}</h2>
-          <div className="flex items-center gap-4">
+        <header className="h-auto min-h-16 border-b border-border bg-background/80 glass px-6 py-4 flex items-center justify-between">
+          <div>
+            {currentPage === "dashboard" ? (
+              <>
+                <h2 className="text-xl font-bold text-foreground">
+                  Welcome back, {displayName} 👋
+                </h2>
+                <p className="text-sm text-muted-foreground mt-0.5">
+                  Stay focused and keep building.
+                </p>
+              </>
+            ) : (
+              <h2 className="text-xl font-bold text-foreground">{pageTitle}</h2>
+            )}
+          </div>
+          <div className="flex items-center gap-3">
             <ThemeToggle />
             <DropdownMenu>
-              <DropdownMenuTrigger>
-                <Button variant="ghost" size="icon">
-                  <div className="w-8 h-8 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-xs font-bold">
-                    {initials}
-                  </div>
-                </Button>
+              <DropdownMenuTrigger className="relative size-9 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-xs font-bold outline-none focus-visible:ring-3 focus-visible:ring-ring/50 transition-colors hover:bg-primary/90">
+                {initials}
+                <span className="absolute -bottom-0.5 -right-0.5 size-2.5 rounded-full bg-accent-green border-2 border-background" />
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
                 <DropdownMenuItem onClick={() => onPageChange("settings")}>
