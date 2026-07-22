@@ -82,7 +82,7 @@ export function AuthPages({ onAuthSuccess }: AuthPagesProps) {
         <div className="space-y-6">
           <div className="text-center space-y-2">
             <img
-              src="/branding/logo-wordmark.png"
+              src="./branding/logo-wordmark.png"
               alt="Pulse"
               className="h-24 w-auto mx-auto"
             />
