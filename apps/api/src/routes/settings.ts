@@ -23,7 +23,7 @@ function settingsResponse(user: {
 }) {
   return {
     email: user.email,
-    name: user.name,
+    name: user.name ?? "",
     timezone: user.timezone,
     dailyTargetMinutes: user.dailyTargetMinutes,
     weeklyTargetMinutes: user.weeklyTargetMinutes ?? 0,

@@ -31,6 +31,11 @@ export function AuthPages({ onAuthSuccess }: AuthPagesProps) {
       return;
     }
 
+    if (!isLogin && !name.trim()) {
+      setError("Name is required.");
+      return;
+    }
+
     setIsLoading(true);
     const url = isLogin ? `${baseURL}/auth/login` : `${baseURL}/auth/register`;
 

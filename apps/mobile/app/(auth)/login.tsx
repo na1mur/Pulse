@@ -54,6 +54,10 @@ export default function LoginScreen() {
       setError("Passwords do not match.");
       return;
     }
+    if (!isLogin && !name.trim()) {
+      setError("Name is required.");
+      return;
+    }
 
     setIsLoading(true);
     const url = isLogin ? `${baseURL}/auth/login` : `${baseURL}/auth/register`;
