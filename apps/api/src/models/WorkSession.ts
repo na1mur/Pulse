@@ -6,6 +6,9 @@ export interface IWorkSession extends Document {
   startTime: Date;
   endTime?: Date;
   durationMinutes: number;
+  durationSeconds: number;
+  title?: string;
+  summary?: string;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -33,6 +36,21 @@ const workSessionSchema = new Schema<IWorkSession>(
       type: Number,
       required: true,
       default: 0,
+    },
+    durationSeconds: {
+      type: Number,
+      required: true,
+      default: 0,
+    },
+    title: {
+      type: String,
+      trim: true,
+      maxlength: 200,
+    },
+    summary: {
+      type: String,
+      trim: true,
+      maxlength: 2000,
     },
   },
   {

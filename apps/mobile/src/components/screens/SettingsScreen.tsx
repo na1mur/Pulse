@@ -1,4 +1,4 @@
-import { View, Pressable, Text } from "react-native";
+import { View, Text } from "react-native";
 import { useRouter } from "expo-router";
 import { useQueryClient } from "@tanstack/react-query";
 import { LogOut } from "lucide-react-native";
@@ -9,24 +9,15 @@ import { ThemeSelector } from "@/components/ThemeToggle";
 import { ThemedText } from "@/components/ThemeShell";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
-import { useUserSettings, useUpdateTimezone } from "@/hooks/usePulseQueries";
+import { useUserSettings } from "@/hooks/usePulseQueries";
 import { useThemeColors } from "@/hooks/useThemeColors";
 import { stopSessionTokenRefresh, tokenStorage } from "@/utils/api";
-
-const TIMEZONES = [
-  { value: "America/New_York", label: "Eastern (EST)" },
-  { value: "America/Chicago", label: "Central (CST)" },
-  { value: "America/Denver", label: "Mountain (MST)" },
-  { value: "America/Los_Angeles", label: "Pacific (PST)" },
-  { value: "UTC", label: "UTC" },
-];
 
 export function SettingsScreen() {
   const router = useRouter();
   const queryClient = useQueryClient();
   const colors = useThemeColors();
   const { data: settings } = useUserSettings();
-  const updateTimezone = useUpdateTimezone();
 
   const handleLogout = async () => {
     stopSessionTokenRefresh();
@@ -40,37 +31,20 @@ export function SettingsScreen() {
       <ScreenHeader title="Settings" showBack hideSettings />
       <ScreenScroll>
         <Card className="p-4 gap-3">
-          <ThemedText className="text-lg font-semibold">General</ThemedText>
-          <ThemedText className="text-sm text-neutral-500">Timezone</ThemedText>
-          <View className="gap-2">
-            {TIMEZONES.map((tz) => {
-              const selected = settings?.timezone === tz.value;
-              return (
-                <Pressable
-                  key={tz.value}
-                  onPress={() => updateTimezone.mutate(tz.value)}
-                  className="p-3 rounded-lg border"
-                  style={{
-                    borderColor: selected ? colors.foreground : colors.border,
-                    backgroundColor: selected
-                      ? colors.mutedSurface
-                      : colors.card,
-                  }}
-                >
-                  <ThemedText>{tz.label}</ThemedText>
-                </Pressable>
-              );
-            })}
-          </View>
-        </Card>
-
-        <Card className="p-4 gap-3">
           <ThemedText className="text-lg font-semibold">Appearance</ThemedText>
           <ThemeSelector />
         </Card>
 
         <Card className="p-4 gap-3">
           <ThemedText className="text-lg font-semibold">Account</ThemedText>
+          {settings?.name ? (
+            <View
+              className="p-3 rounded-lg"
+              style={{ backgroundColor: colors.mutedSurface }}
+            >
+              <ThemedText className="font-medium">{settings.name}</ThemedText>
+            </View>
+          ) : null}
           <View
             className="p-3 rounded-lg"
             style={{ backgroundColor: colors.mutedSurface }}

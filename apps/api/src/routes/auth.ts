@@ -20,7 +20,14 @@ const registerHandler: RequestHandler = async (req, res) => {
       return;
     }
 
-    const { email, password } = result.data;
+    const { email, password, name, timezone } = result.data;
+
+    try {
+      Intl.DateTimeFormat(undefined, { timeZone: timezone });
+    } catch {
+      res.status(400).json({ error: "Invalid timezone" });
+      return;
+    }
 
     // Check if email already exists
     const existingUser = await User.findOne({ email });
@@ -35,7 +42,9 @@ const registerHandler: RequestHandler = async (req, res) => {
     // Create user
     const user = new User({
       email,
+      name,
       passwordHash,
+      timezone,
     });
     await user.save();
 
@@ -58,6 +67,7 @@ const registerHandler: RequestHandler = async (req, res) => {
       user: {
         id: user.id,
         email: user.email,
+        name: user.name ?? "",
         dailyTargetMinutes: user.dailyTargetMinutes,
         weeklyTargetMinutes: user.weeklyTargetMinutes,
         monthlyTargetMinutes: user.monthlyTargetMinutes,
@@ -113,6 +123,7 @@ const loginHandler: RequestHandler = async (req, res) => {
       user: {
         id: user.id,
         email: user.email,
+        name: user.name ?? "",
         dailyTargetMinutes: user.dailyTargetMinutes,
         weeklyTargetMinutes: user.weeklyTargetMinutes,
         monthlyTargetMinutes: user.monthlyTargetMinutes,

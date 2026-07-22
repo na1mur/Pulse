@@ -3,6 +3,8 @@ import { z } from "zod";
 export const RegisterSchema = z.object({
   email: z.string().email("Invalid email address"),
   password: z.string().min(6, "Password must be at least 6 characters"),
+  name: z.string().trim().min(1, "Name is required").max(100),
+  timezone: z.string().min(1, "Timezone is required"),
 });
 
 export const LoginSchema = z.object({
@@ -14,6 +16,8 @@ export const SessionSchema = z.object({
   startTime: z.string().datetime(),
   endTime: z.string().datetime().optional(),
   deviceId: z.string().min(1, "Device ID is required"),
+  title: z.string().trim().max(200).optional(),
+  summary: z.string().trim().max(2000).optional(),
 });
 
 export const DailyTargetSchema = z.object({

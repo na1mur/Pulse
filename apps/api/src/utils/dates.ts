@@ -17,6 +17,48 @@ export function getLocalDateString(date: Date, timeZone: string): string {
   }
 }
 
+function findZonedTime(
+  year: number,
+  month: number,
+  day: number,
+  hour: number,
+  minute: number,
+  second: number,
+  timeZone: string,
+): Date {
+  const formatter = new Intl.DateTimeFormat("en-US", {
+    timeZone: timeZone || "UTC",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+    hour12: false,
+  });
+
+  let guess = Date.UTC(year, month - 1, day, hour, minute, second);
+
+  for (let i = 0; i < 5; i++) {
+    const parts = formatter.formatToParts(new Date(guess));
+    const get = (type: string) =>
+      parseInt(parts.find((p) => p.type === type)?.value ?? "0", 10);
+    const fy = get("year");
+    const fm = get("month");
+    const fd = get("day");
+    const fh = get("hour");
+    const fmin = get("minute");
+    const fs = get("second");
+    const target = Date.UTC(year, month - 1, day, hour, minute, second);
+    const actual = Date.UTC(fy, fm - 1, fd, fh === 24 ? 0 : fh, fmin, fs);
+    const diff = actual - target;
+    if (diff === 0) break;
+    guess -= diff;
+  }
+
+  return new Date(guess);
+}
+
 export function getPastLocalDateKeys(dateKey: string, count: number): string[] {
   const dateKeys: string[] = [];
   try {
@@ -38,16 +80,25 @@ export function getLocalDayRange(
   timeZone: string,
 ): { start: Date; end: Date } {
   try {
-    const utcDate = new Date(`${dateKey}T00:00:00Z`);
-    const fmt = new Intl.DateTimeFormat("en-US", {
-      timeZone: timeZone || "UTC",
-      hour: "numeric",
-      hour12: false,
-    });
-    const targetHour = parseInt(fmt.format(utcDate), 10);
-    const offsetHours = targetHour === 24 ? 0 : targetHour;
-    const start = new Date(utcDate.getTime() - offsetHours * 60 * 60 * 1000);
-    const end = new Date(start.getTime() + 24 * 60 * 60 * 1000 - 1);
+    const [yearStr, monthStr, dayStr] = dateKey.split("-");
+    const year = parseInt(yearStr!, 10);
+    const month = parseInt(monthStr!, 10);
+    const day = parseInt(dayStr!, 10);
+    const tz = timeZone || "UTC";
+
+    const start = findZonedTime(year, month, day, 0, 0, 0, tz);
+    const nextDay = new Date(Date.UTC(year, month - 1, day + 1));
+    const end = new Date(
+      findZonedTime(
+        nextDay.getUTCFullYear(),
+        nextDay.getUTCMonth() + 1,
+        nextDay.getUTCDate(),
+        0,
+        0,
+        0,
+        tz,
+      ).getTime() - 1,
+    );
     return { start, end };
   } catch (error) {
     console.error("Error calculating day range:", dateKey, timeZone, error);

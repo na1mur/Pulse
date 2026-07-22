@@ -38,6 +38,7 @@ interface AppLayoutProps {
   onMonthlyGoalEnabledChange: (enabled: boolean) => void;
   monthlyGoalHours: number;
   onMonthlyGoalHoursChange: (hours: number) => void;
+  userName: string;
   userEmail: string;
   onLogout: () => void;
 }
@@ -50,14 +51,17 @@ const navItems = [
   { id: "settings" as const, icon: Settings, label: "Settings" },
 ];
 
-function getInitials(email: string) {
+function getInitials(name: string, email: string) {
+  const trimmed = name.trim();
+  if (trimmed) {
+    const parts = trimmed.split(/\s+/);
+    if (parts.length >= 2) {
+      return `${parts[0]![0]}${parts[1]![0]}`.toUpperCase();
+    }
+    return trimmed.slice(0, 2).toUpperCase();
+  }
   const part = email.split("@")[0] ?? "U";
   return part.slice(0, 2).toUpperCase();
-}
-
-function getDisplayName(email: string) {
-  const part = email.split("@")[0] ?? "there";
-  return part.charAt(0).toUpperCase() + part.slice(1);
 }
 
 const SIDEBAR_COLLAPSED_KEY = "pulse-sidebar-collapsed";
@@ -85,12 +89,13 @@ export function AppLayout({
   onMonthlyGoalEnabledChange,
   monthlyGoalHours,
   onMonthlyGoalHoursChange,
+  userName,
   userEmail,
   onLogout,
 }: AppLayoutProps) {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(true);
-  const displayName = getDisplayName(userEmail);
-  const initials = getInitials(userEmail);
+  const displayName = userName.trim() || "there";
+  const initials = getInitials(userName, userEmail);
   const pageTitle = pageTitles[currentPage] ?? "Dashboard";
 
   useEffect(() => {

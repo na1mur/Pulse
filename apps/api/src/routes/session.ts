@@ -14,6 +14,18 @@ import {
 
 const router: Router = Router();
 
+const DEFAULT_PAGE_LIMIT = 20;
+const MAX_PAGE_LIMIT = 100;
+
+function parsePagination(query: Record<string, unknown>) {
+  const page = Math.max(1, parseInt(String(query.page ?? "1"), 10) || 1);
+  const limit = Math.min(
+    MAX_PAGE_LIMIT,
+    Math.max(1, parseInt(String(query.limit ?? DEFAULT_PAGE_LIMIT), 10) || DEFAULT_PAGE_LIMIT),
+  );
+  return { page, limit, skip: (page - 1) * limit };
+}
+
 const createSessionHandler: RequestHandler = async (req, res) => {
   try {
     const result = SessionSchema.safeParse(req.body);
@@ -22,15 +34,19 @@ const createSessionHandler: RequestHandler = async (req, res) => {
       return;
     }
 
-    const { startTime: startStr, endTime: endStr, deviceId } = result.data;
+    const {
+      startTime: startStr,
+      endTime: endStr,
+      deviceId,
+      title,
+      summary,
+    } = result.data;
     const startTime = new Date(startStr);
     const endTime = endStr ? new Date(endStr) : new Date();
 
     const durationMs = endTime.getTime() - startTime.getTime();
-    const durationMinutes = Math.max(
-      0,
-      Math.round((durationMs / 60000) * 100) / 100,
-    );
+    const durationSeconds = Math.max(0, Math.round(durationMs / 1000));
+    const durationMinutes = Math.round((durationSeconds / 60) * 100) / 100;
 
     const userId = req.userId!;
 
@@ -40,6 +56,9 @@ const createSessionHandler: RequestHandler = async (req, res) => {
       startTime,
       endTime,
       durationMinutes,
+      durationSeconds,
+      ...(title ? { title } : {}),
+      ...(summary ? { summary } : {}),
     });
     await session.save();
 
@@ -89,12 +108,14 @@ const createSessionHandler: RequestHandler = async (req, res) => {
 function getRangeStartDate(
   range: "today" | "week" | "month" | "year",
   todayKey: string,
+  timeZone: string,
 ): Date {
   const days =
     range === "today" ? 0 : range === "week" ? 6 : range === "month" ? 29 : 364;
   const keys = getPastLocalDateKeys(todayKey, days + 1);
   const firstKey = keys[0] ?? todayKey;
-  return new Date(`${firstKey}T00:00:00.000Z`);
+  const { start } = getLocalDayRange(firstKey, timeZone);
+  return start;
 }
 
 const getSessionsHandler: RequestHandler = async (req, res) => {
@@ -108,6 +129,7 @@ const getSessionsHandler: RequestHandler = async (req, res) => {
 
     const todayKey = getLocalDateString(new Date(), user.timezone);
     const { from, to, range } = req.query;
+    const { page, limit, skip } = parsePagination(req.query);
 
     let query: Record<string, unknown> = { userId };
 
@@ -130,14 +152,24 @@ const getSessionsHandler: RequestHandler = async (req, res) => {
         const { start, end } = getLocalDayRange(todayKey, user.timezone);
         query = { ...query, startTime: { $gte: start, $lte: end } };
       } else {
-        const startDate = getRangeStartDate(parsed.data, todayKey);
+        const startDate = getRangeStartDate(parsed.data, todayKey, user.timezone);
         const { end } = getLocalDayRange(todayKey, user.timezone);
         query = { ...query, startTime: { $gte: startDate, $lte: end } };
       }
     }
 
-    const sessions = await WorkSession.find(query).sort({ startTime: -1 });
-    res.json(sessions);
+    const [sessions, total] = await Promise.all([
+      WorkSession.find(query).sort({ startTime: -1 }).skip(skip).limit(limit),
+      WorkSession.countDocuments(query),
+    ]);
+
+    res.json({
+      sessions,
+      total,
+      page,
+      limit,
+      hasMore: skip + sessions.length < total,
+    });
   } catch (error) {
     console.error("Get sessions error:", error);
     res.status(500).json({ error: "Internal server error" });

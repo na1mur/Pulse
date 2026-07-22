@@ -1,4 +1,5 @@
-import { View } from "react-native";
+import { useState } from "react";
+import { View, Pressable } from "react-native";
 import { formatMinutes, minutesToHours } from "@repo/utils";
 import { ScreenHeader } from "@/components/ScreenHeader";
 import { Screen, ScreenScroll } from "@/components/Screen";
@@ -21,6 +22,7 @@ function SimpleBarChart({
   valueKey: string;
 }) {
   const colors = useThemeColors();
+  const [activeIndex, setActiveIndex] = useState<number | null>(null);
   const max = Math.max(...data.map((d) => Number(d[valueKey]) || 0), 1);
 
   return (
@@ -28,19 +30,35 @@ function SimpleBarChart({
       {data.map((item, i) => {
         const value = Number(item[valueKey]) || 0;
         const barHeight = Math.max(8, (value / max) * 120);
+        const isActive = activeIndex === i;
         return (
-          <View key={i} className="flex-1 items-center gap-2">
+          <Pressable
+            key={i}
+            className="flex-1 items-center gap-2"
+            onPressIn={() => setActiveIndex(i)}
+            onPressOut={() => setActiveIndex(null)}
+          >
+            {isActive ? (
+              <ThemedText className="text-xs text-neutral-400">
+                {value.toFixed(1)}h
+              </ThemedText>
+            ) : (
+              <View style={{ height: 14 }} />
+            )}
             <View
               className="w-full rounded-t-md"
               style={{
                 height: barHeight,
-                backgroundColor: colors.primary,
+                backgroundColor: isActive
+                  ? colors.accentPurple
+                  : colors.primary,
+                opacity: isActive ? 1 : 0.85,
               }}
             />
             <ThemedText className="text-xs text-neutral-500">
               {String(item[labelKey])}
             </ThemedText>
-          </View>
+          </Pressable>
         );
       })}
     </View>

@@ -1,6 +1,7 @@
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useInfiniteQuery, useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import type {
   DailyStatsPoint,
+  PaginatedSessionsResponse,
   SessionRange,
   StatsSummary,
   TodayStats,
@@ -76,12 +77,20 @@ export function useTodaySessions() {
   });
 }
 
-export function useSessions(range: SessionRange) {
+export function useSessions(range: SessionRange, limit = 20) {
   const api = useApi();
-  return useQuery<WorkSession[]>({
+  return useInfiniteQuery<PaginatedSessionsResponse>({
     queryKey: queryKeys.sessions(range),
-    queryFn: async () =>
-      (await api.get("/sessions", { params: { range } })).data,
+    queryFn: async ({ pageParam }) => {
+      const page = typeof pageParam === "number" ? pageParam : 1;
+      const response = await api.get("/sessions", {
+        params: { range, page, limit },
+      });
+      return response.data as PaginatedSessionsResponse;
+    },
+    initialPageParam: 1,
+    getNextPageParam: (lastPage) =>
+      lastPage.hasMore ? lastPage.page + 1 : undefined,
   });
 }
 

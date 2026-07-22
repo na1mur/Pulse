@@ -1,6 +1,7 @@
 export interface User {
   id: string;
   email: string;
+  name: string;
   dailyTargetMinutes: number;
   weeklyTargetMinutes: number;
   monthlyTargetMinutes: number;
@@ -9,6 +10,7 @@ export interface User {
 
 export interface UserSettings {
   email: string;
+  name: string;
   timezone: string;
   dailyTargetMinutes: number;
   weeklyTargetMinutes: number;
@@ -32,8 +34,19 @@ export interface WorkSession {
   startTime: string;
   endTime: string;
   durationMinutes: number;
+  durationSeconds: number;
+  title?: string;
+  summary?: string;
   createdAt: string;
   updatedAt?: string;
+}
+
+export interface PaginatedSessionsResponse {
+  sessions: WorkSession[];
+  total: number;
+  page: number;
+  limit: number;
+  hasMore: boolean;
 }
 
 export interface DailyStats {

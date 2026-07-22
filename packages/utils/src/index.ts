@@ -31,6 +31,31 @@ export function formatMinutes(totalMinutes: number): string {
   return `${hours}h ${minutes}m`;
 }
 
+export function getSessionDurationSeconds(session: {
+  durationSeconds?: number;
+  durationMinutes: number;
+}): number {
+  if (session.durationSeconds != null) {
+    return session.durationSeconds;
+  }
+  return Math.round(session.durationMinutes * 60);
+}
+
+export function formatDurationSeconds(totalSeconds: number): string {
+  const seconds = Math.max(0, Math.round(totalSeconds));
+  const hours = Math.floor(seconds / 3600);
+  const minutes = Math.floor((seconds % 3600) / 60);
+  const secs = seconds % 60;
+
+  if (hours > 0) {
+    return `${hours}h ${minutes}m ${secs}s`;
+  }
+  if (minutes > 0) {
+    return `${minutes}m ${secs}s`;
+  }
+  return `${secs}s`;
+}
+
 export function formatHoursDecimal(hours: number): string {
   return formatMinutes(Math.round(hours * 60));
 }
@@ -44,15 +69,24 @@ export function formatSessionClock(
       timeZone,
       hour: "numeric",
       minute: "2-digit",
+      second: "2-digit",
       hour12: true,
     }).format(new Date(iso));
   } catch {
     return new Date(iso).toLocaleTimeString("en-US", {
       hour: "numeric",
       minute: "2-digit",
+      second: "2-digit",
       hour12: true,
     });
   }
+}
+
+export function getLocalDateKeyFromIso(
+  iso: string,
+  timeZone: string = "UTC",
+): string {
+  return getLocalDateKey(new Date(iso), timeZone);
 }
 
 function getLocalDateKey(date: Date, timeZone: string): string {

@@ -1,5 +1,5 @@
-import { useState, useEffect, type ReactNode } from "react";
-import { View, Modal, Pressable, Text, ScrollView } from "react-native";
+import { useState, type ReactNode } from "react";
+import { View, Modal, Pressable, Text, ScrollView, TextInput } from "react-native";
 import {
   Pause,
   Play,
@@ -12,7 +12,14 @@ import {
   Target,
 } from "lucide-react-native";
 import type { ComponentType } from "react";
-import { formatMinutes, formatSessionClock, minutesToHours } from "@repo/utils";
+import type { WorkSession } from "@repo/types";
+import {
+  formatDurationSeconds,
+  formatMinutes,
+  formatSessionClock,
+  getSessionDurationSeconds,
+  minutesToHours,
+} from "@repo/utils";
 import { ScreenHeader } from "@/components/ScreenHeader";
 import { Screen, ScreenScroll } from "@/components/Screen";
 import { ThemedText } from "@/components/ThemeShell";
@@ -29,11 +36,52 @@ import {
 } from "@/hooks/usePulseQueries";
 import { useTimerControls } from "@/hooks/useTimerControls";
 import { useThemeColors } from "@/hooks/useThemeColors";
-import { appStorage, TOKEN_KEYS } from "@/utils/api";
 
-function getDisplayName(email: string) {
-  const part = email.split("@")[0] ?? "there";
-  return part.charAt(0).toUpperCase() + part.slice(1);
+function ExpandableSummary({ text }: { text: string }) {
+  const [expanded, setExpanded] = useState(false);
+  return (
+    <Pressable onPress={() => setExpanded((prev) => !prev)}>
+      <ThemedText
+        numberOfLines={expanded ? undefined : 1}
+        className="text-sm text-neutral-500"
+      >
+        {text}
+      </ThemedText>
+    </Pressable>
+  );
+}
+
+function SessionRow({
+  session,
+  timezone,
+  colors,
+}: {
+  session: WorkSession;
+  timezone: string;
+  colors: ReturnType<typeof useThemeColors>;
+}) {
+  return (
+    <View
+      className="p-3 rounded-xl mb-2 gap-1"
+      style={{ borderWidth: 1, borderColor: colors.border }}
+    >
+      {session.title ? (
+        <ThemedText className="font-semibold">{session.title}</ThemedText>
+      ) : null}
+      <View className="flex-row items-center gap-2">
+        <Clock size={14} color={colors.accentPurple} />
+        <ThemedText className="font-medium">
+          {formatSessionClock(session.startTime, timezone)} -{" "}
+          {formatSessionClock(session.endTime, timezone)}
+        </ThemedText>
+      </View>
+      <ThemedText className="text-sm text-neutral-500">
+        Duration:{" "}
+        {formatDurationSeconds(getSessionDurationSeconds(session))}
+      </ThemedText>
+      {session.summary ? <ExpandableSummary text={session.summary} /> : null}
+    </View>
+  );
 }
 
 function formatBestDayDate(dateStr: string | null | undefined) {
@@ -103,7 +151,10 @@ function StatCard({
 export function DashboardScreen() {
   const { goalEnabled, dailyGoalHours } = useGoalContext();
   const [showSessions, setShowSessions] = useState(false);
-  const [displayName, setDisplayName] = useState("there");
+  const [showTitleModal, setShowTitleModal] = useState(false);
+  const [showSummaryModal, setShowSummaryModal] = useState(false);
+  const [titleInput, setTitleInput] = useState("");
+  const [summaryInput, setSummaryInput] = useState("");
   const { data: todayStats } = useTodayStats();
   const { data: summary } = useStatsSummary();
   const { data: todaySessions = [] } = useTodaySessions();
@@ -112,11 +163,7 @@ export function DashboardScreen() {
     useTimerControls();
   const colors = useThemeColors();
 
-  useEffect(() => {
-    appStorage.getItem(TOKEN_KEYS.email).then((email) => {
-      if (email) setDisplayName(getDisplayName(email));
-    });
-  }, []);
+  const displayName = settings?.name?.trim() || "there";
 
   const timezone = settings?.timezone ?? "UTC";
   const workedMinutes = todayStats?.workedMinutes ?? 0;
@@ -127,6 +174,40 @@ export function DashboardScreen() {
       : (todayStats?.percentage ?? 0);
   const remainingHours = Math.max(0, dailyGoalHours - workedHours);
   const bestDayDate = formatBestDayDate(summary?.bestDayDate);
+
+  const confirmResume = () => {
+    handlePlay(titleInput);
+    setTitleInput("");
+    setShowTitleModal(false);
+  };
+
+  const dismissTitleModal = () => {
+    handlePlay();
+    setTitleInput("");
+    setShowTitleModal(false);
+  };
+
+  const confirmPause = () => {
+    void handlePause(summaryInput);
+    setSummaryInput("");
+    setShowSummaryModal(false);
+  };
+
+  const dismissSummaryModal = () => {
+    void handlePause();
+    setSummaryInput("");
+    setShowSummaryModal(false);
+  };
+
+  const inputStyle = {
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    color: colors.foreground,
+    backgroundColor: colors.input,
+  };
 
   return (
     <Screen>
@@ -179,7 +260,9 @@ export function DashboardScreen() {
           <View className="items-center pt-2">
             <Button
               size="lg"
-              onPress={isRunning ? handlePause : handlePlay}
+              onPress={
+                isRunning ? () => setShowSummaryModal(true) : () => setShowTitleModal(true)
+              }
               className="min-w-[140px]"
             >
               {isRunning ? (
@@ -327,22 +410,12 @@ export function DashboardScreen() {
                 </ThemedText>
               ) : (
                 todaySessions.map((session) => (
-                  <View
+                  <SessionRow
                     key={session.id ?? session._id ?? session.startTime}
-                    className="p-3 rounded-xl mb-2 gap-1"
-                    style={{ borderWidth: 1, borderColor: colors.border }}
-                  >
-                    <View className="flex-row items-center gap-2">
-                      <Clock size={14} color={colors.accentPurple} />
-                      <ThemedText className="font-medium">
-                        {formatSessionClock(session.startTime, timezone)} -{" "}
-                        {formatSessionClock(session.endTime, timezone)}
-                      </ThemedText>
-                    </View>
-                    <ThemedText className="text-sm text-neutral-500">
-                      Duration: {formatMinutes(session.durationMinutes)}
-                    </ThemedText>
-                  </View>
+                    session={session}
+                    timezone={timezone}
+                    colors={colors}
+                  />
                 ))
               )}
             </ScrollView>
@@ -351,6 +424,58 @@ export function DashboardScreen() {
               variant="outline"
               onPress={() => setShowSessions(false)}
             />
+          </Card>
+        </View>
+      </Modal>
+
+      <Modal visible={showTitleModal} transparent animationType="fade">
+        <View
+          className="flex-1 justify-center p-4"
+          style={{ backgroundColor: colors.overlay }}
+        >
+          <Card className="p-6 gap-4">
+            <ThemedText className="text-xl font-bold">Session Title</ThemedText>
+            <ThemedText className="text-sm text-neutral-500">
+              Add an optional title for this session.
+            </ThemedText>
+            <TextInput
+              value={titleInput}
+              onChangeText={setTitleInput}
+              placeholder="What are you working on?"
+              placeholderTextColor={colors.muted}
+              style={inputStyle}
+            />
+            <View className="flex-row gap-2 justify-end">
+              <Button label="Skip" variant="outline" onPress={dismissTitleModal} />
+              <Button label="Resume" onPress={confirmResume} />
+            </View>
+          </Card>
+        </View>
+      </Modal>
+
+      <Modal visible={showSummaryModal} transparent animationType="fade">
+        <View
+          className="flex-1 justify-center p-4"
+          style={{ backgroundColor: colors.overlay }}
+        >
+          <Card className="p-6 gap-4">
+            <ThemedText className="text-xl font-bold">Session Summary</ThemedText>
+            <ThemedText className="text-sm text-neutral-500">
+              Add an optional summary before pausing.
+            </ThemedText>
+            <TextInput
+              value={summaryInput}
+              onChangeText={setSummaryInput}
+              placeholder="What did you accomplish?"
+              placeholderTextColor={colors.muted}
+              multiline
+              numberOfLines={4}
+              style={[inputStyle, { minHeight: 96, textAlignVertical: "top" }]}
+            />
+            <View className="flex-row gap-2 justify-end">
+              <Button label="Skip" variant="outline" onPress={dismissSummaryModal} />
+              <Button label="Pause" onPress={confirmPause} />
+            </View>
           </Card>
         </View>
       </Modal>

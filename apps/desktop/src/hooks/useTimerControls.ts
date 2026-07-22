@@ -13,6 +13,7 @@ export function useTimerControls() {
     useTimerStore();
   const { addPendingSession } = useOfflineStore();
   const [localElapsed, setLocalElapsed] = useState(0);
+  const [pendingTitle, setPendingTitle] = useState<string | undefined>();
 
   useEffect(() => {
     checkDayChange();
@@ -39,33 +40,37 @@ export function useTimerControls() {
     return () => clearInterval(interval);
   }, [isRunning, startedAt, elapsedBeforeCurrentRun]);
 
-  const handlePlay = () => startTimer();
+  const handlePlay = (title?: string) => {
+    setPendingTitle(title?.trim() || undefined);
+    startTimer();
+  };
 
-  const handlePause = async () => {
+  const handlePause = async (summary?: string) => {
     if (!startedAt) return;
     const startTimeIso = new Date(startedAt).toISOString();
     const endTimeIso = new Date().toISOString();
+    const sessionPayload = {
+      startTime: startTimeIso,
+      endTime: endTimeIso,
+      deviceId: "desktop",
+      ...(pendingTitle ? { title: pendingTitle } : {}),
+      ...(summary?.trim() ? { summary: summary.trim() } : {}),
+    };
 
     pauseTimer(localElapsed);
+    setPendingTitle(undefined);
 
     try {
-      await api.post("/sessions", {
-        startTime: startTimeIso,
-        endTime: endTimeIso,
-        deviceId: "desktop",
-      });
+      await api.post("/sessions", sessionPayload);
       queryClient.invalidateQueries({ queryKey: queryKeys.todayStats });
       queryClient.invalidateQueries({ queryKey: queryKeys.statsSummary });
       queryClient.invalidateQueries({ queryKey: queryKeys.weekStats });
       queryClient.invalidateQueries({ queryKey: queryKeys.weeklyTrend });
       queryClient.invalidateQueries({ queryKey: queryKeys.todaySessions });
+      queryClient.invalidateQueries({ queryKey: ["sessions"] });
     } catch (err) {
       console.warn("API logging failed. Enqueueing session offline.", err);
-      addPendingSession({
-        startTime: startTimeIso,
-        endTime: endTimeIso,
-        deviceId: "desktop",
-      });
+      addPendingSession(sessionPayload);
     }
   };
 

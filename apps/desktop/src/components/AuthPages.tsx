@@ -15,6 +15,7 @@ interface AuthPagesProps {
 
 export function AuthPages({ onAuthSuccess }: AuthPagesProps) {
   const [isLogin, setIsLogin] = useState(true);
+  const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -34,7 +35,15 @@ export function AuthPages({ onAuthSuccess }: AuthPagesProps) {
     const url = isLogin ? `${baseURL}/auth/login` : `${baseURL}/auth/register`;
 
     try {
-      const response = await axios.post(url, { email, password });
+      const payload = isLogin
+        ? { email, password }
+        : {
+            email,
+            password,
+            name,
+            timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+          };
+      const response = await axios.post(url, payload);
       const { accessToken, refreshToken, user } = response.data as {
         accessToken: string;
         refreshToken: string;
@@ -84,6 +93,20 @@ export function AuthPages({ onAuthSuccess }: AuthPagesProps) {
           )}
 
           <form className="space-y-4" onSubmit={handleSubmit}>
+            {!isLogin && (
+              <div className="space-y-2">
+                <Label htmlFor="name">Name</Label>
+                <Input
+                  id="name"
+                  placeholder="Your name"
+                  type="text"
+                  required
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                />
+              </div>
+            )}
+
             <div className="space-y-2">
               <Label htmlFor="email">Email</Label>
               <Input

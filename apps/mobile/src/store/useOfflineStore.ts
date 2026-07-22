@@ -8,6 +8,8 @@ export interface PendingSession {
   startTime: string;
   endTime: string;
   deviceId: string;
+  title?: string;
+  summary?: string;
 }
 
 interface OfflineStoreState {

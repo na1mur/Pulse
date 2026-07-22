@@ -75,6 +75,7 @@ function PulseApp({ onLogout }: { onLogout: () => void }) {
     settings?.email ??
     localStorage.getItem(TOKEN_KEYS.email) ??
     "user@example.com";
+  const userName = settings?.name ?? "";
 
   return (
     <>
@@ -93,6 +94,7 @@ function PulseApp({ onLogout }: { onLogout: () => void }) {
         onMonthlyGoalEnabledChange={setMonthlyGoalEnabled}
         monthlyGoalHours={monthlyGoalHours}
         onMonthlyGoalHoursChange={setMonthlyGoalHours}
+        userName={userName}
         userEmail={userEmail}
         onLogout={handleLogout}
       />

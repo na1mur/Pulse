@@ -17,7 +17,9 @@ import { Card } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { StatCardGrid } from "@/components/StatCardGrid";
 import { cn } from "@/lib/utils";
-import { formatMinutes, formatSessionClock, minutesToHours } from "@repo/utils";
+import { formatDurationSeconds, formatMinutes, formatSessionClock, getSessionDurationSeconds, minutesToHours } from "@repo/utils";
+import type { WorkSession } from "@repo/types";
+import { Input } from "@/components/ui/input";
 import {
   useStatsSummary,
   useTodaySessions,
@@ -25,6 +27,19 @@ import {
   useUserSettings,
 } from "@/hooks/usePulseQueries";
 import { useTimerControls } from "@/hooks/useTimerControls";
+
+function ExpandableSummary({ text }: { text: string }) {
+  const [expanded, setExpanded] = useState(false);
+  return (
+    <button
+      type="button"
+      onClick={() => setExpanded((prev) => !prev)}
+      className="text-sm text-muted-foreground text-left w-full"
+    >
+      <span className={expanded ? "" : "line-clamp-1"}>{text}</span>
+    </button>
+  );
+}
 
 interface DashboardPageProps {
   goalEnabled: boolean;
@@ -92,11 +107,42 @@ function formatBestDayDate(dateStr: string | null | undefined) {
   }
 }
 
+function SessionRow({
+  session,
+  timezone,
+}: {
+  session: WorkSession;
+  timezone: string;
+}) {
+  return (
+    <div className="p-4 border border-border/60 rounded-xl hover:bg-muted/30 transition-colors">
+      {session.title ? (
+        <p className="font-semibold text-foreground mb-1">{session.title}</p>
+      ) : null}
+      <div className="flex items-center gap-3 mb-2">
+        <Clock className="w-4 h-4 text-primary" />
+        <span className="font-medium text-foreground">
+          {formatSessionClock(session.startTime, timezone)} -{" "}
+          {formatSessionClock(session.endTime, timezone)}
+        </span>
+      </div>
+      <div className="text-sm text-muted-foreground">
+        Duration: {formatDurationSeconds(getSessionDurationSeconds(session))}
+      </div>
+      {session.summary ? <ExpandableSummary text={session.summary} /> : null}
+    </div>
+  );
+}
+
 export function DashboardPage({
   goalEnabled,
   dailyGoalHours,
 }: DashboardPageProps) {
   const [showSessions, setShowSessions] = useState(false);
+  const [showTitleModal, setShowTitleModal] = useState(false);
+  const [showSummaryModal, setShowSummaryModal] = useState(false);
+  const [titleInput, setTitleInput] = useState("");
+  const [summaryInput, setSummaryInput] = useState("");
   const { data: todayStats } = useTodayStats();
   const { data: summary } = useStatsSummary();
   const { data: todaySessions = [] } = useTodaySessions();
@@ -113,6 +159,30 @@ export function DashboardPage({
       : (todayStats?.percentage ?? 0);
   const remainingHours = Math.max(0, dailyGoalHours - workedHours);
   const bestDayDate = formatBestDayDate(summary?.bestDayDate);
+
+  const confirmResume = () => {
+    handlePlay(titleInput);
+    setTitleInput("");
+    setShowTitleModal(false);
+  };
+
+  const dismissTitleModal = () => {
+    handlePlay();
+    setTitleInput("");
+    setShowTitleModal(false);
+  };
+
+  const confirmPause = () => {
+    void handlePause(summaryInput);
+    setSummaryInput("");
+    setShowSummaryModal(false);
+  };
+
+  const dismissSummaryModal = () => {
+    void handlePause();
+    setSummaryInput("");
+    setShowSummaryModal(false);
+  };
 
   return (
     <div className="space-y-6 w-full">
@@ -150,7 +220,7 @@ export function DashboardPage({
             <Button
               size="lg"
               className="gap-2 min-w-[140px]"
-              onClick={handlePause}
+              onClick={() => setShowSummaryModal(true)}
             >
               <Pause className="w-4 h-4" />
               Pause
@@ -159,7 +229,7 @@ export function DashboardPage({
             <Button
               size="lg"
               className="gap-2 min-w-[140px]"
-              onClick={handlePlay}
+              onClick={() => setShowTitleModal(true)}
             >
               <Play className="w-4 h-4" />
               Play
@@ -273,21 +343,11 @@ export function DashboardPage({
                 </p>
               ) : (
                 todaySessions.map((session) => (
-                  <div
+                  <SessionRow
                     key={session.id ?? session._id ?? session.startTime}
-                    className="p-4 border border-border/60 rounded-xl hover:bg-muted/30 transition-colors"
-                  >
-                    <div className="flex items-center gap-3 mb-2">
-                      <Clock className="w-4 h-4 text-primary" />
-                      <span className="font-medium text-foreground">
-                        {formatSessionClock(session.startTime, timezone)} -{" "}
-                        {formatSessionClock(session.endTime, timezone)}
-                      </span>
-                    </div>
-                    <div className="text-sm text-muted-foreground">
-                      Duration: {formatMinutes(session.durationMinutes)}
-                    </div>
-                  </div>
+                    session={session}
+                    timezone={timezone}
+                  />
                 ))
               )}
             </div>
@@ -296,6 +356,52 @@ export function DashboardPage({
               <Button variant="outline" onClick={() => setShowSessions(false)}>
                 Close
               </Button>
+            </div>
+          </Card>
+        </div>
+      )}
+
+      {showTitleModal && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <Card className="w-full max-w-md space-y-4 p-6 border-border/60">
+            <h2 className="text-xl font-bold text-foreground">Session Title</h2>
+            <p className="text-sm text-muted-foreground">
+              Add an optional title for this session.
+            </p>
+            <Input
+              value={titleInput}
+              onChange={(e) => setTitleInput(e.target.value)}
+              placeholder="What are you working on?"
+            />
+            <div className="flex gap-3 justify-end">
+              <Button variant="outline" onClick={dismissTitleModal}>
+                Skip
+              </Button>
+              <Button onClick={confirmResume}>Resume</Button>
+            </div>
+          </Card>
+        </div>
+      )}
+
+      {showSummaryModal && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <Card className="w-full max-w-md space-y-4 p-6 border-border/60">
+            <h2 className="text-xl font-bold text-foreground">Session Summary</h2>
+            <p className="text-sm text-muted-foreground">
+              Add an optional summary before pausing.
+            </p>
+            <textarea
+              value={summaryInput}
+              onChange={(e) => setSummaryInput(e.target.value)}
+              placeholder="What did you accomplish?"
+              rows={4}
+              className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            />
+            <div className="flex gap-3 justify-end">
+              <Button variant="outline" onClick={dismissSummaryModal}>
+                Skip
+              </Button>
+              <Button onClick={confirmPause}>Pause</Button>
             </div>
           </Card>
         </div>

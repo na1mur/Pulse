@@ -31,6 +31,7 @@ export default function LoginScreen() {
   const queryClient = useQueryClient();
   const colors = useThemeColors();
   const [isLogin, setIsLogin] = useState(true);
+  const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -58,7 +59,15 @@ export default function LoginScreen() {
     const url = isLogin ? `${baseURL}/auth/login` : `${baseURL}/auth/register`;
 
     try {
-      const response = await axios.post(url, { email, password });
+      const payload = isLogin
+        ? { email, password }
+        : {
+            email,
+            password,
+            name,
+            timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+          };
+      const response = await axios.post(url, payload);
       const { accessToken, refreshToken, user } = response.data as {
         accessToken: string;
         refreshToken: string;
@@ -125,6 +134,20 @@ export default function LoginScreen() {
           )}
 
           <View className="gap-4">
+            {!isLogin && (
+              <View className="gap-2">
+                <ThemedText className="text-sm font-medium">Name</ThemedText>
+                <TextInput
+                  value={name}
+                  onChangeText={setName}
+                  placeholder="Your name"
+                  autoCapitalize="words"
+                  style={inputStyle}
+                  placeholderTextColor={colors.muted}
+                />
+              </View>
+            )}
+
             <View className="gap-2">
               <ThemedText className="text-sm font-medium">Email</ThemedText>
               <TextInput

@@ -15,6 +15,7 @@ const router: Router = Router();
 
 function settingsResponse(user: {
   email: string;
+  name: string;
   timezone: string;
   dailyTargetMinutes: number;
   weeklyTargetMinutes: number;
@@ -22,6 +23,7 @@ function settingsResponse(user: {
 }) {
   return {
     email: user.email,
+    name: user.name,
     timezone: user.timezone,
     dailyTargetMinutes: user.dailyTargetMinutes,
     weeklyTargetMinutes: user.weeklyTargetMinutes ?? 0,

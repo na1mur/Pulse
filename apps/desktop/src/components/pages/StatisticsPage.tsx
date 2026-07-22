@@ -15,6 +15,19 @@ import {
   useWeeklyTrend,
 } from "@/hooks/usePulseQueries";
 
+const chartTooltipProps = {
+  cursor: false as const,
+  contentStyle: {
+    backgroundColor: "hsl(var(--card))",
+    border: "1px solid hsl(var(--border))",
+    borderRadius: "8px",
+    color: "hsl(var(--foreground))",
+  },
+  labelStyle: { color: "hsl(var(--foreground))" },
+  itemStyle: { color: "hsl(var(--foreground))" },
+  formatter: (value: number) => [`${value.toFixed(1)} hrs`, "Hours"],
+};
+
 export function StatisticsPage() {
   const { data: summary } = useStatsSummary();
   const { data: weekStats = [] } = useWeekStats();
@@ -75,10 +88,15 @@ export function StatisticsPage() {
         <ResponsiveContainer width="100%" height={300}>
           <BarChart data={dailyData}>
             <CartesianGrid strokeDasharray="3 3" opacity={0.1} />
-            <XAxis dataKey="day" />
-            <YAxis />
-            <Tooltip />
-            <Bar dataKey="hours" fill="currentColor" className="text-primary" radius={[8, 8, 0, 0]} />
+            <XAxis dataKey="day" stroke="hsl(var(--muted-foreground))" />
+            <YAxis stroke="hsl(var(--muted-foreground))" />
+            <Tooltip {...chartTooltipProps} />
+            <Bar
+              dataKey="hours"
+              fill="hsl(var(--primary))"
+              radius={[8, 8, 0, 0]}
+              activeBar={{ fill: "hsl(var(--primary))", opacity: 0.85 }}
+            />
           </BarChart>
         </ResponsiveContainer>
       </Card>
@@ -88,10 +106,15 @@ export function StatisticsPage() {
         <ResponsiveContainer width="100%" height={300}>
           <BarChart data={weeklyData}>
             <CartesianGrid strokeDasharray="3 3" opacity={0.1} />
-            <XAxis dataKey="week" />
-            <YAxis />
-            <Tooltip />
-            <Bar dataKey="hours" fill="currentColor" className="text-primary" radius={[8, 8, 0, 0]} />
+            <XAxis dataKey="week" stroke="hsl(var(--muted-foreground))" />
+            <YAxis stroke="hsl(var(--muted-foreground))" />
+            <Tooltip {...chartTooltipProps} />
+            <Bar
+              dataKey="hours"
+              fill="hsl(var(--primary))"
+              radius={[8, 8, 0, 0]}
+              activeBar={{ fill: "hsl(var(--primary))", opacity: 0.85 }}
+            />
           </BarChart>
         </ResponsiveContainer>
       </Card>

@@ -1,10 +1,12 @@
 import { useState } from "react";
 import { Calendar } from "lucide-react";
-import type { SessionRange } from "@repo/types";
+import type { SessionRange, WorkSession } from "@repo/types";
 import {
-  formatMinutes,
+  formatDurationSeconds,
   formatRelativeDate,
   formatSessionClock,
+  getLocalDateKeyFromIso,
+  getSessionDurationSeconds,
 } from "@repo/utils";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -17,11 +19,31 @@ const FILTERS: { label: string; value: SessionRange }[] = [
   { label: "Year", value: "year" },
 ];
 
+function ExpandableSummary({ text }: { text: string }) {
+  const [expanded, setExpanded] = useState(false);
+  return (
+    <button
+      type="button"
+      onClick={() => setExpanded((prev) => !prev)}
+      className="text-sm text-muted-foreground text-left w-full max-w-md"
+    >
+      <span className={expanded ? "" : "line-clamp-1"}>{text}</span>
+    </button>
+  );
+}
+
 export function HistoryPage() {
-  const [range, setRange] = useState<SessionRange>("week");
-  const { data: sessions = [], isLoading } = useSessions(range);
+  const [range, setRange] = useState<SessionRange>("today");
+  const {
+    data,
+    isLoading,
+    fetchNextPage,
+    hasNextPage,
+    isFetchingNextPage,
+  } = useSessions(range);
   const { data: settings } = useUserSettings();
   const timezone = settings?.timezone ?? "UTC";
+  const sessions = data?.pages.flatMap((page) => page.sessions) ?? [];
 
   return (
     <div className="space-y-6">
@@ -51,6 +73,9 @@ export function HistoryPage() {
                   Date
                 </th>
                 <th className="px-6 py-3 text-left text-sm font-semibold text-foreground">
+                  Title
+                </th>
+                <th className="px-6 py-3 text-left text-sm font-semibold text-foreground">
                   Start Time
                 </th>
                 <th className="px-6 py-3 text-left text-sm font-semibold text-foreground">
@@ -59,13 +84,16 @@ export function HistoryPage() {
                 <th className="px-6 py-3 text-left text-sm font-semibold text-foreground">
                   Duration
                 </th>
+                <th className="px-6 py-3 text-left text-sm font-semibold text-foreground">
+                  Summary
+                </th>
               </tr>
             </thead>
             <tbody>
               {isLoading ? (
                 <tr>
                   <td
-                    colSpan={4}
+                    colSpan={6}
                     className="px-6 py-8 text-center text-sm text-muted-foreground"
                   >
                     Loading sessions...
@@ -74,15 +102,18 @@ export function HistoryPage() {
               ) : sessions.length === 0 ? (
                 <tr>
                   <td
-                    colSpan={4}
+                    colSpan={6}
                     className="px-6 py-8 text-center text-sm text-muted-foreground"
                   >
                     No sessions found for this period.
                   </td>
                 </tr>
               ) : (
-                sessions.map((session) => {
-                  const dateKey = session.startTime.split("T")[0] ?? "";
+                sessions.map((session: WorkSession) => {
+                  const dateKey = getLocalDateKeyFromIso(
+                    session.startTime,
+                    timezone,
+                  );
                   return (
                     <tr
                       key={session.id ?? session._id ?? session.startTime}
@@ -92,13 +123,25 @@ export function HistoryPage() {
                         {formatRelativeDate(dateKey, timezone)}
                       </td>
                       <td className="px-6 py-4 text-sm text-foreground">
+                        {session.title || "—"}
+                      </td>
+                      <td className="px-6 py-4 text-sm text-foreground">
                         {formatSessionClock(session.startTime, timezone)}
                       </td>
                       <td className="px-6 py-4 text-sm text-foreground">
                         {formatSessionClock(session.endTime, timezone)}
                       </td>
                       <td className="px-6 py-4 text-sm font-medium text-foreground">
-                        {formatMinutes(session.durationMinutes)}
+                        {formatDurationSeconds(
+                          getSessionDurationSeconds(session),
+                        )}
+                      </td>
+                      <td className="px-6 py-4 text-sm text-foreground max-w-xs">
+                        {session.summary ? (
+                          <ExpandableSummary text={session.summary} />
+                        ) : (
+                          "—"
+                        )}
                       </td>
                     </tr>
                   );
@@ -108,6 +151,18 @@ export function HistoryPage() {
           </table>
         </div>
       </Card>
+
+      {hasNextPage ? (
+        <div className="flex justify-center">
+          <Button
+            variant="outline"
+            onClick={() => fetchNextPage()}
+            disabled={isFetchingNextPage}
+          >
+            {isFetchingNextPage ? "Loading..." : "Load More"}
+          </Button>
+        </div>
+      ) : null}
     </div>
   );
 }
