@@ -208,6 +208,12 @@
     box-shadow: 0 0 24px 4px oklch(0.541 0.281 293 / 20%);
   }
 
+  .glow-purple-subtle {
+    box-shadow:
+      0 0 32px 8px oklch(0.541 0.281 293 / 7%),
+      0 0 16px 4px oklch(0.541 0.281 293 / 5%);
+  }
+
   .stat-icon-purple {
     background: oklch(0.541 0.281 293 / 15%);
     color: oklch(0.541 0.281 293);

@@ -17,6 +17,7 @@ Commit automatically after completing any of these:
 - **Refactor** — structural change that preserves behavior and is complete
 - **Important infra** — dependencies, CI, config, migrations, or shared types that other work depends on
 - **Multi-step task done** — the user's request (or a clear sub-task of it) is fully implemented
+- **Design Changes** - if you're asked for a design changes and if you're done with your task
 
 Do **not** commit mid-task, for exploratory spikes, or for tiny incremental edits that belong in the same upcoming commit.
 

@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, type ReactNode } from "react";
 import { View, Modal, Pressable, Text, ScrollView } from "react-native";
 import {
   Pause,
@@ -19,7 +19,7 @@ import { ThemedText } from "@/components/ThemeShell";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { Progress } from "@/components/ui/Progress";
-import { Sparkline } from "@/components/Sparkline";
+import { StatCardGrid } from "@/components/StatCardGrid";
 import { useGoalContext } from "@/context/GoalContext";
 import {
   useStatsSummary,
@@ -56,7 +56,6 @@ interface StatCardProps {
   icon: ComponentType<{ size?: number; color?: string }>;
   iconBg: string;
   iconColor: string;
-  sparkColor: string;
   subtitle?: string;
   onPress?: () => void;
 }
@@ -67,12 +66,11 @@ function StatCard({
   icon: Icon,
   iconBg,
   iconColor,
-  sparkColor,
   subtitle,
   onPress,
 }: StatCardProps) {
   const content = (
-    <Card className="p-4 gap-3 flex-1 min-w-[46%]">
+    <Card glowSubtle className="p-4 gap-3 flex-1">
       <View
         className="w-9 h-9 rounded-lg items-center justify-center"
         style={{ backgroundColor: iconBg }}
@@ -88,13 +86,12 @@ function StatCard({
           </ThemedText>
         )}
       </View>
-      <Sparkline color={sparkColor} />
     </Card>
   );
 
   if (onPress) {
     return (
-      <Pressable onPress={onPress} className="min-w-[46%] flex-1">
+      <Pressable onPress={onPress} className="flex-1">
         {content}
       </Pressable>
     );
@@ -138,11 +135,7 @@ export function DashboardScreen() {
         subtitle="Stay focused and keep building."
       />
       <ScreenScroll>
-        <Card
-          glow
-          className="p-8 gap-6"
-          style={{ borderColor: colors.accentPurple + "33" }}
-        >
+        <Card glow className="p-8 gap-6">
           <View className="items-center gap-3">
             <View
               className="flex-row items-center gap-2 px-3 py-1 rounded-full"
@@ -222,97 +215,100 @@ export function DashboardScreen() {
           </View>
         </Card>
 
-        <View className="flex-row flex-wrap gap-3">
-          <StatCard
-            label="Worked Today"
-            value={formatMinutes(workedMinutes)}
-            icon={Calendar}
-            iconBg={colors.accentPurpleBg}
-            iconColor={colors.accentPurple}
-            sparkColor={colors.accentPurple}
-            subtitle={goalEnabled ? `Goal: ${dailyGoalHours}h` : undefined}
-          />
-
-          {goalEnabled && (
-            <Card className="p-4 gap-3 min-w-[46%] flex-1">
-              <View
-                className="w-9 h-9 rounded-lg items-center justify-center"
-                style={{ backgroundColor: colors.accentPurpleBg }}
-              >
-                <Target size={16} color={colors.accentPurple} />
-              </View>
-              <View>
-                <ThemedText className="text-sm text-neutral-500">
-                  Progress
-                </ThemedText>
-                <ThemedText
-                  className="text-2xl font-bold mt-1"
-                  style={{ color: colors.accentPurple }}
-                >
-                  {progressPercentage}%
-                </ThemedText>
-                <Progress
-                  value={Math.min(progressPercentage, 100)}
-                  className="mt-2"
-                />
-              </View>
-              <Sparkline color={colors.accentPurple} />
-            </Card>
-          )}
-
-          {goalEnabled && (
+        <StatCardGrid>
+          {[
             <StatCard
-              label="Remaining"
-              value={formatMinutes(Math.round(remainingHours * 60))}
-              icon={Clock}
+              key="worked"
+              label="Worked Today"
+              value={formatMinutes(workedMinutes)}
+              icon={Calendar}
+              iconBg={colors.accentPurpleBg}
+              iconColor={colors.accentPurple}
+              subtitle={goalEnabled ? `Goal: ${dailyGoalHours}h` : undefined}
+            />,
+
+            goalEnabled ? (
+              <Card key="progress" glowSubtle className="p-4 gap-3 flex-1">
+                <View
+                  className="w-9 h-9 rounded-lg items-center justify-center"
+                  style={{ backgroundColor: colors.accentPurpleBg }}
+                >
+                  <Target size={16} color={colors.accentPurple} />
+                </View>
+                <View>
+                  <ThemedText className="text-sm text-neutral-500">
+                    Progress
+                  </ThemedText>
+                  <ThemedText
+                    className="text-2xl font-bold mt-1"
+                    style={{ color: colors.accentPurple }}
+                  >
+                    {progressPercentage}%
+                  </ThemedText>
+                  <Progress
+                    value={Math.min(progressPercentage, 100)}
+                    className="mt-2"
+                  />
+                </View>
+              </Card>
+            ) : null,
+
+            goalEnabled ? (
+              <StatCard
+                key="remaining"
+                label="Remaining"
+                value={formatMinutes(Math.round(remainingHours * 60))}
+                icon={Clock}
+                iconBg={colors.accentAmberBg}
+                iconColor={colors.accentAmber}
+              />
+            ) : null,
+
+            <StatCard
+              key="sessions"
+              label="Sessions Today"
+              value={String(todaySessions.length)}
+              icon={Activity}
+              iconBg={colors.accentGreenBg}
+              iconColor={colors.accentGreen}
+              subtitle="Click to view all"
+              onPress={() => setShowSessions(true)}
+            />,
+
+            <StatCard
+              key="week"
+              label="This Week"
+              value={formatMinutes(summary?.weeklyWorkedMinutes ?? 0)}
+              icon={FolderOpen}
               iconBg={colors.accentAmberBg}
               iconColor={colors.accentAmber}
-              sparkColor={colors.accentAmber}
-            />
-          )}
+            />,
 
-          <StatCard
-            label="Sessions Today"
-            value={String(todaySessions.length)}
-            icon={Activity}
-            iconBg={colors.accentGreenBg}
-            iconColor={colors.accentGreen}
-            sparkColor={colors.accentGreen}
-            subtitle="Click to view all"
-            onPress={() => setShowSessions(true)}
-          />
+            <StatCard
+              key="best-day"
+              label="Best Day"
+              value={formatMinutes(summary?.bestDayMinutes ?? 0)}
+              icon={Star}
+              iconBg={colors.accentBlueBg}
+              iconColor={colors.accentBlue}
+              subtitle={bestDayDate ?? undefined}
+            />,
 
-          <StatCard
-            label="This Week"
-            value={formatMinutes(summary?.weeklyWorkedMinutes ?? 0)}
-            icon={FolderOpen}
-            iconBg={colors.accentAmberBg}
-            iconColor={colors.accentAmber}
-            sparkColor={colors.accentAmber}
-          />
-
-          <StatCard
-            label="Best Day"
-            value={formatMinutes(summary?.bestDayMinutes ?? 0)}
-            icon={Star}
-            iconBg={colors.accentBlueBg}
-            iconColor={colors.accentBlue}
-            sparkColor={colors.accentBlue}
-            subtitle={bestDayDate ?? undefined}
-          />
-
-          <StatCard
-            label="Current Streak"
-            value={`${summary?.currentStreakDays ?? 0} days`}
-            icon={Flame}
-            iconBg={colors.accentRedBg}
-            iconColor={colors.accentRed}
-            sparkColor={colors.accentRed}
-            subtitle={
-              (summary?.currentStreakDays ?? 0) > 0 ? "Keep it up!" : undefined
-            }
-          />
-        </View>
+            <StatCard
+              key="streak"
+              label="Current Streak"
+              value={`${summary?.currentStreakDays ?? 0} days`}
+              icon={Flame}
+              iconBg={colors.accentRedBg}
+              iconColor={colors.accentRed}
+              subtitle={
+                (summary?.currentStreakDays ?? 0) > 0
+                  ? "Keep it up!"
+                  : undefined
+              }
+            />,
+          ].filter(Boolean)}
+        </StatCardGrid>
       </ScreenScroll>
 
       <Modal visible={showSessions} transparent animationType="fade">

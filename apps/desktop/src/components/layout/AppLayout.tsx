@@ -11,7 +11,6 @@ import {
 } from "lucide-react";
 import type { AppPage } from "@repo/types";
 import ThemeToggle from "@/components/ThemeToggle";
-import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
   DropdownMenuContent,

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 import {
   Clock,
   Pause,
@@ -15,6 +15,7 @@ import type { LucideIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
+import { StatCardGrid } from "@/components/StatCardGrid";
 import { cn } from "@/lib/utils";
 import { formatMinutes, formatSessionClock, minutesToHours } from "@repo/utils";
 import {
@@ -52,7 +53,7 @@ function StatCard({
   return (
     <Card
       className={cn(
-        "p-5 flex flex-col gap-3 flex-1 min-w-[min(100%,11rem)]",
+        "p-5 flex flex-col gap-3 h-full glow-purple-subtle border-primary/10",
         onClick && "cursor-pointer hover:border-primary/30 transition-colors",
         className,
       )}
@@ -167,76 +168,87 @@ export function DashboardPage({
         </div>
       </Card>
 
-      <div className="flex flex-wrap gap-4">
-        <StatCard
-          label="Worked Today"
-          value={formatMinutes(workedMinutes)}
-          icon={Calendar}
-          iconClass="stat-icon-purple"
-          subtitle={goalEnabled ? `Goal: ${dailyGoalHours}h` : undefined}
-        />
-
-        {goalEnabled && (
-          <Card className="p-5 flex flex-col gap-3 flex-1 min-w-[min(100%,11rem)]">
-            <div className="w-9 h-9 rounded-lg flex items-center justify-center stat-icon-purple">
-              <Target className="w-4 h-4" />
-            </div>
-            <div>
-              <p className="text-sm text-muted-foreground">Progress</p>
-              <div className="text-2xl font-bold text-primary mt-1">
-                {progressPercentage}%
-              </div>
-              <Progress
-                value={Math.min(progressPercentage, 100)}
-                className="h-1.5 mt-2"
-              />
-            </div>
-          </Card>
-        )}
-
-        {goalEnabled && (
+      <StatCardGrid>
+        {[
           <StatCard
-            label="Remaining"
-            value={formatMinutes(Math.round(remainingHours * 60))}
-            icon={Clock}
+            key="worked"
+            label="Worked Today"
+            value={formatMinutes(workedMinutes)}
+            icon={Calendar}
+            iconClass="stat-icon-purple"
+            subtitle={goalEnabled ? `Goal: ${dailyGoalHours}h` : undefined}
+          />,
+
+          goalEnabled ? (
+            <Card
+              key="progress"
+              className="p-5 flex flex-col gap-3 h-full glow-purple-subtle border-primary/10"
+            >
+              <div className="w-9 h-9 rounded-lg flex items-center justify-center stat-icon-purple">
+                <Target className="w-4 h-4" />
+              </div>
+              <div>
+                <p className="text-sm text-muted-foreground">Progress</p>
+                <div className="text-2xl font-bold text-primary mt-1">
+                  {progressPercentage}%
+                </div>
+                <Progress
+                  value={Math.min(progressPercentage, 100)}
+                  className="h-1.5 mt-2"
+                />
+              </div>
+            </Card>
+          ) : null,
+
+          goalEnabled ? (
+            <StatCard
+              key="remaining"
+              label="Remaining"
+              value={formatMinutes(Math.round(remainingHours * 60))}
+              icon={Clock}
+              iconClass="stat-icon-amber"
+            />
+          ) : null,
+
+          <StatCard
+            key="sessions"
+            label="Sessions Today"
+            value={String(todaySessions.length)}
+            icon={Activity}
+            iconClass="stat-icon-green"
+            subtitle="Click to view all"
+            onClick={() => setShowSessions(true)}
+          />,
+
+          <StatCard
+            key="week"
+            label="This Week"
+            value={formatMinutes(summary?.weeklyWorkedMinutes ?? 0)}
+            icon={FolderOpen}
             iconClass="stat-icon-amber"
-          />
-        )}
+          />,
 
-        <StatCard
-          label="Sessions Today"
-          value={String(todaySessions.length)}
-          icon={Activity}
-          iconClass="stat-icon-green"
-          subtitle="Click to view all"
-          onClick={() => setShowSessions(true)}
-        />
+          <StatCard
+            key="best-day"
+            label="Best Day"
+            value={formatMinutes(summary?.bestDayMinutes ?? 0)}
+            icon={Star}
+            iconClass="stat-icon-blue"
+            subtitle={bestDayDate ?? undefined}
+          />,
 
-        <StatCard
-          label="This Week"
-          value={formatMinutes(summary?.weeklyWorkedMinutes ?? 0)}
-          icon={FolderOpen}
-          iconClass="stat-icon-amber"
-        />
-
-        <StatCard
-          label="Best Day"
-          value={formatMinutes(summary?.bestDayMinutes ?? 0)}
-          icon={Star}
-          iconClass="stat-icon-blue"
-          subtitle={bestDayDate ?? undefined}
-        />
-
-        <StatCard
-          label="Current Streak"
-          value={`${summary?.currentStreakDays ?? 0} days`}
-          icon={Flame}
-          iconClass="stat-icon-red"
-          subtitle={
-            (summary?.currentStreakDays ?? 0) > 0 ? "Keep it up!" : undefined
-          }
-        />
-      </div>
+          <StatCard
+            key="streak"
+            label="Current Streak"
+            value={`${summary?.currentStreakDays ?? 0} days`}
+            icon={Flame}
+            iconClass="stat-icon-red"
+            subtitle={
+              (summary?.currentStreakDays ?? 0) > 0 ? "Keep it up!" : undefined
+            }
+          />,
+        ].filter(Boolean)}
+      </StatCardGrid>
 
       {showSessions && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">

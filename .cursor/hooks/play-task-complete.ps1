@@ -3,7 +3,7 @@
 
 $null = [Console]::In.ReadToEnd()
 
-$soundPath = Join-Path $env:Windir "Media\Alarm05.wav"
+$soundPath = Join-Path $env:Windir "Media\Alarm01.wav"
 if (-not (Test-Path -LiteralPath $soundPath)) {
     $soundPath = Join-Path $env:Windir "Media\Windows Exclamation.wav"
 }
