@@ -54,6 +54,7 @@ function bindSocketEvents(activeSocket: Socket) {
       isRunning: true,
       startedAt: data.startedAt,
       elapsedBeforeCurrentRun: data.elapsedBeforeCurrentRun,
+      sessionTitle: data.sessionTitle,
     });
   });
 
@@ -63,6 +64,7 @@ function bindSocketEvents(activeSocket: Socket) {
       isRunning: false,
       startedAt: undefined,
       elapsedBeforeCurrentRun: data.elapsedBeforeCurrentRun || 0,
+      sessionTitle: undefined,
     });
     queryClientRef?.invalidateQueries({ queryKey: queryKeys.todayStats });
     queryClientRef?.invalidateQueries({ queryKey: queryKeys.statsSummary });
@@ -84,6 +86,7 @@ function bindSocketEvents(activeSocket: Socket) {
         isRunning: true,
         startedAt: state.startedAt,
         elapsedBeforeCurrentRun: state.elapsedBeforeCurrentRun,
+        sessionTitle: state.sessionTitle,
       });
     }
   });
@@ -94,6 +97,7 @@ function bindSocketEvents(activeSocket: Socket) {
       isRunning: data.isRunning,
       startedAt: data.startedAt,
       elapsedBeforeCurrentRun: data.elapsedBeforeCurrentRun,
+      sessionTitle: data.sessionTitle,
     });
   });
 
@@ -164,6 +168,7 @@ export function startTimer(title?: string) {
   emitTimerEvent("timer_start", {
     startedAt: updatedState.startedAt,
     elapsedBeforeCurrentRun: updatedState.elapsedBeforeCurrentRun,
+    sessionTitle: updatedState.sessionTitle,
   });
 }
 

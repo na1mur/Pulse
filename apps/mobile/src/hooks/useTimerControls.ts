@@ -40,7 +40,9 @@ export function useTimerControls() {
   }, [isRunning, startedAt, elapsedBeforeCurrentRun]);
 
   const handlePlay = (title?: string) => {
-    startTimer(title);
+    const trimmed = title?.trim() || undefined;
+    useTimerStore.setState({ sessionTitle: trimmed });
+    startTimer(trimmed);
   };
 
   const handlePause = async (summary?: string) => {

@@ -55,13 +55,17 @@ export const useTimerStore = create<TimerStoreState>()(
           lastActiveDate: new Date().toDateString(),
         }),
 
-      syncTimerState: (state) =>
-        set({
-          isRunning: state.isRunning,
-          startedAt: state.startedAt,
-          elapsedBeforeCurrentRun: state.elapsedBeforeCurrentRun,
-          lastActiveDate: state.lastActiveDate || new Date().toDateString(),
-        }),
+      syncTimerState: (incoming) =>
+        set((state) => ({
+          isRunning: incoming.isRunning,
+          startedAt: incoming.startedAt,
+          elapsedBeforeCurrentRun: incoming.elapsedBeforeCurrentRun,
+          lastActiveDate: incoming.lastActiveDate || new Date().toDateString(),
+          sessionTitle:
+            "sessionTitle" in incoming
+              ? incoming.sessionTitle
+              : state.sessionTitle,
+        })),
 
       checkDayChange: () =>
         set((state) => {
@@ -81,6 +85,17 @@ export const useTimerStore = create<TimerStoreState>()(
     {
       name: PERSIST_STORE_KEYS.timer,
       storage: createJSONStorage(() => scopedPersistStorage),
+      partialize: (state) => ({
+        isRunning: state.isRunning,
+        startedAt: state.startedAt,
+        elapsedBeforeCurrentRun: state.elapsedBeforeCurrentRun,
+        lastActiveDate: state.lastActiveDate,
+      }),
+      merge: (persistedState, currentState) => ({
+        ...currentState,
+        ...(persistedState as Partial<TimerStoreState>),
+        sessionTitle: currentState.sessionTitle,
+      }),
     },
   ),
 );

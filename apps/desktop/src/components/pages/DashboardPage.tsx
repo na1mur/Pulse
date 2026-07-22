@@ -202,12 +202,7 @@ export function DashboardPage({
         </div>
 
         <div className="relative text-center space-y-4">
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary/10 text-primary text-xs font-medium">
-            <span className="w-1.5 h-1.5 rounded-full bg-primary" />
-            Current Session
-          </div>
-
-          {sessionTitle ? (
+          {isRunning && sessionTitle ? (
             <p className="text-lg font-semibold text-foreground px-4">
               {sessionTitle}
             </p>

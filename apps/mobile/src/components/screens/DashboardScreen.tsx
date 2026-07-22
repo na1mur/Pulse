@@ -227,26 +227,7 @@ export function DashboardScreen() {
       <ScreenScroll>
         <Card glow className="p-8 gap-6">
           <View className="items-center gap-3">
-            <View
-              className="flex-row items-center gap-2 px-3 py-1 rounded-full"
-              style={{ backgroundColor: colors.accentPurpleBg }}
-            >
-              <View
-                className="w-1.5 h-1.5 rounded-full"
-                style={{ backgroundColor: colors.accentPurple }}
-              />
-              <Text
-                style={{
-                  color: colors.accentPurple,
-                  fontSize: 12,
-                  fontWeight: "500",
-                }}
-              >
-                Current Session
-              </Text>
-            </View>
-
-            {sessionTitle ? (
+            {isRunning && sessionTitle ? (
               <ThemedText className="text-lg font-semibold text-center px-4">
                 {sessionTitle}
               </ThemedText>
