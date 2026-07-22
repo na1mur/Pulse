@@ -202,6 +202,11 @@ export function useUpdateTimezone() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.settings });
       queryClient.invalidateQueries({ queryKey: queryKeys.todayStats });
+      queryClient.invalidateQueries({ queryKey: queryKeys.todaySessions });
+      queryClient.invalidateQueries({ queryKey: ["sessions"] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.statsSummary });
+      queryClient.invalidateQueries({ queryKey: queryKeys.weekStats });
+      queryClient.invalidateQueries({ queryKey: queryKeys.weeklyTrend });
     },
   });
 }

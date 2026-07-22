@@ -17,7 +17,14 @@ import { Card } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { StatCardGrid } from "@/components/StatCardGrid";
 import { cn } from "@/lib/utils";
-import { formatDurationSeconds, formatMinutes, formatSessionClock, getSessionDurationSeconds, minutesToHours } from "@repo/utils";
+import {
+  formatDurationSeconds,
+  formatMinutes,
+  formatSessionClock,
+  getDisplayTimezone,
+  getSessionDurationSeconds,
+  minutesToHours,
+} from "@repo/utils";
 import type { WorkSession } from "@repo/types";
 import { Input } from "@/components/ui/input";
 import {
@@ -152,7 +159,7 @@ export function DashboardPage({
     useTimerControls();
   const sessionTitle = useTimerStore((state) => state.sessionTitle);
 
-  const timezone = settings?.timezone ?? "UTC";
+  const timezone = getDisplayTimezone();
   const workedMinutes = todayStats?.workedMinutes ?? 0;
   const workedHours = minutesToHours(workedMinutes);
   const progressPercentage =
@@ -394,7 +401,9 @@ export function DashboardPage({
       {showSummaryModal && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
           <Card className="w-full max-w-md space-y-4 p-6 border-border/60">
-            <h2 className="text-xl font-bold text-foreground">Session Summary</h2>
+            <h2 className="text-xl font-bold text-foreground">
+              Session Summary
+            </h2>
             <p className="text-sm text-muted-foreground">
               Add an optional summary before pausing.
             </p>

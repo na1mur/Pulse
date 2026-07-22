@@ -60,6 +60,20 @@ export function formatHoursDecimal(hours: number): string {
   return formatMinutes(Math.round(hours * 60));
 }
 
+export function getDeviceTimezone(): string {
+  try {
+    const timeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+    return timeZone && timeZone.length > 0 ? timeZone : "UTC";
+  } catch {
+    return "UTC";
+  }
+}
+
+/** Client apps should format session clocks in the device timezone. */
+export function getDisplayTimezone(): string {
+  return getDeviceTimezone();
+}
+
 export function formatSessionClock(
   iso: string,
   timeZone: string = "UTC",

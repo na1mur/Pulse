@@ -5,16 +5,13 @@ import {
   formatDurationSeconds,
   formatRelativeDate,
   formatSessionClock,
+  getDisplayTimezone,
   getLocalDateKeyFromIso,
   getSessionDurationSeconds,
 } from "@repo/utils";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import {
-  flattenSessionPages,
-  useSessions,
-  useUserSettings,
-} from "@/hooks/usePulseQueries";
+import { flattenSessionPages, useSessions } from "@/hooks/usePulseQueries";
 
 const FILTERS: { label: string; value: SessionRange }[] = [
   { label: "Today", value: "today" },
@@ -46,8 +43,7 @@ export function HistoryPage() {
     hasNextPage,
     isFetchingNextPage,
   } = useSessions(range);
-  const { data: settings } = useUserSettings();
-  const timezone = settings?.timezone ?? "UTC";
+  const timezone = getDisplayTimezone();
   const sessions = flattenSessionPages(data?.pages);
 
   return (

@@ -1,5 +1,12 @@
 import { useState, type ReactNode } from "react";
-import { View, Modal, Pressable, Text, ScrollView, TextInput } from "react-native";
+import {
+  View,
+  Modal,
+  Pressable,
+  Text,
+  ScrollView,
+  TextInput,
+} from "react-native";
 import {
   Pause,
   Play,
@@ -17,6 +24,7 @@ import {
   formatDurationSeconds,
   formatMinutes,
   formatSessionClock,
+  getDisplayTimezone,
   getSessionDurationSeconds,
   minutesToHours,
 } from "@repo/utils";
@@ -77,8 +85,7 @@ function SessionRow({
         </ThemedText>
       </View>
       <ThemedText className="text-sm text-neutral-500">
-        Duration:{" "}
-        {formatDurationSeconds(getSessionDurationSeconds(session))}
+        Duration: {formatDurationSeconds(getSessionDurationSeconds(session))}
       </ThemedText>
       {session.summary ? <ExpandableSummary text={session.summary} /> : null}
     </View>
@@ -167,7 +174,7 @@ export function DashboardScreen() {
 
   const displayName = settings?.name?.trim() || "there";
 
-  const timezone = settings?.timezone ?? "UTC";
+  const timezone = getDisplayTimezone();
   const workedMinutes = todayStats?.workedMinutes ?? 0;
   const workedHours = minutesToHours(workedMinutes);
   const progressPercentage =
@@ -269,7 +276,9 @@ export function DashboardScreen() {
             <Button
               size="lg"
               onPress={
-                isRunning ? () => setShowSummaryModal(true) : () => setShowTitleModal(true)
+                isRunning
+                  ? () => setShowSummaryModal(true)
+                  : () => setShowTitleModal(true)
               }
               className="min-w-[140px]"
             >
@@ -454,7 +463,11 @@ export function DashboardScreen() {
               style={inputStyle}
             />
             <View className="flex-row gap-2 justify-end">
-              <Button label="Skip" variant="outline" onPress={dismissTitleModal} />
+              <Button
+                label="Skip"
+                variant="outline"
+                onPress={dismissTitleModal}
+              />
               <Button label="Resume" onPress={confirmResume} />
             </View>
           </Card>
@@ -467,7 +480,9 @@ export function DashboardScreen() {
           style={{ backgroundColor: colors.overlay }}
         >
           <Card className="p-6 gap-4">
-            <ThemedText className="text-xl font-bold">Session Summary</ThemedText>
+            <ThemedText className="text-xl font-bold">
+              Session Summary
+            </ThemedText>
             <ThemedText className="text-sm text-neutral-500">
               Add an optional summary before pausing.
             </ThemedText>
@@ -481,7 +496,11 @@ export function DashboardScreen() {
               style={[inputStyle, { minHeight: 96, textAlignVertical: "top" }]}
             />
             <View className="flex-row gap-2 justify-end">
-              <Button label="Skip" variant="outline" onPress={dismissSummaryModal} />
+              <Button
+                label="Skip"
+                variant="outline"
+                onPress={dismissSummaryModal}
+              />
               <Button label="Pause" onPress={confirmPause} />
             </View>
           </Card>

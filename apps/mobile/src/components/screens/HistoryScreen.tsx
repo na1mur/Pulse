@@ -5,6 +5,7 @@ import {
   formatDurationSeconds,
   formatRelativeDate,
   formatSessionClock,
+  getDisplayTimezone,
   getLocalDateKeyFromIso,
   getSessionDurationSeconds,
 } from "@repo/utils";
@@ -13,11 +14,7 @@ import { Screen, ScreenScroll } from "@/components/Screen";
 import { ThemedText } from "@/components/ThemeShell";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
-import {
-  flattenSessionPages,
-  useSessions,
-  useUserSettings,
-} from "@/hooks/usePulseQueries";
+import { flattenSessionPages, useSessions } from "@/hooks/usePulseQueries";
 import { useThemeColors } from "@/hooks/useThemeColors";
 import { Pressable } from "react-native";
 
@@ -87,8 +84,7 @@ export function HistoryScreen() {
     hasNextPage,
     isFetchingNextPage,
   } = useSessions(range);
-  const { data: settings } = useUserSettings();
-  const timezone = settings?.timezone ?? "UTC";
+  const timezone = getDisplayTimezone();
   const colors = useThemeColors();
   const sessions = flattenSessionPages(data?.pages);
 

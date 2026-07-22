@@ -9,6 +9,7 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useSocketSync } from "@/hooks/useSocketSync";
 import { useSyncManager } from "@/hooks/useSyncManager";
+import { useTimezoneSync } from "@/hooks/useTimezoneSync";
 import { useThemeColors } from "@/hooks/useThemeColors";
 import { GoalProvider } from "@/context/GoalContext";
 import { AuthGate } from "@/components/AuthGate";
@@ -17,6 +18,7 @@ import { AchievementNotifier } from "@/components/AchievementNotifier";
 function SyncBootstrap() {
   useSyncManager();
   useSocketSync();
+  useTimezoneSync();
   return null;
 }
 

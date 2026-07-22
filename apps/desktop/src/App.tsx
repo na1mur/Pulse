@@ -13,6 +13,7 @@ import { AuthPages } from "@/components/AuthPages";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { useSocketSync } from "@/hooks/useSocketSync";
 import { useSyncManager } from "@/hooks/useSyncManager";
+import { useTimezoneSync } from "@/hooks/useTimezoneSync";
 import { useUserSettings } from "@/hooks/usePulseQueries";
 import { rehydrateUserPersistedStores } from "@/store/rehydrateUserStores";
 import { queryClient } from "@/main";
@@ -40,6 +41,7 @@ function readAccessToken() {
 function PulseApp({ onLogout }: { onLogout: () => void }) {
   useSyncManager();
   useSocketSync();
+  useTimezoneSync();
 
   useEffect(() => {
     registerGoalStorage(desktopGoalStorage);
