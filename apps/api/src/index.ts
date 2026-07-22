@@ -14,6 +14,10 @@ import { initSocket } from "./socket";
 const app = express();
 const port = config.PORT;
 
+// Required when behind a reverse proxy (nginx, ALB, etc.) so rate limiting
+// and client IPs use X-Forwarded-For correctly.
+app.set("trust proxy", 1);
+
 // Standard Security Headers
 app.use(helmet());
 
