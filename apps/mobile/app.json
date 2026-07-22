@@ -10,15 +10,16 @@
     "splash": {
       "image": "./assets/splash-icon.png",
       "resizeMode": "contain",
-      "backgroundColor": "#7C3AED"
+      "backgroundColor": "#09090b"
     },
     "plugins": ["expo-router"],
     "ios": {
       "supportsTablet": true
     },
     "android": {
+      "package": "com.naimur_rahman.pulse",
       "adaptiveIcon": {
-        "backgroundColor": "#7C3AED",
+        "backgroundColor": "#09090b",
         "foregroundImage": "./assets/android-icon-foreground.png",
         "backgroundImage": "./assets/android-icon-background.png",
         "monochromeImage": "./assets/android-icon-monochrome.png"
@@ -28,6 +29,12 @@
     "web": {
       "bundler": "metro",
       "favicon": "./assets/favicon.png"
+    },
+    "extra": {
+      "eas": {
+        "projectId": "da3dbdb9-3d32-436f-b3d8-ba51d56e4762"
+      }
     }
   }
 }
+

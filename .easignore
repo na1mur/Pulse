@@ -1,0 +1,15 @@
+# Ignore everything that's not needed for the build
+apps/api
+apps/desktop
+docs
+.git
+.cursor
+
+# Ignore node_modules everywhere (EAS will reinstall them)
+**/node_modules
+
+# Keep these (do NOT ignore):
+# pnpm-lock.yaml
+# pnpm-workspace.yaml
+# apps/mobile/**
+# packages/**
