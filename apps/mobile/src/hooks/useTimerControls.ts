@@ -13,7 +13,6 @@ export function useTimerControls() {
     useTimerStore();
   const { addPendingSession } = useOfflineStore();
   const [localElapsed, setLocalElapsed] = useState(0);
-  const [pendingTitle, setPendingTitle] = useState<string | undefined>();
 
   useEffect(() => {
     checkDayChange();
@@ -41,24 +40,24 @@ export function useTimerControls() {
   }, [isRunning, startedAt, elapsedBeforeCurrentRun]);
 
   const handlePlay = (title?: string) => {
-    setPendingTitle(title?.trim() || undefined);
-    startTimer();
+    startTimer(title);
   };
 
   const handlePause = async (summary?: string) => {
-    if (!startedAt) return;
-    const startTimeIso = new Date(startedAt).toISOString();
+    const timerState = useTimerStore.getState();
+    if (!timerState.startedAt) return;
+
+    const startTimeIso = new Date(timerState.startedAt).toISOString();
     const endTimeIso = new Date().toISOString();
     const sessionPayload = {
       startTime: startTimeIso,
       endTime: endTimeIso,
       deviceId: "mobile",
-      ...(pendingTitle ? { title: pendingTitle } : {}),
+      ...(timerState.sessionTitle ? { title: timerState.sessionTitle } : {}),
       ...(summary?.trim() ? { summary: summary.trim() } : {}),
     };
 
     pauseTimer(localElapsed);
-    setPendingTitle(undefined);
 
     try {
       await api.post("/sessions", sessionPayload);

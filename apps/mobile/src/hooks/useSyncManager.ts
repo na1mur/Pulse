@@ -25,6 +25,8 @@ export function useSyncManager() {
           startTime: session.startTime,
           endTime: session.endTime,
           deviceId: session.deviceId,
+          ...(session.title ? { title: session.title } : {}),
+          ...(session.summary ? { summary: session.summary } : {}),
         });
 
         removePendingSession(session.localId);

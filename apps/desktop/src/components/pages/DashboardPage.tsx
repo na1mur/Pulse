@@ -27,6 +27,7 @@ import {
   useUserSettings,
 } from "@/hooks/usePulseQueries";
 import { useTimerControls } from "@/hooks/useTimerControls";
+import { useTimerStore } from "@/store/useTimerStore";
 
 function ExpandableSummary({ text }: { text: string }) {
   const [expanded, setExpanded] = useState(false);
@@ -149,6 +150,7 @@ export function DashboardPage({
   const { data: settings } = useUserSettings();
   const { isRunning, displayTime, handlePlay, handlePause } =
     useTimerControls();
+  const sessionTitle = useTimerStore((state) => state.sessionTitle);
 
   const timezone = settings?.timezone ?? "UTC";
   const workedMinutes = todayStats?.workedMinutes ?? 0;
@@ -197,6 +199,12 @@ export function DashboardPage({
             <span className="w-1.5 h-1.5 rounded-full bg-primary" />
             Current Session
           </div>
+
+          {sessionTitle ? (
+            <p className="text-lg font-semibold text-foreground px-4">
+              {sessionTitle}
+            </p>
+          ) : null}
 
           <div
             className="text-6xl md:text-7xl font-black text-foreground tracking-tight"

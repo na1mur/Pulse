@@ -35,6 +35,7 @@ import {
   useUserSettings,
 } from "@/hooks/usePulseQueries";
 import { useTimerControls } from "@/hooks/useTimerControls";
+import { useTimerStore } from "@/store/useTimerStore";
 import { useThemeColors } from "@/hooks/useThemeColors";
 
 function ExpandableSummary({ text }: { text: string }) {
@@ -161,6 +162,7 @@ export function DashboardScreen() {
   const { data: settings } = useUserSettings();
   const { isRunning, displayTime, handlePlay, handlePause } =
     useTimerControls();
+  const sessionTitle = useTimerStore((state) => state.sessionTitle);
   const colors = useThemeColors();
 
   const displayName = settings?.name?.trim() || "there";
@@ -236,6 +238,12 @@ export function DashboardScreen() {
                 Current Session
               </Text>
             </View>
+
+            {sessionTitle ? (
+              <ThemedText className="text-lg font-semibold text-center px-4">
+                {sessionTitle}
+              </ThemedText>
+            ) : null}
 
             <ThemedText
               className="text-5xl font-black tracking-tight"

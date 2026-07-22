@@ -158,8 +158,8 @@ export function reconnectTimerSocket() {
   connectSocket();
 }
 
-export function startTimer() {
-  useTimerStore.getState().startTimer();
+export function startTimer(title?: string) {
+  useTimerStore.getState().startTimer(title);
   const updatedState = useTimerStore.getState();
   emitTimerEvent("timer_start", {
     startedAt: updatedState.startedAt,

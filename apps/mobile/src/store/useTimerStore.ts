@@ -5,7 +5,7 @@ import { PERSIST_STORE_KEYS } from "@repo/api-client";
 import { scopedPersistStorage } from "./scopedStorage";
 
 interface TimerStoreState extends TimerState {
-  startTimer: () => void;
+  startTimer: (title?: string) => void;
   pauseTimer: () => void;
   resetTimer: () => void;
   syncTimerState: (state: TimerState) => void;
@@ -19,13 +19,15 @@ export const useTimerStore = create<TimerStoreState>()(
       startedAt: undefined,
       elapsedBeforeCurrentRun: 0,
       lastActiveDate: undefined,
+      sessionTitle: undefined,
 
-      startTimer: () =>
+      startTimer: (title?: string) =>
         set((state) => {
           if (state.isRunning) return {};
           return {
             isRunning: true,
             startedAt: Date.now(),
+            sessionTitle: title?.trim() || undefined,
             lastActiveDate: new Date().toDateString(),
           };
         }),
@@ -37,6 +39,7 @@ export const useTimerStore = create<TimerStoreState>()(
           return {
             isRunning: false,
             startedAt: undefined,
+            sessionTitle: undefined,
             elapsedBeforeCurrentRun:
               state.elapsedBeforeCurrentRun + sessionElapsed,
             lastActiveDate: new Date().toDateString(),
@@ -47,6 +50,7 @@ export const useTimerStore = create<TimerStoreState>()(
         set({
           isRunning: false,
           startedAt: undefined,
+          sessionTitle: undefined,
           elapsedBeforeCurrentRun: 0,
           lastActiveDate: new Date().toDateString(),
         }),
@@ -66,6 +70,7 @@ export const useTimerStore = create<TimerStoreState>()(
             return {
               isRunning: false,
               startedAt: undefined,
+              sessionTitle: undefined,
               elapsedBeforeCurrentRun: 0,
               lastActiveDate: today,
             };
@@ -79,4 +84,3 @@ export const useTimerStore = create<TimerStoreState>()(
     },
   ),
 );
-

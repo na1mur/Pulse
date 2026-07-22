@@ -16,6 +16,10 @@ import { reconnectTimerSocket } from "@/hooks/useSocketSync";
 
 const baseURL = process.env.EXPO_PUBLIC_API_URL ?? "http://localhost:3001";
 
+if (__DEV__) {
+  console.info(`[Pulse] API URL: ${baseURL}`);
+}
+
 const webStorage = {
   getItem: (key: string): Promise<string | null> =>
     Promise.resolve(

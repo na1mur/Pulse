@@ -15,6 +15,10 @@ import {
 
 const baseURL = import.meta.env.VITE_API_URL ?? "http://localhost:3001";
 
+if (import.meta.env.DEV) {
+  console.info(`[Pulse] API URL: ${baseURL}`);
+}
+
 const rawStorage = {
   getItem: (key: string) => localStorage.getItem(key),
   setItem: (key: string, value: string) => {
