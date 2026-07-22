@@ -11,19 +11,22 @@ Commit without waiting for the user to ask when a coherent unit of work is finis
 
 Commit automatically after completing any of these:
 
+- **Agent task complete** — the user gave you a task and you finished it with meaningful changes in the repo
+- **Plan mode task complete** — you were in Plan mode, agreed on an approach, implemented it, and the work is done
 - **New feature** — a user-facing capability or API endpoint is working end-to-end
 - **Feature update** — meaningful enhancement to existing behavior (not a half-done tweak)
 - **Bug fix** — root cause addressed and verified
 - **Refactor** — structural change that preserves behavior and is complete
 - **Important infra** — dependencies, CI, config, migrations, or shared types that other work depends on
 - **Multi-step task done** — the user's request (or a clear sub-task of it) is fully implemented
-- **Design Changes** - if you're asked for a design changes and if you're done with your task
+- **Design changes** — you were asked for design changes and the task is finished
 
 Do **not** commit mid-task, for exploratory spikes, or for tiny incremental edits that belong in the same upcoming commit.
 
 ## When to Skip
 
 - Work is incomplete or broken
+- Plan mode ended with only a plan — no implementation or repo changes yet
 - Changes are purely formatting with no functional intent
 - Files likely contain secrets (`.env`, credentials) — warn instead
 - User explicitly says not to commit yet

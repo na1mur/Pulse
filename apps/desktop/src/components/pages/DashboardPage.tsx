@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   Clock,
   Pause,
@@ -26,13 +26,13 @@ import {
   minutesToHours,
 } from "@repo/utils";
 import type { WorkSession } from "@repo/types";
-import { Input } from "@/components/ui/input";
 import {
   useStatsSummary,
   useTodaySessions,
   useTodayStats,
 } from "@/hooks/usePulseQueries";
 import { useTimerControls } from "@/hooks/useTimerControls";
+import { useTimerActions } from "@/components/TimerActionProvider";
 import { useTimerStore } from "@/store/useTimerStore";
 
 function ExpandableSummary({ text }: { text: string }) {
@@ -51,6 +51,7 @@ function ExpandableSummary({ text }: { text: string }) {
 interface DashboardPageProps {
   goalEnabled: boolean;
   dailyGoalHours: number;
+  sessionsOpenRequest?: number;
 }
 
 interface StatCardProps {
@@ -144,18 +145,21 @@ function SessionRow({
 export function DashboardPage({
   goalEnabled,
   dailyGoalHours,
+  sessionsOpenRequest = 0,
 }: DashboardPageProps) {
   const [showSessions, setShowSessions] = useState(false);
-  const [showTitleModal, setShowTitleModal] = useState(false);
-  const [showSummaryModal, setShowSummaryModal] = useState(false);
-  const [titleInput, setTitleInput] = useState("");
-  const [summaryInput, setSummaryInput] = useState("");
   const { data: todayStats } = useTodayStats();
   const { data: summary } = useStatsSummary();
   const { data: todaySessions = [] } = useTodaySessions();
-  const { isRunning, displayTime, handlePlay, handlePause } =
-    useTimerControls();
+  const { isRunning, displayTime } = useTimerControls();
+  const { requestPlay, requestPause } = useTimerActions();
   const sessionTitle = useTimerStore((state) => state.sessionTitle);
+
+  useEffect(() => {
+    if (sessionsOpenRequest > 0) {
+      setShowSessions(true);
+    }
+  }, [sessionsOpenRequest]);
 
   const timezone = getDisplayTimezone();
   const workedMinutes = todayStats?.workedMinutes ?? 0;
@@ -166,30 +170,6 @@ export function DashboardPage({
       : (todayStats?.percentage ?? 0);
   const remainingHours = Math.max(0, dailyGoalHours - workedHours);
   const bestDayDate = formatBestDayDate(summary?.bestDayDate);
-
-  const confirmResume = () => {
-    handlePlay(titleInput);
-    setTitleInput("");
-    setShowTitleModal(false);
-  };
-
-  const dismissTitleModal = () => {
-    handlePlay();
-    setTitleInput("");
-    setShowTitleModal(false);
-  };
-
-  const confirmPause = () => {
-    void handlePause(summaryInput);
-    setSummaryInput("");
-    setShowSummaryModal(false);
-  };
-
-  const dismissSummaryModal = () => {
-    void handlePause();
-    setSummaryInput("");
-    setShowSummaryModal(false);
-  };
 
   return (
     <div className="space-y-6 w-full">
@@ -228,7 +208,7 @@ export function DashboardPage({
             <Button
               size="lg"
               className="gap-2 min-w-[140px]"
-              onClick={() => setShowSummaryModal(true)}
+              onClick={() => requestPause(true)}
             >
               <Pause className="w-4 h-4" />
               Pause
@@ -237,7 +217,7 @@ export function DashboardPage({
             <Button
               size="lg"
               className="gap-2 min-w-[140px]"
-              onClick={() => setShowTitleModal(true)}
+              onClick={() => requestPlay(true)}
             >
               <Play className="w-4 h-4" />
               Play
@@ -364,54 +344,6 @@ export function DashboardPage({
               <Button variant="outline" onClick={() => setShowSessions(false)}>
                 Close
               </Button>
-            </div>
-          </Card>
-        </div>
-      )}
-
-      {showTitleModal && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <Card className="w-full max-w-md space-y-4 p-6 border-border/60">
-            <h2 className="text-xl font-bold text-foreground">Session Title</h2>
-            <p className="text-sm text-muted-foreground">
-              Add an optional title for this session.
-            </p>
-            <Input
-              value={titleInput}
-              onChange={(e) => setTitleInput(e.target.value)}
-              placeholder="What are you working on?"
-            />
-            <div className="flex gap-3 justify-end">
-              <Button variant="outline" onClick={dismissTitleModal}>
-                Skip
-              </Button>
-              <Button onClick={confirmResume}>Resume</Button>
-            </div>
-          </Card>
-        </div>
-      )}
-
-      {showSummaryModal && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <Card className="w-full max-w-md space-y-4 p-6 border-border/60">
-            <h2 className="text-xl font-bold text-foreground">
-              Session Summary
-            </h2>
-            <p className="text-sm text-muted-foreground">
-              Add an optional summary before pausing.
-            </p>
-            <textarea
-              value={summaryInput}
-              onChange={(e) => setSummaryInput(e.target.value)}
-              placeholder="What did you accomplish?"
-              rows={4}
-              className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-            />
-            <div className="flex gap-3 justify-end">
-              <Button variant="outline" onClick={dismissSummaryModal}>
-                Skip
-              </Button>
-              <Button onClick={confirmPause}>Pause</Button>
             </div>
           </Card>
         </div>
