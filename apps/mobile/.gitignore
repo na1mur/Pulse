@@ -33,6 +33,7 @@ yarn-error.*
 # env files (see root .gitignore; keep .env.example tracked)
 .env
 .env.*
+.env.development
 !.env.example
 
 # typescript

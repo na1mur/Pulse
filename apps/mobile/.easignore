@@ -1,0 +1,8 @@
+# Exclude everything not needed for the mobile build
+# Note: EAS Build uploads from the app root (apps/mobile) upward to monorepo root
+**/node_modules
+apps/api
+apps/desktop
+docs
+.git
+.cursor

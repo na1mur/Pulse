@@ -46,7 +46,7 @@ export function DashboardPage({
       <Card className="p-8 md:p-12 space-y-6">
         <div className="text-center space-y-2">
           <p className="text-sm text-muted-foreground">Current Session</p>
-          <div className="text-6xl md:text-7xl font-light text-primary font-mono">
+          <div className="text-6xl md:text-7xl font-black text-primary" style={{ fontFamily: 'var(--font-display)' }}>
             {displayTime}
           </div>
           {isRunning && (

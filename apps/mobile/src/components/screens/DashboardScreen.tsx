@@ -47,7 +47,7 @@ export function DashboardScreen() {
             <ThemedText className="text-sm text-neutral-500">
               Current Session
             </ThemedText>
-            <ThemedText className="text-5xl font-light">
+            <ThemedText className="text-5xl font-black" style={{ fontWeight: '900' }}>
               {displayTime}
             </ThemedText>
             {isRunning && (

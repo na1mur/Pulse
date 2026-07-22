@@ -1,0 +1,12 @@
+{
+  "expo": {
+    "extra": {
+      "eas": {
+        "projectId": "da3dbdb9-3d32-436f-b3d8-ba51d56e4762"
+      }
+    },
+    "android": {
+      "package": "com.naimur_rahman.pulse"
+    }
+  }
+}
