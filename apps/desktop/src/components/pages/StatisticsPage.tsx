@@ -15,16 +15,23 @@ import {
   useWeeklyTrend,
 } from "@/hooks/usePulseQueries";
 
+const chartAxisProps = {
+  stroke: "var(--border)",
+  tick: { fill: "var(--muted-foreground)", fontSize: 12 },
+  axisLine: { stroke: "var(--border)" },
+  tickLine: { stroke: "var(--border)" },
+};
+
 const chartTooltipProps = {
   cursor: false as const,
   contentStyle: {
-    backgroundColor: "hsl(var(--card))",
-    border: "1px solid hsl(var(--border))",
+    backgroundColor: "var(--card)",
+    border: "1px solid var(--border)",
     borderRadius: "8px",
-    color: "hsl(var(--foreground))",
+    color: "var(--foreground)",
   },
-  labelStyle: { color: "hsl(var(--foreground))" },
-  itemStyle: { color: "hsl(var(--foreground))" },
+  labelStyle: { color: "var(--foreground)" },
+  itemStyle: { color: "var(--foreground)" },
   formatter: (value: number) => [`${value.toFixed(1)} hrs`, "Hours"],
 };
 
@@ -87,15 +94,19 @@ export function StatisticsPage() {
         <h3 className="font-semibold text-foreground mb-4">Daily Work Hours</h3>
         <ResponsiveContainer width="100%" height={300}>
           <BarChart data={dailyData}>
-            <CartesianGrid strokeDasharray="3 3" opacity={0.1} />
-            <XAxis dataKey="day" stroke="hsl(var(--muted-foreground))" />
-            <YAxis stroke="hsl(var(--muted-foreground))" />
+            <CartesianGrid
+              stroke="var(--border)"
+              strokeDasharray="3 3"
+              opacity={0.35}
+            />
+            <XAxis dataKey="day" {...chartAxisProps} />
+            <YAxis {...chartAxisProps} />
             <Tooltip {...chartTooltipProps} />
             <Bar
               dataKey="hours"
-              fill="hsl(var(--primary))"
+              fill="var(--primary)"
               radius={[8, 8, 0, 0]}
-              activeBar={{ fill: "hsl(var(--primary))", opacity: 0.85 }}
+              activeBar={{ fill: "var(--primary)", opacity: 0.85 }}
             />
           </BarChart>
         </ResponsiveContainer>
@@ -105,15 +116,19 @@ export function StatisticsPage() {
         <h3 className="font-semibold text-foreground mb-4">Weekly Trend</h3>
         <ResponsiveContainer width="100%" height={300}>
           <BarChart data={weeklyData}>
-            <CartesianGrid strokeDasharray="3 3" opacity={0.1} />
-            <XAxis dataKey="week" stroke="hsl(var(--muted-foreground))" />
-            <YAxis stroke="hsl(var(--muted-foreground))" />
+            <CartesianGrid
+              stroke="var(--border)"
+              strokeDasharray="3 3"
+              opacity={0.35}
+            />
+            <XAxis dataKey="week" {...chartAxisProps} />
+            <YAxis {...chartAxisProps} />
             <Tooltip {...chartTooltipProps} />
             <Bar
               dataKey="hours"
-              fill="hsl(var(--primary))"
+              fill="var(--primary)"
               radius={[8, 8, 0, 0]}
-              activeBar={{ fill: "hsl(var(--primary))", opacity: 0.85 }}
+              activeBar={{ fill: "var(--primary)", opacity: 0.85 }}
             />
           </BarChart>
         </ResponsiveContainer>

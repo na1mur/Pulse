@@ -10,7 +10,11 @@ import {
 } from "@repo/utils";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { useSessions, useUserSettings } from "@/hooks/usePulseQueries";
+import {
+  flattenSessionPages,
+  useSessions,
+  useUserSettings,
+} from "@/hooks/usePulseQueries";
 
 const FILTERS: { label: string; value: SessionRange }[] = [
   { label: "Today", value: "today" },
@@ -37,13 +41,14 @@ export function HistoryPage() {
   const {
     data,
     isLoading,
+    isError,
     fetchNextPage,
     hasNextPage,
     isFetchingNextPage,
   } = useSessions(range);
   const { data: settings } = useUserSettings();
   const timezone = settings?.timezone ?? "UTC";
-  const sessions = data?.pages.flatMap((page) => page.sessions) ?? [];
+  const sessions = flattenSessionPages(data?.pages);
 
   return (
     <div className="space-y-6">
@@ -97,6 +102,15 @@ export function HistoryPage() {
                     className="px-6 py-8 text-center text-sm text-muted-foreground"
                   >
                     Loading sessions...
+                  </td>
+                </tr>
+              ) : isError ? (
+                <tr>
+                  <td
+                    colSpan={6}
+                    className="px-6 py-8 text-center text-sm text-destructive"
+                  >
+                    Failed to load sessions. Please try again.
                   </td>
                 </tr>
               ) : sessions.length === 0 ? (

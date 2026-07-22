@@ -1,4 +1,9 @@
-import { useInfiniteQuery, useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import {
+  useInfiniteQuery,
+  useQuery,
+  useMutation,
+  useQueryClient,
+} from "@tanstack/react-query";
 import type {
   DailyStatsPoint,
   PaginatedSessionsResponse,
@@ -22,15 +27,17 @@ export {
   mergeGoalSettingsIntoCache,
   type GoalTargetFields,
 } from "./goal-sync";
-export { useGoalState, GOAL_DEFAULTS, readStoredGoalHours, type GoalStorage } from "./useGoalState";
+export {
+  useGoalState,
+  GOAL_DEFAULTS,
+  readStoredGoalHours,
+  type GoalStorage,
+} from "./useGoalState";
 export {
   registerGoalStorage,
   syncGoalSettingsToLocal,
 } from "./goal-local-storage";
-export {
-  bootstrapUserSession,
-  deactivateUserSession,
-} from "./user-session";
+export { bootstrapUserSession, deactivateUserSession } from "./user-session";
 export {
   subscribeGoalAchievements,
   emitGoalAchievement,
@@ -77,6 +84,45 @@ export function useTodaySessions() {
   });
 }
 
+function normalizeSessionsPage(
+  data: PaginatedSessionsResponse | WorkSession[],
+  page: number,
+  limit: number,
+): PaginatedSessionsResponse {
+  if (Array.isArray(data)) {
+    return {
+      sessions: data,
+      total: data.length,
+      page: 1,
+      limit,
+      hasMore: false,
+    };
+  }
+
+  return {
+    sessions: data.sessions ?? [],
+    total: data.total ?? data.sessions?.length ?? 0,
+    page: data.page ?? page,
+    limit: data.limit ?? limit,
+    hasMore: data.hasMore ?? false,
+  };
+}
+
+export function flattenSessionPages(
+  pages: PaginatedSessionsResponse[] | undefined,
+): WorkSession[] {
+  if (!pages?.length) {
+    return [];
+  }
+
+  return pages.flatMap((page) => {
+    if (Array.isArray(page)) {
+      return page;
+    }
+    return page.sessions ?? [];
+  });
+}
+
 export function useSessions(range: SessionRange, limit = 20) {
   const api = useApi();
   return useInfiniteQuery<PaginatedSessionsResponse>({
@@ -86,7 +132,7 @@ export function useSessions(range: SessionRange, limit = 20) {
       const response = await api.get("/sessions", {
         params: { range, page, limit },
       });
-      return response.data as PaginatedSessionsResponse;
+      return normalizeSessionsPage(response.data, page, limit);
     },
     initialPageParam: 1,
     getNextPageParam: (lastPage) =>

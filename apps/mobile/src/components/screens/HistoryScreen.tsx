@@ -13,7 +13,11 @@ import { Screen, ScreenScroll } from "@/components/Screen";
 import { ThemedText } from "@/components/ThemeShell";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
-import { useSessions, useUserSettings } from "@/hooks/usePulseQueries";
+import {
+  flattenSessionPages,
+  useSessions,
+  useUserSettings,
+} from "@/hooks/usePulseQueries";
 import { useThemeColors } from "@/hooks/useThemeColors";
 import { Pressable } from "react-native";
 
@@ -78,6 +82,7 @@ export function HistoryScreen() {
   const {
     data,
     isLoading,
+    isError,
     fetchNextPage,
     hasNextPage,
     isFetchingNextPage,
@@ -85,7 +90,7 @@ export function HistoryScreen() {
   const { data: settings } = useUserSettings();
   const timezone = settings?.timezone ?? "UTC";
   const colors = useThemeColors();
-  const sessions = data?.pages.flatMap((page) => page.sessions) ?? [];
+  const sessions = flattenSessionPages(data?.pages);
 
   return (
     <Screen>
@@ -106,6 +111,10 @@ export function HistoryScreen() {
         <Card className="p-0 overflow-hidden">
           {isLoading ? (
             <ThemedText className="p-6 text-neutral-500">Loading...</ThemedText>
+          ) : isError ? (
+            <ThemedText className="p-6 text-red-500">
+              Failed to load sessions. Please try again.
+            </ThemedText>
           ) : sessions.length === 0 ? (
             <ThemedText className="p-6 text-neutral-500">
               No sessions found.
