@@ -32,8 +32,11 @@ const chartTooltipProps = {
   },
   labelStyle: { color: "var(--foreground)" },
   itemStyle: { color: "var(--foreground)" },
-  formatter: (value: number) => [`${value.toFixed(1)} hrs`, "Hours"],
-};
+  formatter: (value: unknown) => [
+    `${Number(value ?? 0).toFixed(1)} hrs`,
+    "Hours",
+  ],
+} as const;
 
 export function StatisticsPage() {
   const { data: summary } = useStatsSummary();
@@ -101,7 +104,7 @@ export function StatisticsPage() {
             />
             <XAxis dataKey="day" {...chartAxisProps} />
             <YAxis {...chartAxisProps} />
-            <Tooltip {...chartTooltipProps} />
+            <Tooltip {...(chartTooltipProps as Record<string, unknown>)} />
             <Bar
               dataKey="hours"
               fill="var(--primary)"
@@ -123,7 +126,7 @@ export function StatisticsPage() {
             />
             <XAxis dataKey="week" {...chartAxisProps} />
             <YAxis {...chartAxisProps} />
-            <Tooltip {...chartTooltipProps} />
+            <Tooltip {...(chartTooltipProps as Record<string, unknown>)} />
             <Bar
               dataKey="hours"
               fill="var(--primary)"

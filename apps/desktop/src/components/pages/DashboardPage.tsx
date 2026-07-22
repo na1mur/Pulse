@@ -1,4 +1,4 @@
-import { useState, type ReactNode } from "react";
+import { useState } from "react";
 import {
   Clock,
   Pause,
@@ -31,7 +31,6 @@ import {
   useStatsSummary,
   useTodaySessions,
   useTodayStats,
-  useUserSettings,
 } from "@/hooks/usePulseQueries";
 import { useTimerControls } from "@/hooks/useTimerControls";
 import { useTimerStore } from "@/store/useTimerStore";
@@ -154,7 +153,6 @@ export function DashboardPage({
   const { data: todayStats } = useTodayStats();
   const { data: summary } = useStatsSummary();
   const { data: todaySessions = [] } = useTodaySessions();
-  const { data: settings } = useUserSettings();
   const { isRunning, displayTime, handlePlay, handlePause } =
     useTimerControls();
   const sessionTitle = useTimerStore((state) => state.sessionTitle);

@@ -22,6 +22,7 @@ export function mergeGoalSettingsIntoCache(
     }
     return {
       email: "",
+      name: "",
       timezone: "UTC",
       ...goals,
     };
