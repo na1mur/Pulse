@@ -32,6 +32,7 @@ export async function reconcileActiveTimer(
   try {
     const activeTimer = await fetchActiveTimer(api);
     const serverMs = parseServerUpdatedAt(activeTimer.updatedAt);
+    const remote = activeTimerToTimerState(activeTimer);
 
     if (getLocalState) {
       const local = getLocalState();
@@ -45,7 +46,6 @@ export async function reconcileActiveTimer(
       }
     }
 
-    const remote = activeTimerToTimerState(activeTimer);
     if (getLocalState) {
       const local = getLocalState();
       if (!remote.isRunning && !local.isRunning) {
