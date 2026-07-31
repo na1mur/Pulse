@@ -13,6 +13,7 @@ import {
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { AppDialog } from "@/components/ui/app-dialog";
 import { Card } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { StatCardGrid } from "@/components/StatCardGrid";
@@ -344,102 +345,92 @@ export function DashboardPage({
         ].filter(Boolean)}
       </StatCardGrid>
 
-      {showSessions && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <Card className="w-full max-w-2xl space-y-6 p-6 md:p-8 border-border/60">
-            <div className="flex items-center justify-between">
-              <h2 className="text-2xl font-bold text-foreground">
-                Sessions Today
-              </h2>
-              <Button
-                variant="ghost"
-                onClick={() => setShowSessions(false)}
-                className="text-muted-foreground hover:text-foreground"
-              >
-                ✕
-              </Button>
-            </div>
-
-            <div className="space-y-3">
-              {todaySessions.length === 0 ? (
-                <p className="text-sm text-muted-foreground text-center py-4">
-                  No sessions logged today yet.
-                </p>
-              ) : (
-                todaySessions.map((session) => (
-                  <SessionRow
-                    key={session.id ?? session._id ?? session.startTime}
-                    session={session}
-                    timezone={timezone}
-                  />
-                ))
-              )}
-            </div>
-
-            <div className="flex gap-3 justify-end">
-              <Button variant="outline" onClick={() => setShowSessions(false)}>
-                Close
-              </Button>
-            </div>
-          </Card>
-        </div>
-      )}
-
-      {showTitleModal && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <Card className="w-full max-w-md space-y-4 p-6 border-border/60">
-            <h2 className="text-xl font-bold text-foreground">Session Title</h2>
-            <p className="text-sm text-muted-foreground">
-              Add an optional title for this session.
+      <AppDialog
+        open={showSessions}
+        onClose={() => setShowSessions(false)}
+        title="Sessions Today"
+        footer={
+          <Button variant="outline" onClick={() => setShowSessions(false)}>
+            Close
+          </Button>
+        }
+      >
+        <div className="space-y-3">
+          {todaySessions.length === 0 ? (
+            <p className="text-sm text-muted-foreground text-center py-4">
+              No sessions logged today yet.
             </p>
-            <Input
-              value={titleInput}
-              onChange={(e) => {
-                setTitleInput(e.target.value);
-                titleSkip.cancelCountdown();
-              }}
-              onFocus={titleSkip.cancelCountdown}
-              placeholder="What are you working on?"
-            />
-            <div className="flex gap-3 justify-end">
-              <Button variant="outline" onClick={dismissTitleModal}>
-                {titleSkip.skipLabel}
-              </Button>
-              <Button onClick={confirmResume}>Resume</Button>
-            </div>
-          </Card>
+          ) : (
+            todaySessions.map((session) => (
+              <SessionRow
+                key={session.id ?? session._id ?? session.startTime}
+                session={session}
+                timezone={timezone}
+              />
+            ))
+          )}
         </div>
-      )}
+      </AppDialog>
 
-      {showSummaryModal && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <Card className="w-full max-w-md space-y-4 p-6 border-border/60">
-            <h2 className="text-xl font-bold text-foreground">
-              Session Summary
-            </h2>
-            <p className="text-sm text-muted-foreground">
-              Add an optional summary before pausing.
-            </p>
-            <textarea
-              value={summaryInput}
-              onChange={(e) => {
-                setSummaryInput(e.target.value);
-                summarySkip.cancelCountdown();
-              }}
-              onFocus={summarySkip.cancelCountdown}
-              placeholder="What did you accomplish?"
-              rows={4}
-              className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-            />
-            <div className="flex gap-3 justify-end">
-              <Button variant="outline" onClick={dismissSummaryModal}>
-                {summarySkip.skipLabel}
-              </Button>
-              <Button onClick={confirmPause}>Pause</Button>
-            </div>
-          </Card>
-        </div>
-      )}
+      <AppDialog
+        open={showTitleModal}
+        onClose={dismissTitleModal}
+        title="Session Title"
+        maxWidthClassName="max-w-md"
+        scrollable={false}
+        footer={
+          <>
+            <Button variant="outline" onClick={dismissTitleModal}>
+              {titleSkip.skipLabel}
+            </Button>
+            <Button onClick={confirmResume}>Resume</Button>
+          </>
+        }
+      >
+        <p className="text-sm text-muted-foreground mb-4">
+          Add an optional title for this session.
+        </p>
+        <Input
+          value={titleInput}
+          onChange={(e) => {
+            setTitleInput(e.target.value);
+            titleSkip.cancelCountdown();
+          }}
+          onFocus={titleSkip.cancelCountdown}
+          placeholder="What are you working on?"
+        />
+      </AppDialog>
+
+      <AppDialog
+        open={showSummaryModal}
+        onClose={dismissSummaryModal}
+        title="Session Summary"
+        maxWidthClassName="max-w-md"
+        scrollable={false}
+        footer={
+          <>
+            <Button variant="outline" onClick={dismissSummaryModal}>
+              {summarySkip.skipLabel}
+            </Button>
+            <Button onClick={confirmPause}>Pause</Button>
+          </>
+        }
+      >
+        <p className="text-sm text-muted-foreground mb-4">
+          Add an optional summary before pausing.
+        </p>
+        <textarea
+          value={summaryInput}
+          onChange={(e) => {
+            setSummaryInput(e.target.value);
+            summarySkip.cancelCountdown();
+          }}
+          onFocus={summarySkip.cancelCountdown}
+          placeholder="What did you accomplish?"
+          rows={4}
+          className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+        />
+      </AppDialog>
     </div>
   );
 }

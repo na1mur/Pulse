@@ -1,6 +1,6 @@
 import type { AxiosInstance } from "axios";
 import type { ActiveTimerState, TimerState } from "@repo/types";
-import { mergeTimerStates } from "./timer-sync";
+import { mergeTimerStates } from "@repo/utils";
 
 export function activeTimerToTimerState(timer: ActiveTimerState): TimerState {
   return {

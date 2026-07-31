@@ -3,7 +3,7 @@ import { persist, createJSONStorage } from "zustand/middleware";
 import type { TimerState } from "@repo/types";
 import { getLocalDayString } from "@repo/utils";
 import { PERSIST_STORE_KEYS } from "@repo/api-client";
-import { mergeTimerStates } from "@repo/queries";
+import { mergeTimerStates } from "@repo/utils";
 import { scopedPersistStorage } from "./scopedStorage";
 
 interface TimerStoreState extends TimerState {

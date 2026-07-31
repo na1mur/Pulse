@@ -419,11 +419,16 @@ export function DashboardScreen() {
           className="flex-1 justify-center p-4"
           style={{ backgroundColor: colors.overlay }}
         >
-          <Card className="p-6 gap-4 max-h-[80%]">
+          <Card className="p-6 gap-4 max-h-[85%] overflow-hidden">
             <ThemedText className="text-2xl font-bold">
               Sessions Today
             </ThemedText>
-            <ScrollView className="max-h-64">
+            <ScrollView
+              className="flex-1"
+              style={{ maxHeight: 420 }}
+              contentContainerStyle={{ gap: 12, paddingBottom: 4 }}
+              showsVerticalScrollIndicator
+            >
               {todaySessions.length === 0 ? (
                 <ThemedText className="text-sm text-neutral-500 text-center py-4">
                   No sessions logged today yet.

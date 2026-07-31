@@ -157,3 +157,15 @@ Learn more about the power of Turborepo:
 - [Filtering](https://turborepo.dev/docs/crafting-your-repository/running-tasks#using-filters)
 - [Configuration Options](https://turborepo.dev/docs/reference/configuration)
 - [CLI Usage](https://turborepo.dev/docs/reference/command-line-reference)
+
+build windows app:
+
+```sh
+cd "d:\Personal\Hobby Projects\Pulse\apps\desktop"; pnpm dist:win
+```
+
+build mobile app:
+
+```sh
+cd "d:\Personal\Hobby Projects\Pulse\apps\mobile\android"; .\gradlew assembleRelease
+```

@@ -3,7 +3,7 @@
  * Stream Android logs for the Pulse app over USB debugging.
  * Usage: pnpm --filter mobile log:android
  */
-const { spawn } = require("node:child_process");
+import { spawn } from "node:child_process";
 
 const command =
   "adb logcat -c && adb logcat ReactNativeJS:V ReactNative:V AndroidRuntime:E *:S";

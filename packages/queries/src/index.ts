@@ -45,12 +45,12 @@ export {
 } from "./active-timer";
 export { useAutoSkipCountdown } from "./use-auto-skip-countdown";
 export {
-  mergeTimerStates,
   rolloverTimerForNewDay,
   seedTodayElapsedFromStats,
   type SaveTimerSessionFn,
   type TimerSessionPayload,
 } from "./timer-sync";
+export { mergeTimerStates } from "@repo/utils";
 export {
   subscribeGoalAchievements,
   emitGoalAchievement,

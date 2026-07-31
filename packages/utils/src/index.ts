@@ -4,6 +4,7 @@ export {
   getStartOfLocalDayMs,
   getTodayTimerDisplayMs,
 } from "./timer-day";
+export { mergeTimerStates } from "./timer-sync";
 
 // Format milliseconds into HH:MM:SS
 export function formatTime(ms: number): string {
