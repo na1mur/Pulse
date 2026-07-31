@@ -37,6 +37,7 @@
     "zustand": "^5.0.14"
   },
   "devDependencies": {
+    "@babel/plugin-transform-react-jsx": "7.29.7",
     "@types/react": "~19.2.2",
     "babel-preset-expo": "^56.0.15",
     "eas-cli": "^21.4.0",
@@ -48,8 +49,8 @@
   "scripts": {
     "dev": "expo start",
     "start": "expo start",
-    "android": "expo start --android",
-    "ios": "expo start --ios",
+    "android": "expo run:android",
+    "ios": "expo run:ios",
     "web": "expo start --web",
     "lint": "oxlint",
     "build:android:preview": "eas build -p android --profile preview",
