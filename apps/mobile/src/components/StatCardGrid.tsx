@@ -49,11 +49,12 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     flexWrap: "wrap",
     gap: GAP,
-    alignItems: "flex-start",
+    alignItems: "stretch",
   },
   item: {
     flexGrow: 0,
     flexShrink: 0,
+    alignSelf: "stretch",
   },
   itemFallback: {
     width: "48%",

@@ -126,34 +126,36 @@ function StatCard({
   onPress,
 }: StatCardProps) {
   const content = (
-    <Card glowSubtle className="p-4 gap-3 w-full">
+    <Card glowSubtle className="p-4 gap-3 w-full flex-1">
       <View
         className="w-9 h-9 rounded-lg items-center justify-center"
         style={{ backgroundColor: iconBg }}
       >
         <Icon size={16} color={iconColor} />
       </View>
-      <View>
+      <View className="flex-1">
         <ThemedText className="text-sm text-neutral-500">{label}</ThemedText>
         <ThemedText className="text-2xl font-bold mt-1">{value}</ThemedText>
-        {subtitle && (
-          <ThemedText className="text-xs text-neutral-500 mt-1">
-            {subtitle}
-          </ThemedText>
-        )}
+        <View className="min-h-[18px] mt-1 justify-center">
+          {subtitle ? (
+            <ThemedText className="text-xs text-neutral-500">
+              {subtitle}
+            </ThemedText>
+          ) : null}
+        </View>
       </View>
     </Card>
   );
 
   if (onPress) {
     return (
-      <Pressable onPress={onPress} className="w-full">
+      <Pressable onPress={onPress} className="w-full flex-1">
         {content}
       </Pressable>
     );
   }
 
-  return content;
+  return <View className="w-full flex-1">{content}</View>;
 }
 
 export function DashboardScreen() {
@@ -309,14 +311,18 @@ export function DashboardScreen() {
             />,
 
             goalEnabled ? (
-              <Card key="progress" glowSubtle className="p-4 gap-3 w-full">
+              <Card
+                key="progress"
+                glowSubtle
+                className="p-4 gap-3 w-full flex-1"
+              >
                 <View
                   className="w-9 h-9 rounded-lg items-center justify-center"
                   style={{ backgroundColor: colors.accentPurpleBg }}
                 >
                   <Target size={16} color={colors.accentPurple} />
                 </View>
-                <View>
+                <View className="flex-1">
                   <ThemedText className="text-sm text-neutral-500">
                     Progress
                   </ThemedText>
@@ -326,10 +332,12 @@ export function DashboardScreen() {
                   >
                     {progressPercentage}%
                   </ThemedText>
-                  <Progress
-                    value={Math.min(progressPercentage, 100)}
-                    className="mt-2"
-                  />
+                  <View className="min-h-[18px] mt-1 justify-center">
+                    <Progress
+                      value={Math.min(progressPercentage, 100)}
+                      className="mt-1"
+                    />
+                  </View>
                 </View>
               </Card>
             ) : null,
