@@ -34,10 +34,34 @@ function teardownSocket() {
 async function syncTimerFromServer() {
   await reconcileActiveTimer(
     api,
-    (state) => {
-      useTimerStore.getState().syncTimerState(state);
+    (state, remoteUpdatedAt) => {
+      useTimerStore.getState().applyRemoteTimerState(state, remoteUpdatedAt);
     },
     () => useTimerStore.getState(),
+  );
+}
+
+function parseRemoteUpdatedAt(updatedAt?: string): number | undefined {
+  if (!updatedAt) return undefined;
+  const parsed = Date.parse(updatedAt);
+  return Number.isNaN(parsed) ? undefined : parsed;
+}
+
+function applySocketTimerState(state: {
+  isRunning: boolean;
+  startedAt?: number;
+  elapsedBeforeCurrentRun: number;
+  sessionTitle?: string;
+  updatedAt?: string;
+}) {
+  useTimerStore.getState().applyRemoteTimerState(
+    {
+      isRunning: state.isRunning,
+      startedAt: state.startedAt,
+      elapsedBeforeCurrentRun: state.elapsedBeforeCurrentRun,
+      sessionTitle: state.sessionTitle,
+    },
+    parseRemoteUpdatedAt(state.updatedAt),
   );
 }
 
@@ -56,21 +80,22 @@ function bindSocketEvents(activeSocket: Socket) {
 
   activeSocket.on("timer_started", (data) => {
     console.log("Mobile sync: timer_started received", data);
-    useTimerStore.getState().syncTimerState({
+    applySocketTimerState({
       isRunning: true,
       startedAt: data.startedAt,
       elapsedBeforeCurrentRun: data.elapsedBeforeCurrentRun,
       sessionTitle: data.sessionTitle,
+      updatedAt: data.updatedAt,
     });
   });
 
   activeSocket.on("timer_paused", (data) => {
     console.log("Mobile sync: timer_paused received", data);
-    useTimerStore.getState().syncTimerState({
+    applySocketTimerState({
       isRunning: false,
-      startedAt: undefined,
       elapsedBeforeCurrentRun: data.elapsedBeforeCurrentRun || 0,
       sessionTitle: data.sessionTitle,
+      updatedAt: data.updatedAt,
     });
     queryClientRef?.invalidateQueries({ queryKey: queryKeys.todayStats });
     queryClientRef?.invalidateQueries({ queryKey: queryKeys.statsSummary });
@@ -97,11 +122,12 @@ function bindSocketEvents(activeSocket: Socket) {
 
   activeSocket.on("timer_status_response", (data) => {
     console.log("Mobile sync: timer_status_response received", data);
-    useTimerStore.getState().syncTimerState({
+    applySocketTimerState({
       isRunning: data.isRunning,
       startedAt: data.startedAt,
       elapsedBeforeCurrentRun: data.elapsedBeforeCurrentRun,
       sessionTitle: data.sessionTitle,
+      updatedAt: data.updatedAt,
     });
   });
 

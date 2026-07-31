@@ -158,14 +158,26 @@ Learn more about the power of Turborepo:
 - [Configuration Options](https://turborepo.dev/docs/reference/configuration)
 - [CLI Usage](https://turborepo.dev/docs/reference/command-line-reference)
 
-build windows app:
+### build windows app:
 
 ```sh
 cd "d:\Personal\Hobby Projects\Pulse\apps\desktop"; pnpm dist:win
 ```
 
-build mobile app:
+### build mobile app:
 
 ```sh
 cd "d:\Personal\Hobby Projects\Pulse\apps\mobile\android"; .\gradlew assembleRelease
+```
+
+### Install app on mobile phone via usb debugging
+
+```sh
+adb install -r "D:\Personal\Hobby Projects\Pulse\apps\mobile\android\app\build\outputs\apk\release\app-release.apk"
+```
+
+### log android app via usb debugging
+
+```sh
+pnpm --filter mobile log:android
 ```

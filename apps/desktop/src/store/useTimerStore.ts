@@ -7,10 +7,13 @@ import { mergeTimerStates } from "@repo/utils";
 import { scopedPersistStorage } from "./scopedStorage";
 
 interface TimerStoreState extends TimerState {
+  /** In-memory stamp of the latest authoritative remote timer update. */
+  remoteUpdatedAt?: number;
   startTimer: (title?: string) => void;
   pauseTimer: () => void;
   resetTimer: () => void;
   syncTimerState: (state: TimerState) => void;
+  applyRemoteTimerState: (state: TimerState, remoteUpdatedAt?: number) => void;
   checkDayChange: () => void;
 }
 
@@ -54,12 +57,33 @@ export const useTimerStore = create<TimerStoreState>()(
           sessionTitle: undefined,
           elapsedBeforeCurrentRun: 0,
           lastActiveDate: getLocalDayString(),
+          remoteUpdatedAt: undefined,
         }),
 
       syncTimerState: (incoming) =>
         set((state) => ({
           ...mergeTimerStates(state, incoming),
         })),
+
+      applyRemoteTimerState: (incoming, remoteUpdatedAt) =>
+        set((state) => {
+          const nextUpdatedAt = remoteUpdatedAt ?? Date.now();
+          if (
+            state.remoteUpdatedAt != null &&
+            nextUpdatedAt < state.remoteUpdatedAt
+          ) {
+            return state;
+          }
+
+          return {
+            isRunning: incoming.isRunning,
+            startedAt: incoming.isRunning ? incoming.startedAt : undefined,
+            elapsedBeforeCurrentRun: incoming.elapsedBeforeCurrentRun,
+            sessionTitle: incoming.sessionTitle,
+            lastActiveDate: getLocalDayString(),
+            remoteUpdatedAt: nextUpdatedAt,
+          };
+        }),
 
       checkDayChange: () => {
         const today = getLocalDayString();

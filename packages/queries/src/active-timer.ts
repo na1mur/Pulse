@@ -1,6 +1,5 @@
 import type { AxiosInstance } from "axios";
 import type { ActiveTimerState, TimerState } from "@repo/types";
-import { mergeTimerStates } from "@repo/utils";
 
 export function activeTimerToTimerState(timer: ActiveTimerState): TimerState {
   return {
@@ -12,6 +11,12 @@ export function activeTimerToTimerState(timer: ActiveTimerState): TimerState {
   };
 }
 
+function parseServerUpdatedAt(updatedAt?: string): number {
+  if (!updatedAt) return Date.now();
+  const parsed = Date.parse(updatedAt);
+  return Number.isNaN(parsed) ? Date.now() : parsed;
+}
+
 export async function fetchActiveTimer(
   api: AxiosInstance,
 ): Promise<ActiveTimerState> {
@@ -21,17 +26,44 @@ export async function fetchActiveTimer(
 
 export async function reconcileActiveTimer(
   api: AxiosInstance,
-  apply: (state: TimerState) => void,
-  getLocalState?: () => TimerState,
+  applyRemote: (state: TimerState, remoteUpdatedAt?: number) => void,
+  getLocalState?: () => TimerState & { remoteUpdatedAt?: number },
 ): Promise<void> {
   try {
     const activeTimer = await fetchActiveTimer(api);
+    const serverMs = parseServerUpdatedAt(activeTimer.updatedAt);
+
+    if (getLocalState) {
+      const local = getLocalState();
+      if (
+        remote.isRunning &&
+        !local.isRunning &&
+        local.remoteUpdatedAt != null &&
+        serverMs < local.remoteUpdatedAt
+      ) {
+        return;
+      }
+    }
+
     const remote = activeTimerToTimerState(activeTimer);
     if (getLocalState) {
-      apply(mergeTimerStates(getLocalState(), remote));
-      return;
+      const local = getLocalState();
+      if (!remote.isRunning && !local.isRunning) {
+        applyRemote(
+          {
+            ...remote,
+            elapsedBeforeCurrentRun: Math.max(
+              local.elapsedBeforeCurrentRun,
+              remote.elapsedBeforeCurrentRun,
+            ),
+          },
+          serverMs,
+        );
+        return;
+      }
     }
-    apply(remote);
+
+    applyRemote(remote, serverMs);
   } catch (error) {
     console.warn("[Pulse] Failed to fetch active timer from server:", error);
   }

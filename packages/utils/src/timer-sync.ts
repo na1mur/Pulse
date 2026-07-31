@@ -21,6 +21,17 @@ export function mergeTimerStates(
     return { ...remote, lastActiveDate: today };
   }
 
+  // Remote explicitly paused while local is still running (socket pause event).
+  if (remote.isRunning === false && local.isRunning) {
+    return {
+      isRunning: false,
+      startedAt: undefined,
+      elapsedBeforeCurrentRun: remote.elapsedBeforeCurrentRun,
+      lastActiveDate: today,
+      sessionTitle: remote.sessionTitle ?? local.sessionTitle,
+    };
+  }
+
   if (local.isRunning) {
     return { ...local, lastActiveDate: today };
   }
@@ -33,6 +44,6 @@ export function mergeTimerStates(
       remote.elapsedBeforeCurrentRun,
     ),
     lastActiveDate: today,
-    sessionTitle: local.sessionTitle ?? remote.sessionTitle,
+    sessionTitle: remote.sessionTitle ?? local.sessionTitle,
   };
 }

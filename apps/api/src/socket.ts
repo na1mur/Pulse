@@ -56,13 +56,19 @@ export function initSocket(server: HttpServer): Server {
     );
 
     socket.on("timer_start", async (data) => {
-      await persistTimerStart(userId, data);
-      socket.to(room).emit("timer_started", data);
+      const saved = await persistTimerStart(userId, data);
+      socket.to(room).emit("timer_started", {
+        ...data,
+        updatedAt: saved?.updatedAt,
+      });
     });
 
     socket.on("timer_pause", async (data) => {
-      await persistTimerPause(userId, data);
-      socket.to(room).emit("timer_paused", data);
+      const saved = await persistTimerPause(userId, data);
+      socket.to(room).emit("timer_paused", {
+        ...data,
+        updatedAt: saved?.updatedAt,
+      });
     });
 
     socket.on("timer_reset", async (data?: { deviceId?: string }) => {
@@ -80,6 +86,7 @@ export function initSocket(server: HttpServer): Server {
         startedAt: activeTimer.startedAt,
         elapsedBeforeCurrentRun: activeTimer.elapsedBeforeCurrentRun,
         sessionTitle: activeTimer.sessionTitle,
+        updatedAt: activeTimer.updatedAt,
       });
 
       socket.to(room).emit("timer_status_request", { requesterId: socket.id });
