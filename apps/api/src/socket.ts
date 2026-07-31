@@ -1,6 +1,12 @@
 import { Server as HttpServer } from "http";
 import { Server, Socket } from "socket.io";
 import { verifyAccessToken } from "./utils/auth";
+import {
+  getActiveTimerForUser,
+  persistTimerPause,
+  persistTimerReset,
+  persistTimerStart,
+} from "./services/activeTimer";
 
 let io: Server | null = null;
 
@@ -49,28 +55,37 @@ export function initSocket(server: HttpServer): Server {
       `Socket connected: ${socket.id} (User: ${userId}) joined room ${room}`,
     );
 
-    // Real-time Timer State sync between devices
-    socket.on("timer_start", (data) => {
-      // data: { startedAt: number, elapsedBeforeCurrentRun: number }
+    socket.on("timer_start", async (data) => {
+      await persistTimerStart(userId, data);
       socket.to(room).emit("timer_started", data);
     });
 
-    socket.on("timer_pause", (data) => {
-      // data: { durationMinutes: number }
+    socket.on("timer_pause", async (data) => {
+      await persistTimerPause(userId, data);
       socket.to(room).emit("timer_paused", data);
     });
 
-    socket.on("timer_reset", () => {
+    socket.on("timer_reset", async (data?: { deviceId?: string }) => {
+      await persistTimerReset(userId, data?.deviceId);
       socket.to(room).emit("timer_reset");
     });
 
-    // Request active timer state from other connected devices (e.g. on new device connect)
-    socket.on("timer_status_request", () => {
+    socket.on("timer_status_request", async () => {
+      const activeTimer = await getActiveTimerForUser(userId);
+      if (!activeTimer) return;
+
+      socket.emit("timer_status_response", {
+        requesterId: socket.id,
+        isRunning: activeTimer.isRunning,
+        startedAt: activeTimer.startedAt,
+        elapsedBeforeCurrentRun: activeTimer.elapsedBeforeCurrentRun,
+        sessionTitle: activeTimer.sessionTitle,
+      });
+
       socket.to(room).emit("timer_status_request", { requesterId: socket.id });
     });
 
     socket.on("timer_status_response", (data) => {
-      // data: { requesterId: string, isRunning: boolean, startedAt?: number, elapsedBeforeCurrentRun: number }
       if (data.requesterId) {
         io?.to(data.requesterId).emit("timer_status_response", data);
       }

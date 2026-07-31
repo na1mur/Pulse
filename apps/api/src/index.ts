@@ -9,6 +9,7 @@ import authRouter from "./routes/auth";
 import sessionRouter from "./routes/session";
 import statsRouter from "./routes/stats";
 import settingsRouter from "./routes/settings";
+import usersRouter from "./routes/users";
 import { initSocket } from "./socket";
 
 const app = express();
@@ -57,6 +58,7 @@ app.use("/auth", authLimiter, authRouter);
 app.use("/sessions", sessionRouter);
 app.use("/stats", statsRouter);
 app.use("/settings", settingsRouter);
+app.use("/users", usersRouter);
 
 const server = createServer(app);
 initSocket(server);

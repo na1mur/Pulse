@@ -96,6 +96,16 @@ export interface TimerState {
   sessionTitle?: string;
 }
 
+/** Server-persisted timer state for cross-device reconciliation. */
+export interface ActiveTimerState {
+  isRunning: boolean;
+  startedAt?: number;
+  elapsedBeforeCurrentRun: number;
+  sessionTitle?: string;
+  updatedAt?: string;
+  updatedByDeviceId?: string;
+}
+
 export type SessionRange = "today" | "week" | "month" | "year";
 
 export type AppPage =

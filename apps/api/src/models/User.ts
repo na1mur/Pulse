@@ -1,5 +1,14 @@
 import { Schema, model, Document } from "mongoose";
 
+export interface IActiveTimer {
+  isRunning: boolean;
+  startedAt?: number;
+  elapsedBeforeCurrentRun: number;
+  sessionTitle?: string;
+  updatedAt?: Date;
+  updatedByDeviceId?: string;
+}
+
 export interface IUser extends Document {
   email: string;
   name: string;
@@ -8,9 +17,22 @@ export interface IUser extends Document {
   weeklyTargetMinutes: number;
   monthlyTargetMinutes: number;
   timezone: string;
+  activeTimer?: IActiveTimer;
   createdAt: Date;
   updatedAt: Date;
 }
+
+const activeTimerSchema = new Schema<IActiveTimer>(
+  {
+    isRunning: { type: Boolean, required: true, default: false },
+    startedAt: { type: Number },
+    elapsedBeforeCurrentRun: { type: Number, required: true, default: 0 },
+    sessionTitle: { type: String },
+    updatedAt: { type: Date, default: Date.now },
+    updatedByDeviceId: { type: String },
+  },
+  { _id: false },
+);
 
 const userSchema = new Schema<IUser>(
   {
@@ -50,6 +72,14 @@ const userSchema = new Schema<IUser>(
       type: String,
       required: true,
       default: "UTC",
+    },
+    activeTimer: {
+      type: activeTimerSchema,
+      default: () => ({
+        isRunning: false,
+        elapsedBeforeCurrentRun: 0,
+        updatedAt: new Date(),
+      }),
     },
   },
   {
