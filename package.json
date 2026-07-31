@@ -22,6 +22,10 @@
   },
   "packageManager": "pnpm@10.0.0",
   "pnpm": {
+    "overrides": {
+      "react": "19.2.3",
+      "react-dom": "19.2.3"
+    },
     "patchedDependencies": {
       "@react-native/gradle-plugin@0.85.3": "patches/@react-native__gradle-plugin@0.85.3.patch"
     }

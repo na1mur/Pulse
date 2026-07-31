@@ -14,10 +14,34 @@ config.resolver.nodeModulesPaths = [
   path.resolve(monorepoRoot, "node_modules"),
 ];
 
-// Ensure a single React instance (avoids useContext crashes from @repo/queries).
-config.resolver.extraNodeModules = {
-  react: path.resolve(projectRoot, "node_modules/react"),
-  "react-dom": path.resolve(projectRoot, "node_modules/react-dom"),
+const singletonPackages = ["react", "react-dom", "@tanstack/react-query"];
+
+function resolveFromApp(moduleName) {
+  try {
+    return require.resolve(moduleName, { paths: [projectRoot] });
+  } catch {
+    return null;
+  }
+}
+
+const defaultResolveRequest = config.resolver.resolveRequest;
+
+config.resolver.resolveRequest = (context, moduleName, platform) => {
+  const isSingleton = singletonPackages.some(
+    (pkg) => moduleName === pkg || moduleName.startsWith(`${pkg}/`),
+  );
+  if (isSingleton) {
+    const filePath = resolveFromApp(moduleName);
+    if (filePath) {
+      return { type: "sourceFile", filePath };
+    }
+  }
+
+  if (defaultResolveRequest) {
+    return defaultResolveRequest(context, moduleName, platform);
+  }
+
+  return context.resolveRequest(context, moduleName, platform);
 };
 
 module.exports = withNativeWind(config, { input: "./global.css" });

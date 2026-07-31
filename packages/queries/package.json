@@ -9,11 +9,11 @@
     "@repo/api-client": "workspace:*",
     "@repo/types": "workspace:*",
     "@repo/utils": "workspace:*",
-    "@tanstack/react-query": "^5.101.2",
     "axios": "^1.18.1"
   },
   "peerDependencies": {
-    "react": "^19.0.0"
+    "react": "^19.0.0",
+    "@tanstack/react-query": "^5.101.2"
   },
   "devDependencies": {
     "@repo/typescript-config": "workspace:*",
