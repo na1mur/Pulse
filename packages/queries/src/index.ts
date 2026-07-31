@@ -43,6 +43,7 @@ export {
   fetchActiveTimer,
   reconcileActiveTimer,
 } from "./active-timer";
+export { useAutoSkipCountdown } from "./use-auto-skip-countdown";
 export {
   subscribeGoalAchievements,
   emitGoalAchievement,

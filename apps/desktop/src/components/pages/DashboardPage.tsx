@@ -31,6 +31,7 @@ import {
   useStatsSummary,
   useTodaySessions,
   useTodayStats,
+  useAutoSkipCountdown,
 } from "@/hooks/usePulseQueries";
 import { useTimerControls } from "@/hooks/useTimerControls";
 import { useTimerStore } from "@/store/useTimerStore";
@@ -190,6 +191,16 @@ export function DashboardPage({
     setSummaryInput("");
     setShowSummaryModal(false);
   };
+
+  const titleSkip = useAutoSkipCountdown({
+    isOpen: showTitleModal,
+    onAutoSkip: dismissTitleModal,
+  });
+
+  const summarySkip = useAutoSkipCountdown({
+    isOpen: showSummaryModal,
+    onAutoSkip: dismissSummaryModal,
+  });
 
   return (
     <div className="space-y-6 w-full">
@@ -378,12 +389,16 @@ export function DashboardPage({
             </p>
             <Input
               value={titleInput}
-              onChange={(e) => setTitleInput(e.target.value)}
+              onChange={(e) => {
+                setTitleInput(e.target.value);
+                titleSkip.cancelCountdown();
+              }}
+              onFocus={titleSkip.cancelCountdown}
               placeholder="What are you working on?"
             />
             <div className="flex gap-3 justify-end">
               <Button variant="outline" onClick={dismissTitleModal}>
-                Skip
+                {titleSkip.skipLabel}
               </Button>
               <Button onClick={confirmResume}>Resume</Button>
             </div>
@@ -402,14 +417,18 @@ export function DashboardPage({
             </p>
             <textarea
               value={summaryInput}
-              onChange={(e) => setSummaryInput(e.target.value)}
+              onChange={(e) => {
+                setSummaryInput(e.target.value);
+                summarySkip.cancelCountdown();
+              }}
+              onFocus={summarySkip.cancelCountdown}
               placeholder="What did you accomplish?"
               rows={4}
               className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
             />
             <div className="flex gap-3 justify-end">
               <Button variant="outline" onClick={dismissSummaryModal}>
-                Skip
+                {summarySkip.skipLabel}
               </Button>
               <Button onClick={confirmPause}>Pause</Button>
             </div>

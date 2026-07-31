@@ -41,6 +41,7 @@ import {
   useTodaySessions,
   useTodayStats,
   useUserSettings,
+  useAutoSkipCountdown,
 } from "@/hooks/usePulseQueries";
 import { useTimerControls } from "@/hooks/useTimerControls";
 import { useTimerStore } from "@/store/useTimerStore";
@@ -209,6 +210,16 @@ export function DashboardScreen() {
     setSummaryInput("");
     setShowSummaryModal(false);
   };
+
+  const titleSkip = useAutoSkipCountdown({
+    isOpen: showTitleModal,
+    onAutoSkip: dismissTitleModal,
+  });
+
+  const summarySkip = useAutoSkipCountdown({
+    isOpen: showSummaryModal,
+    onAutoSkip: dismissSummaryModal,
+  });
 
   const inputStyle = {
     borderWidth: 1,
@@ -446,14 +457,18 @@ export function DashboardScreen() {
             </ThemedText>
             <TextInput
               value={titleInput}
-              onChangeText={setTitleInput}
+              onChangeText={(text) => {
+                setTitleInput(text);
+                titleSkip.cancelCountdown();
+              }}
+              onFocus={titleSkip.cancelCountdown}
               placeholder="What are you working on?"
               placeholderTextColor={colors.muted}
               style={inputStyle}
             />
             <View className="flex-row gap-2 justify-end">
               <Button
-                label="Skip"
+                label={titleSkip.skipLabel}
                 variant="outline"
                 onPress={dismissTitleModal}
               />
@@ -477,7 +492,11 @@ export function DashboardScreen() {
             </ThemedText>
             <TextInput
               value={summaryInput}
-              onChangeText={setSummaryInput}
+              onChangeText={(text) => {
+                setSummaryInput(text);
+                summarySkip.cancelCountdown();
+              }}
+              onFocus={summarySkip.cancelCountdown}
               placeholder="What did you accomplish?"
               placeholderTextColor={colors.muted}
               multiline
@@ -486,7 +505,7 @@ export function DashboardScreen() {
             />
             <View className="flex-row gap-2 justify-end">
               <Button
-                label="Skip"
+                label={summarySkip.skipLabel}
                 variant="outline"
                 onPress={dismissSummaryModal}
               />
