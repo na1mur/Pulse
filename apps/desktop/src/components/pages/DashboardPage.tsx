@@ -154,7 +154,7 @@ export function DashboardPage({
   const { data: todayStats } = useTodayStats();
   const { data: summary } = useStatsSummary();
   const { data: todaySessions = [] } = useTodaySessions();
-  const { isRunning, displayTime, handlePlay, handlePause } =
+  const { isRunning, displayTime, handlePlay, beginPause, completePause } =
     useTimerControls();
   const sessionTitle = useTimerStore((state) => state.sessionTitle);
 
@@ -181,15 +181,20 @@ export function DashboardPage({
   };
 
   const confirmPause = () => {
-    void handlePause(summaryInput);
+    void completePause(summaryInput);
     setSummaryInput("");
     setShowSummaryModal(false);
   };
 
   const dismissSummaryModal = () => {
-    void handlePause();
+    void completePause();
     setSummaryInput("");
     setShowSummaryModal(false);
+  };
+
+  const openPauseModal = () => {
+    beginPause();
+    setShowSummaryModal(true);
   };
 
   const titleSkip = useAutoSkipCountdown({
@@ -211,7 +216,7 @@ export function DashboardPage({
         </div>
 
         <div className="relative text-center space-y-4">
-          {isRunning && sessionTitle ? (
+          {sessionTitle ? (
             <p className="text-lg font-semibold text-foreground px-4">
               {sessionTitle}
             </p>
@@ -239,7 +244,7 @@ export function DashboardPage({
             <Button
               size="lg"
               className="gap-2 min-w-[140px]"
-              onClick={() => setShowSummaryModal(true)}
+              onClick={openPauseModal}
             >
               <Pause className="w-4 h-4" />
               Pause

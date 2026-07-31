@@ -7,9 +7,9 @@
   "scripts": {
     "predev": "node -e \"require('fs').mkdirSync('dist-electron', {recursive: true}); require('fs').writeFileSync('dist-electron/package.json', JSON.stringify({type: 'commonjs'}))\"",
     "dev": "concurrently \"vite\" \"tsc -p tsconfig.electron.json --watch\" \"wait-on http://localhost:5173 && electron .\"",
-    "build:electron": "tsc -p tsconfig.electron.json && node -e \"require('fs').writeFileSync('dist-electron/package.json', JSON.stringify({type: 'commonjs'}))\"",
+    "build:electron": "tsc -p tsconfig.electron.json && node -e \"const fs=require('fs'); fs.writeFileSync('dist-electron/package.json', JSON.stringify({type:'commonjs'})); fs.cpSync('build/icons','dist-electron/icons',{recursive:true});\"",
     "build": "tsc -b && vite build && pnpm build:electron",
-    "dist:win": "pnpm build && node scripts/dist-win.mjs",
+    "dist:win": "node scripts/dist-win.mjs",
     "lint": "oxlint",
     "preview": "vite preview"
   },
@@ -59,7 +59,8 @@
     },
     "files": [
       "dist/**",
-      "dist-electron/**"
+      "dist-electron/**",
+      "build/icons/**"
     ],
     "win": {
       "target": "nsis",

@@ -39,6 +39,7 @@ interface TimerStartPayload {
 
 interface TimerPausePayload {
   elapsedBeforeCurrentRun: number;
+  sessionTitle?: string;
   deviceId?: string;
 }
 
@@ -74,7 +75,7 @@ export async function persistTimerPause(
         isRunning: false,
         startedAt: undefined,
         elapsedBeforeCurrentRun: data.elapsedBeforeCurrentRun,
-        sessionTitle: undefined,
+        sessionTitle: data.sessionTitle,
         updatedAt: new Date(),
         updatedByDeviceId: data.deviceId,
       },

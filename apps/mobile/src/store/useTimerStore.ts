@@ -1,7 +1,9 @@
 import { create } from "zustand";
 import { persist, createJSONStorage } from "zustand/middleware";
 import type { TimerState } from "@repo/types";
+import { getLocalDayString } from "@repo/utils";
 import { PERSIST_STORE_KEYS } from "@repo/api-client";
+import { mergeTimerStates } from "@repo/queries";
 import { scopedPersistStorage } from "./scopedStorage";
 
 interface TimerStoreState extends TimerState {
@@ -14,7 +16,7 @@ interface TimerStoreState extends TimerState {
 
 export const useTimerStore = create<TimerStoreState>()(
   persist(
-    (set) => ({
+    (set, get) => ({
       isRunning: false,
       startedAt: undefined,
       elapsedBeforeCurrentRun: 0,
@@ -27,8 +29,8 @@ export const useTimerStore = create<TimerStoreState>()(
           return {
             isRunning: true,
             startedAt: Date.now(),
-            sessionTitle: title?.trim() || undefined,
-            lastActiveDate: new Date().toDateString(),
+            sessionTitle: title?.trim() || state.sessionTitle || undefined,
+            lastActiveDate: getLocalDayString(),
           };
         }),
 
@@ -39,10 +41,9 @@ export const useTimerStore = create<TimerStoreState>()(
           return {
             isRunning: false,
             startedAt: undefined,
-            sessionTitle: undefined,
             elapsedBeforeCurrentRun:
               state.elapsedBeforeCurrentRun + sessionElapsed,
-            lastActiveDate: new Date().toDateString(),
+            lastActiveDate: getLocalDayString(),
           };
         }),
 
@@ -52,35 +53,23 @@ export const useTimerStore = create<TimerStoreState>()(
           startedAt: undefined,
           sessionTitle: undefined,
           elapsedBeforeCurrentRun: 0,
-          lastActiveDate: new Date().toDateString(),
+          lastActiveDate: getLocalDayString(),
         }),
 
       syncTimerState: (incoming) =>
         set((state) => ({
-          isRunning: incoming.isRunning,
-          startedAt: incoming.startedAt,
-          elapsedBeforeCurrentRun: incoming.elapsedBeforeCurrentRun,
-          lastActiveDate: incoming.lastActiveDate || new Date().toDateString(),
-          sessionTitle:
-            "sessionTitle" in incoming
-              ? incoming.sessionTitle
-              : state.sessionTitle,
+          ...mergeTimerStates(state, incoming),
         })),
 
-      checkDayChange: () =>
-        set((state) => {
-          const today = new Date().toDateString();
-          if (state.lastActiveDate && state.lastActiveDate !== today) {
-            return {
-              isRunning: false,
-              startedAt: undefined,
-              sessionTitle: undefined,
-              elapsedBeforeCurrentRun: 0,
-              lastActiveDate: today,
-            };
+      checkDayChange: () => {
+        const today = getLocalDayString();
+        const state = get();
+        if (!state.lastActiveDate || state.lastActiveDate === today) {
+          if (state.lastActiveDate !== today) {
+            set({ lastActiveDate: today });
           }
-          return { lastActiveDate: today };
-        }),
+        }
+      },
     }),
     {
       name: PERSIST_STORE_KEYS.timer,

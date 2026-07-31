@@ -14,4 +14,10 @@ config.resolver.nodeModulesPaths = [
   path.resolve(monorepoRoot, "node_modules"),
 ];
 
+// Ensure a single React instance (avoids useContext crashes from @repo/queries).
+config.resolver.extraNodeModules = {
+  react: path.resolve(projectRoot, "node_modules/react"),
+  "react-dom": path.resolve(projectRoot, "node_modules/react-dom"),
+};
+
 module.exports = withNativeWind(config, { input: "./global.css" });

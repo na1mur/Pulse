@@ -1,12 +1,17 @@
 import { useEffect, useRef } from "react";
-import { Platform } from "react-native";
-import BackgroundService from "react-native-background-actions";
+import { NativeModules, Platform } from "react-native";
 import { useTimerStore } from "@/store/useTimerStore";
 
 const sleep = (time: number) =>
   new Promise<void>((resolve) => setTimeout(resolve, time));
 
+const hasNativeBackgroundService =
+  Platform.OS === "android" && !!NativeModules.RNBackgroundActions;
+
 async function keepAliveTask() {
+  const BackgroundService = (await import("react-native-background-actions"))
+    .default;
+
   while (BackgroundService.isRunning()) {
     await sleep(15000);
   }
@@ -22,6 +27,7 @@ const backgroundOptions = {
   },
   color: "#7C3AED",
   linkingURI: "pulse://",
+  foregroundServiceType: ["dataSync"] as const,
 };
 
 export function useTimerForegroundService() {
@@ -29,9 +35,13 @@ export function useTimerForegroundService() {
   const startingRef = useRef(false);
 
   useEffect(() => {
-    if (Platform.OS !== "android") return;
+    if (!hasNativeBackgroundService) return;
 
     const syncService = async () => {
+      const BackgroundService = (
+        await import("react-native-background-actions")
+      ).default;
+
       if (isRunning) {
         if (BackgroundService.isRunning() || startingRef.current) return;
         startingRef.current = true;

@@ -45,9 +45,13 @@ export function runTokenRefreshHandler() {
 }
 
 async function syncTimerFromServer() {
-  await reconcileActiveTimer(api, (state) => {
-    useTimerStore.getState().syncTimerState(state);
-  });
+  await reconcileActiveTimer(
+    api,
+    (state) => {
+      useTimerStore.getState().syncTimerState(state);
+    },
+    () => useTimerStore.getState(),
+  );
 }
 
 function requestTimerStatus() {
@@ -79,7 +83,7 @@ function bindSocketEvents(activeSocket: Socket) {
       isRunning: false,
       startedAt: undefined,
       elapsedBeforeCurrentRun: data.elapsedBeforeCurrentRun || 0,
-      sessionTitle: undefined,
+      sessionTitle: data.sessionTitle,
     });
     queryClientRef?.invalidateQueries({ queryKey: queryKeys.todayStats });
     queryClientRef?.invalidateQueries({ queryKey: queryKeys.statsSummary });
@@ -187,9 +191,22 @@ export function startTimer(title?: string) {
 }
 
 export function pauseTimer(currentElapsedMs: number) {
+  const state = useTimerStore.getState();
   useTimerStore.getState().pauseTimer();
   emitTimerEvent("timer_pause", {
     elapsedBeforeCurrentRun: currentElapsedMs,
+    sessionTitle: state.sessionTitle,
+    deviceId: DEVICE_ID,
+  });
+}
+
+export function syncTimerStartFromState() {
+  const updatedState = useTimerStore.getState();
+  if (!updatedState.isRunning || !updatedState.startedAt) return;
+  emitTimerEvent("timer_start", {
+    startedAt: updatedState.startedAt,
+    elapsedBeforeCurrentRun: updatedState.elapsedBeforeCurrentRun,
+    sessionTitle: updatedState.sessionTitle,
     deviceId: DEVICE_ID,
   });
 }

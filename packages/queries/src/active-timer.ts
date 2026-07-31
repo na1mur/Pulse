@@ -1,12 +1,14 @@
 import type { AxiosInstance } from "axios";
 import type { ActiveTimerState, TimerState } from "@repo/types";
+import { mergeTimerStates } from "./timer-sync";
 
 export function activeTimerToTimerState(timer: ActiveTimerState): TimerState {
   return {
     isRunning: timer.isRunning,
     startedAt: timer.startedAt,
     elapsedBeforeCurrentRun: timer.elapsedBeforeCurrentRun,
-    sessionTitle: timer.sessionTitle,
+    sessionTitle: timer.sessionTitle ?? undefined,
+    lastActiveDate: new Date().toDateString(),
   };
 }
 
@@ -20,10 +22,16 @@ export async function fetchActiveTimer(
 export async function reconcileActiveTimer(
   api: AxiosInstance,
   apply: (state: TimerState) => void,
+  getLocalState?: () => TimerState,
 ): Promise<void> {
   try {
     const activeTimer = await fetchActiveTimer(api);
-    apply(activeTimerToTimerState(activeTimer));
+    const remote = activeTimerToTimerState(activeTimer);
+    if (getLocalState) {
+      apply(mergeTimerStates(getLocalState(), remote));
+      return;
+    }
+    apply(remote);
   } catch (error) {
     console.warn("[Pulse] Failed to fetch active timer from server:", error);
   }

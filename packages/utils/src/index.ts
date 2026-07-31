@@ -1,10 +1,9 @@
-// Helper to calculate timer duration
-export function calculateDuration(
-  startedAt: number,
-  elapsedBeforeCurrentRun: number,
-): number {
-  return elapsedBeforeCurrentRun + (Date.now() - startedAt);
-}
+export {
+  getEndOfLocalDayMs,
+  getLocalDayString,
+  getStartOfLocalDayMs,
+  getTodayTimerDisplayMs,
+} from "./timer-day";
 
 // Format milliseconds into HH:MM:SS
 export function formatTime(ms: number): string {

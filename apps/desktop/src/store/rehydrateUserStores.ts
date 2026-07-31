@@ -1,4 +1,5 @@
 import { parsePersistedJsonState, PERSIST_STORE_KEYS } from "@repo/api-client";
+import { getLocalDayString } from "@repo/utils";
 import { scopedPersistStorage } from "./scopedStorage";
 import { useTimerStore } from "./useTimerStore";
 import { useOfflineStore } from "./useOfflineStore";
@@ -30,6 +31,17 @@ export async function rehydrateUserPersistedStores(): Promise<void> {
     offlineRaw,
     DEFAULT_OFFLINE_STATE,
   );
+
+  if (timerState.isRunning && timerState.startedAt) {
+    const today = getLocalDayString();
+    if (!timerState.lastActiveDate || timerState.lastActiveDate === today) {
+      const sessionElapsed = Date.now() - timerState.startedAt;
+      timerState.elapsedBeforeCurrentRun =
+        (timerState.elapsedBeforeCurrentRun ?? 0) + sessionElapsed;
+      timerState.isRunning = false;
+      timerState.startedAt = undefined;
+    }
+  }
 
   useTimerStore.setState(timerState);
   useOfflineStore.setState(offlineState);

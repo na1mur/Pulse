@@ -170,7 +170,7 @@ export function DashboardScreen() {
   const { data: summary } = useStatsSummary();
   const { data: todaySessions = [] } = useTodaySessions();
   const { data: settings } = useUserSettings();
-  const { isRunning, displayTime, handlePlay, handlePause } =
+  const { isRunning, displayTime, handlePlay, beginPause, completePause } =
     useTimerControls();
   const sessionTitle = useTimerStore((state) => state.sessionTitle);
   const colors = useThemeColors();
@@ -200,15 +200,20 @@ export function DashboardScreen() {
   };
 
   const confirmPause = () => {
-    void handlePause(summaryInput);
+    void completePause(summaryInput);
     setSummaryInput("");
     setShowSummaryModal(false);
   };
 
   const dismissSummaryModal = () => {
-    void handlePause();
+    void completePause();
     setSummaryInput("");
     setShowSummaryModal(false);
+  };
+
+  const openPauseModal = () => {
+    beginPause();
+    setShowSummaryModal(true);
   };
 
   const titleSkip = useAutoSkipCountdown({
@@ -240,7 +245,7 @@ export function DashboardScreen() {
       <ScreenScroll>
         <Card glow className="p-8 gap-6">
           <View className="items-center gap-3">
-            {isRunning && sessionTitle ? (
+            {sessionTitle ? (
               <ThemedText className="text-lg font-semibold text-center px-4">
                 {sessionTitle}
               </ThemedText>
@@ -270,9 +275,7 @@ export function DashboardScreen() {
             <Button
               size="lg"
               onPress={
-                isRunning
-                  ? () => setShowSummaryModal(true)
-                  : () => setShowTitleModal(true)
+                isRunning ? openPauseModal : () => setShowTitleModal(true)
               }
               className="min-w-[140px]"
             >

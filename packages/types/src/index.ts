@@ -91,7 +91,7 @@ export interface StatsSummary {
 export interface TimerState {
   isRunning: boolean;
   startedAt?: number; // timestamp
-  elapsedBeforeCurrentRun: number; // in milliseconds
+  elapsedBeforeCurrentRun: number; // today's total worked ms before the active segment
   lastActiveDate?: string; // local date string to detect day changes
   sessionTitle?: string;
 }

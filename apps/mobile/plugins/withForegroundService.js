@@ -30,6 +30,29 @@ function withForegroundService(config) {
     for (const permission of FOREGROUND_PERMISSIONS) {
       ensurePermission(manifest, permission);
     }
+
+    const application = manifest.application?.[0];
+    if (application) {
+      if (!application.service) {
+        application.service = [];
+      }
+
+      const serviceName =
+        "com.asterinet.react.bgactions.RNBackgroundActionsTask";
+      const hasService = application.service.some(
+        (entry) => entry.$["android:name"] === serviceName,
+      );
+
+      if (!hasService) {
+        application.service.push({
+          $: {
+            "android:name": serviceName,
+            "android:foregroundServiceType": "dataSync",
+          },
+        });
+      }
+    }
+
     return config;
   });
 }

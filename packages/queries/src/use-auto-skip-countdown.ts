@@ -15,6 +15,7 @@ export function useAutoSkipCountdown({
   const [cancelled, setCancelled] = useState(false);
   const onAutoSkipRef = useRef(onAutoSkip);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const firedRef = useRef(false);
 
   onAutoSkipRef.current = onAutoSkip;
 
@@ -33,24 +34,28 @@ export function useAutoSkipCountdown({
   useEffect(() => {
     if (!isOpen) {
       clearCountdown();
+      firedRef.current = false;
       setRemaining(seconds);
       setCancelled(false);
       return;
     }
 
+    firedRef.current = false;
     setRemaining(seconds);
     setCancelled(false);
     clearCountdown();
 
+    let ticksLeft = seconds;
     intervalRef.current = setInterval(() => {
-      setRemaining((prev) => {
-        if (prev <= 1) {
-          clearCountdown();
+      ticksLeft -= 1;
+      setRemaining(ticksLeft);
+      if (ticksLeft <= 0) {
+        clearCountdown();
+        if (!firedRef.current) {
+          firedRef.current = true;
           onAutoSkipRef.current();
-          return 0;
         }
-        return prev - 1;
-      });
+      }
     }, 1000);
 
     return clearCountdown;

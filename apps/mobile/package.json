@@ -58,7 +58,8 @@
     "web": "expo start --web",
     "lint": "oxlint",
     "build:android:preview": "eas build -p android --profile preview",
-    "build:android:production": "eas build -p android --profile production"
+    "build:android:production": "eas build -p android --profile production",
+    "log:android": "node scripts/log-android.mjs"
   },
   "private": true
 }
