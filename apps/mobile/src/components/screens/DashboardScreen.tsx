@@ -126,7 +126,7 @@ function StatCard({
   onPress,
 }: StatCardProps) {
   const content = (
-    <Card glowSubtle className="p-4 gap-3 flex-1">
+    <Card glowSubtle className="p-4 gap-3 w-full">
       <View
         className="w-9 h-9 rounded-lg items-center justify-center"
         style={{ backgroundColor: iconBg }}
@@ -147,7 +147,7 @@ function StatCard({
 
   if (onPress) {
     return (
-      <Pressable onPress={onPress} className="flex-1">
+      <Pressable onPress={onPress} className="w-full">
         {content}
       </Pressable>
     );
@@ -309,7 +309,7 @@ export function DashboardScreen() {
             />,
 
             goalEnabled ? (
-              <Card key="progress" glowSubtle className="p-4 gap-3 flex-1">
+              <Card key="progress" glowSubtle className="p-4 gap-3 w-full">
                 <View
                   className="w-9 h-9 rounded-lg items-center justify-center"
                   style={{ backgroundColor: colors.accentPurpleBg }}

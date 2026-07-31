@@ -1,5 +1,6 @@
-import { View, Pressable } from "react-native";
+import { View, Pressable, Platform, StatusBar } from "react-native";
 import { useRouter } from "expo-router";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { ChevronLeft, Settings } from "lucide-react-native";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { ThemedText } from "@/components/ThemeShell";
@@ -20,6 +21,13 @@ export function ScreenHeader({
 }: ScreenHeaderProps) {
   const router = useRouter();
   const colors = useThemeColors();
+  const insets = useSafeAreaInsets();
+  const topPadding =
+    insets.top > 0
+      ? insets.top + 12
+      : Platform.OS === "android"
+        ? (StatusBar.currentHeight ?? 0) + 12
+        : 12;
 
   const handleBack = () => {
     if (router.canGoBack()) {
@@ -31,8 +39,9 @@ export function ScreenHeader({
 
   return (
     <View
-      className="h-auto min-h-16 px-4 py-3 flex-row items-center justify-between"
+      className="px-4 pb-3 flex-row items-center justify-between"
       style={{
+        paddingTop: topPadding,
         backgroundColor: colors.background,
         borderBottomWidth: 1,
         borderBottomColor: colors.border,
