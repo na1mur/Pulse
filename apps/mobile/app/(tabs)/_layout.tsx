@@ -10,6 +10,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useSocketSync } from "@/hooks/useSocketSync";
 import { useSyncManager } from "@/hooks/useSyncManager";
 import { useTimezoneSync } from "@/hooks/useTimezoneSync";
+import { useTimerForegroundService } from "@/hooks/useTimerForegroundService";
 import { useThemeColors } from "@/hooks/useThemeColors";
 import { GoalProvider } from "@/context/GoalContext";
 import { AuthGate } from "@/components/AuthGate";
@@ -19,6 +20,7 @@ function SyncBootstrap() {
   useSyncManager();
   useSocketSync();
   useTimezoneSync();
+  useTimerForegroundService();
   return null;
 }
 

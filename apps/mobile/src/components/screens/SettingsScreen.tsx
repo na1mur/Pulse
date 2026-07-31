@@ -1,4 +1,4 @@
-import { View, Text } from "react-native";
+import { View, Text, Platform } from "react-native";
 import { useRouter } from "expo-router";
 import { useQueryClient } from "@tanstack/react-query";
 import { LogOut } from "lucide-react-native";
@@ -12,6 +12,7 @@ import { Button } from "@/components/ui/Button";
 import { useUserSettings } from "@/hooks/usePulseQueries";
 import { useThemeColors } from "@/hooks/useThemeColors";
 import { stopSessionTokenRefresh, tokenStorage } from "@/utils/api";
+import { openBatteryOptimizationSettings } from "@/utils/batteryOptimization";
 
 export function SettingsScreen() {
   const router = useRouter();
@@ -52,6 +53,25 @@ export function SettingsScreen() {
             <ThemedText>{settings?.email ?? "—"}</ThemedText>
           </View>
         </Card>
+
+        {Platform.OS === "android" ? (
+          <Card className="p-4 gap-3">
+            <ThemedText className="text-lg font-semibold">Background sync</ThemedText>
+            <ThemedText className="text-sm text-neutral-500">
+              Allow Pulse to stay active while your timer is running so desktop
+              and mobile stay in sync. Disable battery optimization for the
+              best results on Android 12 and newer.
+            </ThemedText>
+            <Button
+              variant="outline"
+              onPress={() => void openBatteryOptimizationSettings()}
+            >
+              <Text style={{ color: colors.foreground, fontSize: 14 }}>
+                Open battery optimization settings
+              </Text>
+            </Button>
+          </Card>
+        ) : null}
 
         <Card className="p-4 gap-3">
           <ThemedText className="text-lg font-semibold">About</ThemedText>
