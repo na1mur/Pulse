@@ -11,8 +11,6 @@ import { getUserIdFromAccessToken } from "@repo/api-client";
 import { AchievementNotifier } from "@/components/AchievementNotifier";
 import { AuthPages } from "@/components/AuthPages";
 import { AppLayout } from "@/components/layout/AppLayout";
-import { TimerActionProvider } from "@/components/TimerActionProvider";
-import { useElectronBridge } from "@/hooks/useElectronBridge";
 import { useSocketSync } from "@/hooks/useSocketSync";
 import { useSyncManager } from "@/hooks/useSyncManager";
 import { useTimezoneSync } from "@/hooks/useTimezoneSync";
@@ -51,7 +49,6 @@ function PulseApp({ onLogout }: { onLogout: () => void }) {
   }, []);
 
   const [currentPage, setCurrentPage] = useState<AppPage>("dashboard");
-  const [sessionsOpenRequest, setSessionsOpenRequest] = useState(0);
   const {
     goalEnabled,
     setGoalEnabled,
@@ -68,8 +65,6 @@ function PulseApp({ onLogout }: { onLogout: () => void }) {
   } = useGoalState(desktopGoalStorage);
   const { data: settings } = useUserSettings();
 
-  useElectronBridge(goalEnabled, dailyGoalHours);
-
   const handleLogout = () => {
     stopSessionTokenRefresh();
     deactivateUserSession(queryClient);
@@ -85,12 +80,7 @@ function PulseApp({ onLogout }: { onLogout: () => void }) {
   const userName = settings?.name ?? "";
 
   return (
-    <TimerActionProvider
-      onShowTodayReport={() => {
-        setCurrentPage("dashboard");
-        setSessionsOpenRequest((n) => n + 1);
-      }}
-    >
+    <>
       <AppLayout
         currentPage={currentPage}
         onPageChange={setCurrentPage}
@@ -109,10 +99,9 @@ function PulseApp({ onLogout }: { onLogout: () => void }) {
         userName={userName}
         userEmail={userEmail}
         onLogout={handleLogout}
-        sessionsOpenRequest={sessionsOpenRequest}
       />
       <AchievementNotifier />
-    </TimerActionProvider>
+    </>
   );
 }
 

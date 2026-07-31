@@ -41,7 +41,6 @@ interface AppLayoutProps {
   userName: string;
   userEmail: string;
   onLogout: () => void;
-  sessionsOpenRequest?: number;
 }
 
 const navItems = [
@@ -93,7 +92,6 @@ export function AppLayout({
   userName,
   userEmail,
   onLogout,
-  sessionsOpenRequest = 0,
 }: AppLayoutProps) {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(true);
   const displayName = userName.trim() || "there";
@@ -238,7 +236,6 @@ export function AppLayout({
             <DashboardPage
               goalEnabled={goalEnabled}
               dailyGoalHours={dailyGoalHours}
-              sessionsOpenRequest={sessionsOpenRequest}
             />
           )}
           {currentPage === "history" && <HistoryPage />}
