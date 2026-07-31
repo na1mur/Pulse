@@ -39,6 +39,11 @@ export {
 } from "./goal-local-storage";
 export { bootstrapUserSession, deactivateUserSession } from "./user-session";
 export {
+  activeTimerToTimerState,
+  fetchActiveTimer,
+  reconcileActiveTimer,
+} from "./active-timer";
+export {
   subscribeGoalAchievements,
   emitGoalAchievement,
   resetGoalAchievementDedup,

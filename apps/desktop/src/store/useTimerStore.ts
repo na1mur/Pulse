@@ -90,11 +90,11 @@ export const useTimerStore = create<TimerStoreState>()(
         startedAt: state.startedAt,
         elapsedBeforeCurrentRun: state.elapsedBeforeCurrentRun,
         lastActiveDate: state.lastActiveDate,
+        sessionTitle: state.sessionTitle,
       }),
       merge: (persistedState, currentState) => ({
         ...currentState,
         ...(persistedState as Partial<TimerStoreState>),
-        sessionTitle: currentState.sessionTitle,
       }),
     },
   ),

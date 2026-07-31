@@ -5,12 +5,15 @@ import {
   queryKeys,
   applyRemoteGoalUpdate,
   emitGoalAchievement,
+  reconcileActiveTimer,
   type GoalTargetFields,
 } from "@repo/queries";
 import type { GoalAchievementEvent } from "@repo/types";
 import { refreshTokens } from "@repo/api-client";
+import { api, storage } from "@/utils/api";
 import { useTimerStore } from "../store/useTimerStore";
-import { storage } from "@/utils/api";
+
+const DEVICE_ID = "desktop";
 
 let socket: Socket | null = null;
 let queryClientRef: QueryClient | null = null;
@@ -41,11 +44,23 @@ export function runTokenRefreshHandler() {
   tokenRefreshHandler?.();
 }
 
+async function syncTimerFromServer() {
+  await reconcileActiveTimer(api, (state) => {
+    useTimerStore.getState().syncTimerState(state);
+  });
+}
+
+function requestTimerStatus() {
+  socket?.emit("timer_status_request");
+}
+
 function bindSocketEvents(activeSocket: Socket) {
   activeSocket.on("connect", () => {
     console.log("Connected to Socket.IO sync server");
     void queryClientRef?.refetchQueries({ queryKey: queryKeys.settings });
-    activeSocket.emit("timer_status_request");
+    void syncTimerFromServer().then(() => {
+      activeSocket.emit("timer_status_request");
+    });
   });
 
   activeSocket.on("timer_started", (data) => {
@@ -80,15 +95,13 @@ function bindSocketEvents(activeSocket: Socket) {
 
   activeSocket.on("timer_status_request", (data) => {
     const state = useTimerStore.getState();
-    if (state.isRunning && state.startedAt) {
-      activeSocket.emit("timer_status_response", {
-        requesterId: data.requesterId,
-        isRunning: true,
-        startedAt: state.startedAt,
-        elapsedBeforeCurrentRun: state.elapsedBeforeCurrentRun,
-        sessionTitle: state.sessionTitle,
-      });
-    }
+    activeSocket.emit("timer_status_response", {
+      requesterId: data.requesterId,
+      isRunning: state.isRunning,
+      startedAt: state.startedAt,
+      elapsedBeforeCurrentRun: state.elapsedBeforeCurrentRun,
+      sessionTitle: state.sessionTitle,
+    });
   });
 
   activeSocket.on("timer_status_response", (data) => {
@@ -169,6 +182,7 @@ export function startTimer(title?: string) {
     startedAt: updatedState.startedAt,
     elapsedBeforeCurrentRun: updatedState.elapsedBeforeCurrentRun,
     sessionTitle: updatedState.sessionTitle,
+    deviceId: DEVICE_ID,
   });
 }
 
@@ -176,12 +190,13 @@ export function pauseTimer(currentElapsedMs: number) {
   useTimerStore.getState().pauseTimer();
   emitTimerEvent("timer_pause", {
     elapsedBeforeCurrentRun: currentElapsedMs,
+    deviceId: DEVICE_ID,
   });
 }
 
 export function resetTimerSync() {
   useTimerStore.getState().resetTimer();
-  emitTimerEvent("timer_reset", undefined);
+  emitTimerEvent("timer_reset", { deviceId: DEVICE_ID });
 }
 
 /** Mount once near the app root to maintain the shared socket connection. */
@@ -195,7 +210,15 @@ export function useSocketSync() {
     });
     connectSocket();
 
+    const onVisibilityChange = () => {
+      if (document.visibilityState === "visible") {
+        void syncTimerFromServer().then(requestTimerStatus);
+      }
+    };
+    document.addEventListener("visibilitychange", onVisibilityChange);
+
     return () => {
+      document.removeEventListener("visibilitychange", onVisibilityChange);
       queryClientRef = null;
       setTokenRefreshHandler(() => {});
       teardownSocket();
