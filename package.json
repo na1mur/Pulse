@@ -7,7 +7,8 @@
     "lint": "turbo run lint",
     "format": "prettier --write \"**/*.{ts,tsx,md}\"",
     "check-types": "turbo run check-types",
-    "generate:brand": "node scripts/generate-brand-assets.mjs"
+    "generate:brand": "node scripts/generate-brand-assets.mjs",
+    "mobile:build:android": "pnpm --filter mobile build:android:preview"
   },
   "devDependencies": {
     "png-to-ico": "^2.1.8",
