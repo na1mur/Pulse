@@ -114,7 +114,7 @@ export default function LoginScreen() {
           <View className="items-center gap-2">
             <Image
               source={require("../../assets/branding/logo-wordmark.png")}
-              style={{ width: 192, height: 192 }}
+              style={{ width: 140, height: 140 }}
               resizeMode="contain"
               accessibilityLabel="Pulse"
             />

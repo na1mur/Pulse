@@ -6,6 +6,7 @@ import {
   Text,
   ScrollView,
   TextInput,
+  useWindowDimensions,
 } from "react-native";
 import {
   Pause,
@@ -72,7 +73,7 @@ function SessionRow({
 }) {
   return (
     <View
-      className="p-3 rounded-xl mb-2 gap-1"
+      className="p-3 rounded-lg mb-2 gap-1"
       style={{ borderWidth: 1, borderColor: colors.border }}
     >
       {session.title ? (
@@ -174,6 +175,9 @@ export function DashboardScreen() {
     useTimerControls();
   const sessionTitle = useTimerStore((state) => state.sessionTitle);
   const colors = useThemeColors();
+  const { height: windowHeight } = useWindowDimensions();
+  const sessionsModalMaxHeight = windowHeight * 0.7;
+  const sessionsListMaxHeight = sessionsModalMaxHeight - 140;
 
   const displayName = settings?.name?.trim() || "there";
 
@@ -419,31 +423,35 @@ export function DashboardScreen() {
           className="flex-1 justify-center p-4"
           style={{ backgroundColor: colors.overlay }}
         >
-          <Card className="p-6 gap-4 max-h-[85%] overflow-hidden">
+          <Card
+            className="p-6 gap-4"
+            style={{ maxHeight: sessionsModalMaxHeight }}
+          >
             <ThemedText className="text-2xl font-bold">
               Sessions Today
             </ThemedText>
-            <ScrollView
-              className="flex-1"
-              style={{ maxHeight: 420 }}
-              contentContainerStyle={{ gap: 12, paddingBottom: 4 }}
-              showsVerticalScrollIndicator
-            >
-              {todaySessions.length === 0 ? (
-                <ThemedText className="text-sm text-neutral-500 text-center py-4">
-                  No sessions logged today yet.
-                </ThemedText>
-              ) : (
-                todaySessions.map((session) => (
+            <ThemedText className="text-sm text-neutral-500">
+              {todaySessions.length === 0
+                ? "No sessions logged today yet."
+                : `${todaySessions.length} session${todaySessions.length === 1 ? "" : "s"} logged today`}
+            </ThemedText>
+            {todaySessions.length > 0 ? (
+              <ScrollView
+                style={{ maxHeight: Math.max(sessionsListMaxHeight, 160) }}
+                contentContainerStyle={{ gap: 8, paddingBottom: 4 }}
+                showsVerticalScrollIndicator
+                nestedScrollEnabled
+              >
+                {todaySessions.map((session) => (
                   <SessionRow
                     key={session.id ?? session._id ?? session.startTime}
                     session={session}
                     timezone={timezone}
                     colors={colors}
                   />
-                ))
-              )}
-            </ScrollView>
+                ))}
+              </ScrollView>
+            ) : null}
             <Button
               label="Close"
               variant="outline"

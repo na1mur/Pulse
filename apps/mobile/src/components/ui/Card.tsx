@@ -32,7 +32,7 @@ export function Card({
 
   return (
     <View
-      className={cn("rounded-2xl overflow-hidden", className)}
+      className={cn("rounded-lg overflow-hidden", className)}
       style={[
         {
           backgroundColor: colors.card,
