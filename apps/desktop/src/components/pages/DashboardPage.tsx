@@ -124,7 +124,7 @@ function SessionRow({
   timezone: string;
 }) {
   return (
-    <div className="p-4 border border-border/60 rounded-xl hover:bg-muted/30 transition-colors">
+    <div className="p-4 border border-border/60 rounded-lg hover:bg-muted/30 transition-colors">
       {session.title ? (
         <p className="font-semibold text-foreground mb-1">{session.title}</p>
       ) : null}

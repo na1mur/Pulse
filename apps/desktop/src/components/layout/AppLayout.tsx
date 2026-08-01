@@ -124,7 +124,7 @@ export function AppLayout({
           <div
             className={`flex items-center ${sidebarCollapsed ? "justify-center" : "gap-3"}`}
           >
-            <div className="w-10 h-10 rounded-xl overflow-hidden bg-primary flex-shrink-0 glow-purple-sm flex items-center justify-center">
+            <div className="w-10 h-10 rounded-md overflow-hidden bg-primary flex-shrink-0 glow-purple-sm flex items-center justify-center">
               <img
                 src="./branding/logo-mark.png"
                 alt="Pulse"
