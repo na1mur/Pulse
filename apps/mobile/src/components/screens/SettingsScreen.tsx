@@ -56,11 +56,13 @@ export function SettingsScreen() {
 
         {Platform.OS === "android" ? (
           <Card className="p-4 gap-3">
-            <ThemedText className="text-lg font-semibold">Background sync</ThemedText>
+            <ThemedText className="text-lg font-semibold">
+              Background sync
+            </ThemedText>
             <ThemedText className="text-sm text-neutral-500">
               Allow Pulse to stay active while your timer is running so desktop
-              and mobile stay in sync. Disable battery optimization for the
-              best results on Android 12 and newer.
+              and mobile stay in sync. Disable battery optimization for the best
+              results on Android 12 and newer.
             </ThemedText>
             <Button
               variant="outline"
@@ -76,7 +78,7 @@ export function SettingsScreen() {
         <Card className="p-4 gap-3">
           <ThemedText className="text-lg font-semibold">About</ThemedText>
           <ThemedText className="text-sm text-neutral-500">
-            Version 1.0.0
+            Version 0.0.5
           </ThemedText>
         </Card>
 

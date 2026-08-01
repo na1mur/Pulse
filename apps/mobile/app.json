@@ -2,7 +2,7 @@
   "expo": {
     "name": "Pulse",
     "slug": "pulse",
-    "version": "1.0.0",
+    "version": "0.0.5",
     "orientation": "portrait",
     "scheme": "pulse",
     "userInterfaceStyle": "automatic",

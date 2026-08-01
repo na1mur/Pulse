@@ -42,8 +42,11 @@ function SettingToggle({
 
 export function SettingsPage({ onLogout }: SettingsPageProps) {
   const { data: settings } = useUserSettings();
-  const { settings: desktopSettings, loaded, updateSettings } =
-    useDesktopSettings();
+  const {
+    settings: desktopSettings,
+    loaded,
+    updateSettings,
+  } = useDesktopSettings();
   const isElectron = Boolean(window.electron?.isDesktop);
 
   return (
@@ -105,7 +108,7 @@ export function SettingsPage({ onLogout }: SettingsPageProps) {
 
       <Card className="p-6 space-y-6">
         <h3 className="text-lg font-semibold text-foreground">About</h3>
-        <p className="text-sm text-muted-foreground">Version 1.0.0</p>
+        <p className="text-sm text-muted-foreground">Version 0.0.5</p>
       </Card>
 
       <Card className="p-6 space-y-4 border-destructive/30">

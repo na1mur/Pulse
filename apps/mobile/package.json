@@ -1,6 +1,6 @@
 {
   "name": "mobile",
-  "version": "1.0.0",
+  "version": "0.0.5",
   "main": "expo-router/entry",
   "dependencies": {
     "@expo/metro-runtime": "~56.0.18",
@@ -59,6 +59,8 @@
     "lint": "oxlint",
     "build:android:preview": "eas build -p android --profile preview",
     "build:android:production": "eas build -p android --profile production",
+    "assemble:release": "node scripts/assemble-release.mjs",
+    "install:android": "node scripts/install-android.mjs",
     "log:android": "node scripts/log-android.mjs"
   },
   "private": true

@@ -1,5 +1,6 @@
 {
   "name": "Pulse",
+  "version": "0.0.5",
   "private": true,
   "scripts": {
     "build": "turbo run build",
@@ -8,7 +9,10 @@
     "format": "prettier --write \"**/*.{ts,tsx,md}\"",
     "check-types": "turbo run check-types",
     "generate:brand": "node scripts/generate-brand-assets.mjs",
-    "mobile:build:android": "pnpm --filter mobile build:android:preview"
+    "desktop:build:win": "pnpm --filter desktop dist:win",
+    "mobile:build:android": "pnpm --filter mobile assemble:release",
+    "mobile:install:android": "pnpm --filter mobile install:android",
+    "mobile:log:android": "pnpm --filter mobile log:android"
   },
   "devDependencies": {
     "png-to-ico": "^2.1.8",

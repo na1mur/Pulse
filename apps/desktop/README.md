@@ -1,32 +1,88 @@
-# React + TypeScript + Vite
+# Pulse Desktop
 
-This template provides a minimal setup to get React working in Vite with HMR and some Oxlint rules.
+Windows desktop app built with **Electron**, **React**, **Vite**, and **Tailwind CSS**.
 
-Currently, two official plugins are available:
+## Prerequisites
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+- Node.js 18+
+- pnpm 10
+- A running [Pulse API](../api/README.md) (local or remote)
 
-## React Compiler
+## Setup
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
-
-## Expanding the Oxlint configuration
-
-If you are developing a production application, we recommend enabling type-aware lint rules by installing `oxlint-tsgolint` and editing `.oxlintrc.json`:
-
-```json
-{
-  "$schema": "./node_modules/oxlint/configuration_schema.json",
-  "plugins": ["react", "typescript", "oxc"],
-  "options": {
-    "typeAware": true
-  },
-  "rules": {
-    "react/rules-of-hooks": "error",
-    "react/only-export-components": ["warn", { "allowConstantExport": true }]
-  }
-}
+```sh
+# From the monorepo root
+pnpm install
+cp apps/desktop/.env.example apps/desktop/.env.development
 ```
 
-See the [Oxlint rules documentation](https://oxc.rs/docs/guide/usage/linter/rules) for the full list of rules and categories.
+Set your API URL in `apps/desktop/.env.development`:
+
+```env
+VITE_API_URL=http://localhost:3001
+```
+
+## Development
+
+```sh
+pnpm --filter desktop dev
+```
+
+This starts the Vite dev server and launches Electron with hot reload.
+
+### Env file priority (dev)
+
+Highest priority first:
+
+1. `.env.development.local`
+2. `.env.development`
+3. `.env.local`
+4. `.env`
+
+Restart `pnpm dev` after changing env files.
+
+## Production build (Windows installer)
+
+Set the API URL for production builds in `apps/desktop/.env.production`:
+
+```env
+VITE_API_URL=https://your-api.example.com
+```
+
+Build the installer:
+
+```sh
+pnpm desktop:dist:win
+```
+
+Output: `apps/desktop/release/Pulse Setup <version>.exe`
+
+If `.env.production` is missing, the build script defaults `VITE_API_URL` to the hosted API.
+
+## Features
+
+- Play/pause productivity timer with session titles
+- Dashboard with today's progress, stats, and session list
+- Goals page (daily, weekly, monthly targets)
+- Statistics with charts
+- Dark/light theme
+- System tray with minimize-to-tray on close
+- Launch at login
+- Offline session queue with automatic sync
+
+## Project structure
+
+```
+apps/desktop/
+  electron/       # Main process, preload, desktop settings
+  src/
+    components/   # React UI
+    hooks/        # Timer, sync, queries
+    store/        # Zustand stores (timer, offline queue)
+  build/icons/    # App icons for Electron Builder
+  scripts/      # dist-win.mjs build script
+```
+
+## Self-hosting
+
+Point `VITE_API_URL` at your self-hosted API. See [Self-hosting guide](../../docs/SELF_HOSTING.md).
