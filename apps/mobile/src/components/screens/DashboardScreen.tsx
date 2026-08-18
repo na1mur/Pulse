@@ -1,4 +1,4 @@
-import { useState, type ReactNode } from "react";
+import { useState } from "react";
 import {
   View,
   Modal,
@@ -13,11 +13,11 @@ import {
   Play,
   Clock,
   Calendar,
+  CalendarDays,
   Activity,
   FolderOpen,
   Star,
   Flame,
-  Target,
 } from "lucide-react-native";
 import type { ComponentType } from "react";
 import type { WorkSession } from "@repo/types";
@@ -26,8 +26,10 @@ import {
   formatMinutes,
   formatSessionClock,
   getDisplayTimezone,
+  getPeriodProgress,
   getSessionDurationSeconds,
-  minutesToHours,
+  progressBarValue,
+  type PeriodProgress,
 } from "@repo/utils";
 import { ScreenHeader } from "@/components/ScreenHeader";
 import { Screen, ScreenScroll } from "@/components/Screen";
@@ -118,6 +120,62 @@ interface StatCardProps {
   onPress?: () => void;
 }
 
+function PeriodProgressCard({
+  label,
+  icon: Icon,
+  iconBg,
+  iconColor,
+  progress,
+}: {
+  label: string;
+  icon: ComponentType<{ size?: number; color?: string }>;
+  iconBg: string;
+  iconColor: string;
+  progress: PeriodProgress;
+}) {
+  return (
+    <View className="w-full flex-1">
+      <Card glowSubtle className="p-4 gap-3 w-full flex-1">
+        <View
+          className="w-9 h-9 rounded-lg items-center justify-center"
+          style={{ backgroundColor: iconBg }}
+        >
+          <Icon size={16} color={iconColor} />
+        </View>
+        <View className="flex-1">
+          <ThemedText className="text-sm text-neutral-500">{label}</ThemedText>
+          <View className="flex-row items-end justify-between gap-2 mt-1">
+            <ThemedText className="text-2xl font-bold">
+              {formatMinutes(progress.workedMinutes)}
+            </ThemedText>
+            {progress.percentage != null ? (
+              <ThemedText
+                className="text-lg font-semibold"
+                style={{ color: iconColor }}
+              >
+                {progress.percentage}%
+              </ThemedText>
+            ) : null}
+          </View>
+          {progress.hasTarget ? (
+            <View className="mt-2 gap-2">
+              <Progress value={progressBarValue(progress.percentage)} />
+              <ThemedText className="text-xs text-neutral-500">
+                {(progress.remainingMinutes ?? 0) === 0
+                  ? "Goal reached"
+                  : `${formatMinutes(progress.remainingMinutes ?? 0)} remaining`}
+                {` · Goal ${formatMinutes(progress.goalMinutes)}`}
+              </ThemedText>
+            </View>
+          ) : (
+            <View className="min-h-[18px] mt-1" />
+          )}
+        </View>
+      </Card>
+    </View>
+  );
+}
+
 function StatCard({
   label,
   value,
@@ -161,7 +219,14 @@ function StatCard({
 }
 
 export function DashboardScreen() {
-  const { goalEnabled, dailyGoalHours } = useGoalContext();
+  const {
+    goalEnabled,
+    dailyGoalHours,
+    weeklyGoalEnabled,
+    weeklyGoalHours,
+    monthlyGoalEnabled,
+    monthlyGoalHours,
+  } = useGoalContext();
   const [showSessions, setShowSessions] = useState(false);
   const [showTitleModal, setShowTitleModal] = useState(false);
   const [showSummaryModal, setShowSummaryModal] = useState(false);
@@ -182,13 +247,21 @@ export function DashboardScreen() {
   const displayName = settings?.name?.trim() || "there";
 
   const timezone = getDisplayTimezone();
-  const workedMinutes = todayStats?.workedMinutes ?? 0;
-  const workedHours = minutesToHours(workedMinutes);
-  const progressPercentage =
-    goalEnabled && dailyGoalHours > 0
-      ? Math.round((workedHours / dailyGoalHours) * 100)
-      : (todayStats?.percentage ?? 0);
-  const remainingHours = Math.max(0, dailyGoalHours - workedHours);
+  const todayProgress = getPeriodProgress(
+    todayStats?.workedMinutes ?? 0,
+    goalEnabled,
+    dailyGoalHours,
+  );
+  const weekProgress = getPeriodProgress(
+    summary?.weeklyWorkedMinutes ?? 0,
+    weeklyGoalEnabled,
+    weeklyGoalHours,
+  );
+  const monthProgress = getPeriodProgress(
+    summary?.monthlyWorkedMinutes ?? 0,
+    monthlyGoalEnabled,
+    monthlyGoalHours,
+  );
   const bestDayDate = formatBestDayDate(summary?.bestDayDate);
 
   const confirmResume = () => {
@@ -318,59 +391,30 @@ export function DashboardScreen() {
 
         <StatCardGrid>
           {[
-            <StatCard
-              key="worked"
-              label="Worked Today"
-              value={formatMinutes(workedMinutes)}
+            <PeriodProgressCard
+              key="today"
+              label="Today"
               icon={Calendar}
               iconBg={colors.accentPurpleBg}
               iconColor={colors.accentPurple}
-              subtitle={goalEnabled ? `Goal: ${dailyGoalHours}h` : undefined}
+              progress={todayProgress}
             />,
-
-            goalEnabled ? (
-              <Card
-                key="progress"
-                glowSubtle
-                className="p-4 gap-3 w-full flex-1"
-              >
-                <View
-                  className="w-9 h-9 rounded-lg items-center justify-center"
-                  style={{ backgroundColor: colors.accentPurpleBg }}
-                >
-                  <Target size={16} color={colors.accentPurple} />
-                </View>
-                <View className="flex-1">
-                  <ThemedText className="text-sm text-neutral-500">
-                    Progress
-                  </ThemedText>
-                  <ThemedText
-                    className="text-2xl font-bold mt-1"
-                    style={{ color: colors.accentPurple }}
-                  >
-                    {progressPercentage}%
-                  </ThemedText>
-                  <View className="min-h-[18px] mt-1 justify-center">
-                    <Progress
-                      value={Math.min(progressPercentage, 100)}
-                      className="mt-1"
-                    />
-                  </View>
-                </View>
-              </Card>
-            ) : null,
-
-            goalEnabled ? (
-              <StatCard
-                key="remaining"
-                label="Remaining"
-                value={formatMinutes(Math.round(remainingHours * 60))}
-                icon={Clock}
-                iconBg={colors.accentAmberBg}
-                iconColor={colors.accentAmber}
-              />
-            ) : null,
-
+            <PeriodProgressCard
+              key="week"
+              label="This Week"
+              icon={FolderOpen}
+              iconBg={colors.accentAmberBg}
+              iconColor={colors.accentAmber}
+              progress={weekProgress}
+            />,
+            <PeriodProgressCard
+              key="month"
+              label="This Month"
+              icon={CalendarDays}
+              iconBg={colors.accentBlueBg}
+              iconColor={colors.accentBlue}
+              progress={monthProgress}
+            />,
             <StatCard
               key="sessions"
               label="Sessions Today"
@@ -381,16 +425,6 @@ export function DashboardScreen() {
               subtitle="Click to view all"
               onPress={() => setShowSessions(true)}
             />,
-
-            <StatCard
-              key="week"
-              label="This Week"
-              value={formatMinutes(summary?.weeklyWorkedMinutes ?? 0)}
-              icon={FolderOpen}
-              iconBg={colors.accentAmberBg}
-              iconColor={colors.accentAmber}
-            />,
-
             <StatCard
               key="best-day"
               label="Best Day"
@@ -400,7 +434,6 @@ export function DashboardScreen() {
               iconColor={colors.accentBlue}
               subtitle={bestDayDate ?? undefined}
             />,
-
             <StatCard
               key="streak"
               label="Current Streak"
@@ -414,7 +447,7 @@ export function DashboardScreen() {
                   : undefined
               }
             />,
-          ].filter(Boolean)}
+          ]}
         </StatCardGrid>
       </ScreenScroll>
 

@@ -151,6 +151,16 @@ const getSummaryStatsHandler: RequestHandler = async (req, res) => {
     );
     const weeklyWorkedMinutes = sumMinutes(weekKeys);
     const monthlyWorkedMinutes = sumMinutes(monthKeys);
+    const weeklyTargetMinutes = user.weeklyTargetMinutes ?? 0;
+    const monthlyTargetMinutes = user.monthlyTargetMinutes ?? 0;
+    const weeklyPercentage =
+      weeklyTargetMinutes > 0
+        ? Math.round((weeklyWorkedMinutes / weeklyTargetMinutes) * 100)
+        : 0;
+    const monthlyPercentage =
+      monthlyTargetMinutes > 0
+        ? Math.round((monthlyWorkedMinutes / monthlyTargetMinutes) * 100)
+        : 0;
 
     const daysWithData = allStats.filter((s) => s.workedMinutes > 0);
     const averageDailyMinutes =
@@ -194,6 +204,10 @@ const getSummaryStatsHandler: RequestHandler = async (req, res) => {
       totalWorkedMinutes,
       weeklyWorkedMinutes,
       monthlyWorkedMinutes,
+      weeklyTargetMinutes,
+      monthlyTargetMinutes,
+      weeklyPercentage,
+      monthlyPercentage,
       averageDailyMinutes,
       bestDayMinutes,
       bestDayDate,

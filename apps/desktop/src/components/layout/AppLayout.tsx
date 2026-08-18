@@ -236,6 +236,10 @@ export function AppLayout({
             <DashboardPage
               goalEnabled={goalEnabled}
               dailyGoalHours={dailyGoalHours}
+              weeklyGoalEnabled={weeklyGoalEnabled}
+              weeklyGoalHours={weeklyGoalHours}
+              monthlyGoalEnabled={monthlyGoalEnabled}
+              monthlyGoalHours={monthlyGoalHours}
             />
           )}
           {currentPage === "history" && <HistoryPage />}

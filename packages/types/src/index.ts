@@ -81,6 +81,10 @@ export interface StatsSummary {
   totalWorkedMinutes: number;
   weeklyWorkedMinutes: number;
   monthlyWorkedMinutes: number;
+  weeklyTargetMinutes: number;
+  monthlyTargetMinutes: number;
+  weeklyPercentage: number;
+  monthlyPercentage: number;
   averageDailyMinutes: number;
   bestDayMinutes: number;
   bestDayDate: string | null;
