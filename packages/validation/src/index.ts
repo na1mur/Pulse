@@ -12,12 +12,31 @@ export const LoginSchema = z.object({
   password: z.string().min(1, "Password is required"),
 });
 
+export const ObjectIdSchema = z
+  .string()
+  .regex(/^[a-fA-F0-9]{24}$/, "Invalid id");
+
+export const TagNameSchema = z
+  .string()
+  .trim()
+  .min(1, "Tag name is required")
+  .max(50, "Tag name must be 50 characters or fewer");
+
+export const CreateTagSchema = z.object({
+  name: TagNameSchema,
+});
+
+export const UpdateTagSchema = z.object({
+  name: TagNameSchema,
+});
+
 export const SessionSchema = z.object({
   startTime: z.string().datetime(),
   endTime: z.string().datetime().optional(),
   deviceId: z.string().min(1, "Device ID is required"),
   title: z.string().trim().max(200).optional(),
   summary: z.string().trim().max(2000).optional(),
+  tagId: ObjectIdSchema.optional(),
 });
 
 export const DailyTargetSchema = z.object({
@@ -37,3 +56,5 @@ export const TimezoneSchema = z.object({
 });
 
 export const SessionRangeSchema = z.enum(["today", "week", "month", "year"]);
+
+export const StatsByTagRangeSchema = z.enum(["today", "week", "month"]);

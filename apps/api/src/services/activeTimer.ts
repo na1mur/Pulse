@@ -1,5 +1,6 @@
 import type { ActiveTimerState } from "@repo/types";
 import { User, type IUser } from "../models/User";
+import { resolveOwnedTagId } from "../utils/tags";
 
 const DEFAULT_ACTIVE_TIMER: ActiveTimerState = {
   isRunning: false,
@@ -17,6 +18,7 @@ export function serializeActiveTimer(user: IUser): ActiveTimerState {
     startedAt: timer.startedAt ?? undefined,
     elapsedBeforeCurrentRun: timer.elapsedBeforeCurrentRun ?? 0,
     sessionTitle: timer.sessionTitle ?? undefined,
+    tagId: timer.tagId || undefined,
     updatedAt: timer.updatedAt?.toISOString(),
     updatedByDeviceId: timer.updatedByDeviceId ?? undefined,
   };
@@ -34,12 +36,14 @@ interface TimerStartPayload {
   startedAt: number;
   elapsedBeforeCurrentRun: number;
   sessionTitle?: string;
+  tagId?: string;
   deviceId?: string;
 }
 
 interface TimerPausePayload {
   elapsedBeforeCurrentRun: number;
   sessionTitle?: string;
+  tagId?: string;
   deviceId?: string;
 }
 
@@ -47,6 +51,7 @@ export async function persistTimerStart(
   userId: string,
   data: TimerStartPayload,
 ): Promise<ActiveTimerState | null> {
+  const tagId = await resolveOwnedTagId(userId, data.tagId);
   const user = await User.findByIdAndUpdate(
     userId,
     {
@@ -55,6 +60,7 @@ export async function persistTimerStart(
         startedAt: data.startedAt,
         elapsedBeforeCurrentRun: data.elapsedBeforeCurrentRun,
         sessionTitle: data.sessionTitle,
+        tagId,
         updatedAt: new Date(),
         updatedByDeviceId: data.deviceId,
       },
@@ -68,13 +74,22 @@ export async function persistTimerPause(
   userId: string,
   data: TimerPausePayload,
 ): Promise<ActiveTimerState | null> {
+  const existing = await User.findById(userId).select("activeTimer");
+  if (!existing) return null;
+
+  const tagId =
+    data.tagId !== undefined
+      ? await resolveOwnedTagId(userId, data.tagId)
+      : existing.activeTimer?.tagId;
+
   const user = await User.findByIdAndUpdate(
     userId,
     {
       activeTimer: {
         isRunning: false,
         elapsedBeforeCurrentRun: data.elapsedBeforeCurrentRun,
-        sessionTitle: data.sessionTitle,
+        sessionTitle: data.sessionTitle ?? existing.activeTimer?.sessionTitle,
+        tagId,
         updatedAt: new Date(),
         updatedByDeviceId: data.deviceId,
       },
@@ -95,6 +110,7 @@ export async function persistTimerReset(
         isRunning: false,
         elapsedBeforeCurrentRun: 0,
         sessionTitle: undefined,
+        tagId: undefined,
         updatedAt: new Date(),
         updatedByDeviceId: deviceId,
       },

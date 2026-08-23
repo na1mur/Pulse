@@ -10,6 +10,7 @@ export interface PendingSession {
   deviceId: string;
   title?: string;
   summary?: string;
+  tagId?: string;
 }
 
 interface OfflineStoreState {

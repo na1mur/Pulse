@@ -9,6 +9,7 @@ export interface IWorkSession extends Document {
   durationSeconds: number;
   title?: string;
   summary?: string;
+  tagId?: Types.ObjectId;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -52,6 +53,10 @@ const workSessionSchema = new Schema<IWorkSession>(
       trim: true,
       maxlength: 2000,
     },
+    tagId: {
+      type: Schema.Types.ObjectId,
+      ref: "Tag",
+    },
   },
   {
     timestamps: true,
@@ -60,6 +65,7 @@ const workSessionSchema = new Schema<IWorkSession>(
 
 // Indexes for query performance
 workSessionSchema.index({ userId: 1, startTime: -1 });
+workSessionSchema.index({ userId: 1, tagId: 1, startTime: -1 });
 
 export const WorkSession = model<IWorkSession>(
   "WorkSession",

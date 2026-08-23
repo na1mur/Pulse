@@ -32,6 +32,7 @@ export const useTimerStore = create<TimerStoreState>()(
       elapsedBeforeCurrentRun: 0,
       lastActiveDate: undefined,
       sessionTitle: undefined,
+      tagId: undefined,
 
       startTimer: (title?: string) =>
         set((state) => {
@@ -70,6 +71,7 @@ export const useTimerStore = create<TimerStoreState>()(
           isRunning: false,
           startedAt: undefined,
           sessionTitle: undefined,
+          tagId: undefined,
           elapsedBeforeCurrentRun: 0,
           lastActiveDate: getLocalDayString(),
           remoteUpdatedAt: Date.now(),
@@ -99,6 +101,7 @@ export const useTimerStore = create<TimerStoreState>()(
         elapsedBeforeCurrentRun: state.elapsedBeforeCurrentRun,
         lastActiveDate: state.lastActiveDate,
         sessionTitle: state.sessionTitle,
+        tagId: state.tagId,
       }),
       merge: (persistedState, currentState) => ({
         ...currentState,

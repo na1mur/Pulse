@@ -54,6 +54,7 @@ function applySocketTimerState(
     startedAt?: number;
     elapsedBeforeCurrentRun: number;
     sessionTitle?: string;
+    tagId?: string;
     updatedAt?: string;
   },
   source: "live" | "reconcile" = "live",
@@ -64,6 +65,7 @@ function applySocketTimerState(
       startedAt: state.startedAt,
       elapsedBeforeCurrentRun: state.elapsedBeforeCurrentRun,
       sessionTitle: state.sessionTitle,
+      tagId: state.tagId,
       lastActiveDate:
         source === "live"
           ? getLocalDayString()
@@ -96,6 +98,7 @@ function bindSocketEvents(activeSocket: Socket) {
       startedAt: data.startedAt,
       elapsedBeforeCurrentRun: data.elapsedBeforeCurrentRun,
       sessionTitle: data.sessionTitle,
+      tagId: data.tagId,
       updatedAt: data.updatedAt,
     });
   });
@@ -106,6 +109,7 @@ function bindSocketEvents(activeSocket: Socket) {
       isRunning: false,
       elapsedBeforeCurrentRun: data.elapsedBeforeCurrentRun || 0,
       sessionTitle: data.sessionTitle,
+      tagId: data.tagId,
       updatedAt: data.updatedAt,
     });
     queryClientRef?.invalidateQueries({ queryKey: queryKeys.todayStats });
@@ -128,6 +132,7 @@ function bindSocketEvents(activeSocket: Socket) {
       startedAt: state.startedAt,
       elapsedBeforeCurrentRun: state.elapsedBeforeCurrentRun,
       sessionTitle: state.sessionTitle,
+      tagId: state.tagId,
     });
   });
 
@@ -144,6 +149,7 @@ function bindSocketEvents(activeSocket: Socket) {
         startedAt: data.startedAt,
         elapsedBeforeCurrentRun: data.elapsedBeforeCurrentRun,
         sessionTitle: data.sessionTitle,
+        tagId: data.tagId,
         updatedAt: data.updatedAt,
       },
       "reconcile",
@@ -228,6 +234,7 @@ export function startTimer(title?: string) {
     startedAt: updatedState.startedAt,
     elapsedBeforeCurrentRun: updatedState.elapsedBeforeCurrentRun,
     sessionTitle: updatedState.sessionTitle,
+    tagId: updatedState.tagId,
     deviceId: DEVICE_ID,
   });
 }
@@ -238,6 +245,7 @@ export function pauseTimer(currentElapsedMs: number) {
   emitTimerEvent("timer_pause", {
     elapsedBeforeCurrentRun: currentElapsedMs,
     sessionTitle: state.sessionTitle,
+    tagId: state.tagId,
     deviceId: DEVICE_ID,
   });
 }
@@ -249,6 +257,7 @@ export function syncTimerStartFromState() {
     startedAt: updatedState.startedAt,
     elapsedBeforeCurrentRun: updatedState.elapsedBeforeCurrentRun,
     sessionTitle: updatedState.sessionTitle,
+    tagId: updatedState.tagId,
     deviceId: DEVICE_ID,
   });
 }

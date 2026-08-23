@@ -12,6 +12,7 @@ export interface TimerSessionPayload {
   deviceId: string;
   title?: string;
   summary?: string;
+  tagId?: string;
 }
 
 export type SaveTimerSessionFn = (
@@ -60,6 +61,7 @@ export async function rolloverTimerForNewDay(
   }
 
   const carriedTitle = state.sessionTitle;
+  const carriedTagId = state.tagId;
   const previousDay = new Date(previousDate);
 
   if (state.isRunning && state.startedAt) {
@@ -71,6 +73,7 @@ export async function rolloverTimerForNewDay(
         endTime: new Date(prevDayEnd).toISOString(),
         deviceId,
         ...(carriedTitle ? { title: carriedTitle } : {}),
+        ...(carriedTagId ? { tagId: carriedTagId } : {}),
       });
     }
 
@@ -80,6 +83,7 @@ export async function rolloverTimerForNewDay(
       elapsedBeforeCurrentRun: 0,
       lastActiveDate: today,
       sessionTitle: carriedTitle,
+      tagId: carriedTagId,
     };
   }
 
@@ -89,5 +93,6 @@ export async function rolloverTimerForNewDay(
     elapsedBeforeCurrentRun: 0,
     lastActiveDate: today,
     sessionTitle: carriedTitle,
+    tagId: carriedTagId,
   };
 }

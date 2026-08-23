@@ -26,6 +26,26 @@ export interface Session {
   createdAt: Date;
 }
 
+export interface Tag {
+  id: string;
+  name: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export type TagStatsRange = "today" | "week" | "month";
+
+export interface TagStatsBucket {
+  tagId: string | null;
+  tagName: string;
+  workedMinutes: number;
+}
+
+export interface TagStatsBreakdown {
+  range: TagStatsRange;
+  tags: TagStatsBucket[];
+}
+
 export interface WorkSession {
   id?: string;
   _id?: string;
@@ -37,6 +57,8 @@ export interface WorkSession {
   durationSeconds: number;
   title?: string;
   summary?: string;
+  tagId?: string;
+  tagName?: string;
   createdAt: string;
   updatedAt?: string;
 }
@@ -98,6 +120,7 @@ export interface TimerState {
   elapsedBeforeCurrentRun: number; // today's total worked ms before the active segment
   lastActiveDate?: string; // local date string to detect day changes
   sessionTitle?: string;
+  tagId?: string;
 }
 
 /** Server-persisted timer state for cross-device reconciliation. */
@@ -106,6 +129,7 @@ export interface ActiveTimerState {
   startedAt?: number;
   elapsedBeforeCurrentRun: number;
   sessionTitle?: string;
+  tagId?: string;
   updatedAt?: string;
   updatedByDeviceId?: string;
 }

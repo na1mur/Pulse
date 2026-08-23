@@ -8,6 +8,7 @@ import { connectDatabase } from "./db";
 import authRouter from "./routes/auth";
 import sessionRouter from "./routes/session";
 import statsRouter from "./routes/stats";
+import tagsRouter from "./routes/tags";
 import settingsRouter from "./routes/settings";
 import usersRouter from "./routes/users";
 import { initSocket } from "./socket";
@@ -57,6 +58,7 @@ app.get("/health", (req, res) => {
 app.use("/auth", authLimiter, authRouter);
 app.use("/sessions", sessionRouter);
 app.use("/stats", statsRouter);
+app.use("/tags", tagsRouter);
 app.use("/settings", settingsRouter);
 app.use("/users", usersRouter);
 

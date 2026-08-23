@@ -25,6 +25,7 @@ const DEVICE_ID = "desktop";
 interface PendingPauseSession {
   startTimeIso: string;
   title?: string;
+  tagId?: string;
 }
 
 export function useTimerControls() {
@@ -53,6 +54,7 @@ export function useTimerControls() {
       deviceId: string;
       title?: string;
       summary?: string;
+      tagId?: string;
     }) => {
       try {
         await api.post("/sessions", payload);
@@ -153,6 +155,7 @@ export function useTimerControls() {
     pendingPauseRef.current = {
       startTimeIso: new Date(timerState.startedAt).toISOString(),
       title: timerState.sessionTitle,
+      tagId: timerState.tagId,
     };
     pauseTimer(elapsed);
   };
@@ -166,6 +169,7 @@ export function useTimerControls() {
       endTime: new Date().toISOString(),
       deviceId: DEVICE_ID,
       ...(pending.title ? { title: pending.title } : {}),
+      ...(pending.tagId ? { tagId: pending.tagId } : {}),
       ...(summary?.trim() ? { summary: summary.trim() } : {}),
     });
     pendingPauseRef.current = null;

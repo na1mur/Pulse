@@ -5,6 +5,7 @@ export interface IActiveTimer {
   startedAt?: number;
   elapsedBeforeCurrentRun: number;
   sessionTitle?: string;
+  tagId?: string;
   updatedAt?: Date;
   updatedByDeviceId?: string;
 }
@@ -28,6 +29,7 @@ const activeTimerSchema = new Schema<IActiveTimer>(
     startedAt: { type: Number },
     elapsedBeforeCurrentRun: { type: Number, required: true, default: 0 },
     sessionTitle: { type: String },
+    tagId: { type: String },
     updatedAt: { type: Date, default: Date.now },
     updatedByDeviceId: { type: String },
   },

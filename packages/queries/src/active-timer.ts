@@ -12,6 +12,7 @@ export function activeTimerToTimerState(timer: ActiveTimerState): TimerState {
     startedAt: timer.startedAt,
     elapsedBeforeCurrentRun: timer.elapsedBeforeCurrentRun,
     sessionTitle: timer.sessionTitle ?? undefined,
+    tagId: timer.tagId ?? undefined,
     lastActiveDate,
   };
 }

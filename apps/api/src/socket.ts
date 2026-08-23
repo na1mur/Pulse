@@ -88,6 +88,7 @@ export function initSocket(server: HttpServer): Server {
         startedAt: activeTimer.startedAt,
         elapsedBeforeCurrentRun: activeTimer.elapsedBeforeCurrentRun,
         sessionTitle: activeTimer.sessionTitle,
+        tagId: activeTimer.tagId,
         updatedAt: activeTimer.updatedAt,
       });
     });

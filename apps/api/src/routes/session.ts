@@ -11,6 +11,7 @@ import {
   getLocalDayRange,
   getPastLocalDateKeys,
 } from "../utils/dates";
+import { findTagForUser, withTagNames } from "../utils/tags";
 
 const router: Router = Router();
 
@@ -40,6 +41,7 @@ const createSessionHandler: RequestHandler = async (req, res) => {
       deviceId,
       title,
       summary,
+      tagId,
     } = result.data;
     const startTime = new Date(startStr);
     const endTime = endStr ? new Date(endStr) : new Date();
@@ -50,6 +52,15 @@ const createSessionHandler: RequestHandler = async (req, res) => {
 
     const userId = req.userId!;
 
+    let ownedTag = null;
+    if (tagId) {
+      ownedTag = await findTagForUser(userId, tagId);
+      if (!ownedTag) {
+        res.status(400).json({ error: "Tag not found" });
+        return;
+      }
+    }
+
     const session = new WorkSession({
       userId,
       deviceId,
@@ -59,6 +70,7 @@ const createSessionHandler: RequestHandler = async (req, res) => {
       durationSeconds,
       ...(title ? { title } : {}),
       ...(summary ? { summary } : {}),
+      ...(ownedTag ? { tagId: ownedTag._id } : {}),
     });
     await session.save();
 
@@ -92,13 +104,19 @@ const createSessionHandler: RequestHandler = async (req, res) => {
       durationMinutes,
     });
 
-    broadcastToUser(userId, "session_created", session);
+    const serialized = (await withTagNames([session]))[0];
+    if (!serialized) {
+      res.status(500).json({ error: "Failed to serialize session" });
+      return;
+    }
+
+    broadcastToUser(userId, "session_created", serialized);
 
     for (const achievement of achievements) {
       broadcastToUser(userId, "goal_achieved", achievement);
     }
 
-    res.status(201).json(session);
+    res.status(201).json(serialized);
   } catch (error) {
     console.error("Create session error:", error);
     res.status(500).json({ error: "Internal server error" });
@@ -164,7 +182,7 @@ const getSessionsHandler: RequestHandler = async (req, res) => {
     ]);
 
     res.json({
-      sessions,
+      sessions: await withTagNames(sessions),
       total,
       page,
       limit,
@@ -193,7 +211,7 @@ const getSessionsTodayHandler: RequestHandler = async (req, res) => {
       startTime: { $gte: start, $lte: end },
     }).sort({ startTime: -1 });
 
-    res.json(sessions);
+    res.json(await withTagNames(sessions));
   } catch (error) {
     console.error("Get today's sessions error:", error);
     res.status(500).json({ error: "Internal server error" });

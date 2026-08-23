@@ -39,6 +39,7 @@ export function applyIncomingTimerState(
       startedAt: incoming.isRunning ? incoming.startedAt : undefined,
       elapsedBeforeCurrentRun: incoming.elapsedBeforeCurrentRun,
       sessionTitle: incoming.sessionTitle,
+      tagId: incoming.tagId,
       lastActiveDate: today,
       remoteUpdatedAt: nextUpdatedAt,
     };
@@ -61,6 +62,7 @@ export function applyIncomingTimerState(
             ? state.elapsedBeforeCurrentRun
             : incoming.elapsedBeforeCurrentRun,
       sessionTitle: incoming.sessionTitle ?? state.sessionTitle,
+      tagId: incoming.tagId ?? state.tagId,
       lastActiveDate: today,
       remoteUpdatedAt: nextUpdatedAt,
     };
@@ -76,6 +78,7 @@ export function applyIncomingTimerState(
       startedAt: incoming.isRunning ? incoming.startedAt : undefined,
       elapsedBeforeCurrentRun: incoming.elapsedBeforeCurrentRun,
       sessionTitle: incoming.sessionTitle,
+      tagId: incoming.tagId,
       lastActiveDate: today,
       remoteUpdatedAt: nextUpdatedAt,
     };
@@ -86,6 +89,7 @@ export function applyIncomingTimerState(
     startedAt: incoming.isRunning ? incoming.startedAt : undefined,
     elapsedBeforeCurrentRun: state.elapsedBeforeCurrentRun,
     sessionTitle: incoming.sessionTitle ?? state.sessionTitle,
+    tagId: incoming.tagId ?? state.tagId,
     lastActiveDate: state.lastActiveDate ?? incomingDay,
     remoteUpdatedAt: nextUpdatedAt,
   };
@@ -106,6 +110,7 @@ export function mergeTimerStates(
       elapsedBeforeCurrentRun: 0,
       lastActiveDate: localDate,
       sessionTitle: remote.sessionTitle ?? local.sessionTitle,
+      tagId: remote.tagId ?? local.tagId,
     };
   }
 
@@ -129,6 +134,7 @@ export function mergeTimerStates(
       elapsedBeforeCurrentRun: remote.elapsedBeforeCurrentRun,
       lastActiveDate: today,
       sessionTitle: remote.sessionTitle ?? local.sessionTitle,
+      tagId: remote.tagId ?? local.tagId,
     };
   }
 
@@ -150,5 +156,6 @@ export function mergeTimerStates(
     elapsedBeforeCurrentRun: elapsed,
     lastActiveDate: today,
     sessionTitle: remote.sessionTitle ?? local.sessionTitle,
+    tagId: remote.tagId ?? local.tagId,
   };
 }
