@@ -88,8 +88,6 @@ export function initSocket(server: HttpServer): Server {
         sessionTitle: activeTimer.sessionTitle,
         updatedAt: activeTimer.updatedAt,
       });
-
-      socket.to(room).emit("timer_status_request", { requesterId: socket.id });
     });
 
     socket.on("timer_status_response", (data) => {

@@ -61,25 +61,31 @@ function parseRemoteUpdatedAt(updatedAt?: string): number | undefined {
   return Number.isNaN(parsed) ? undefined : parsed;
 }
 
-function applySocketTimerState(state: {
-  isRunning: boolean;
-  startedAt?: number;
-  elapsedBeforeCurrentRun: number;
-  sessionTitle?: string;
-  updatedAt?: string;
-}) {
-  const lastActiveDate = state.updatedAt
-    ? getLocalDayString(new Date(state.updatedAt))
-    : undefined;
+function applySocketTimerState(
+  state: {
+    isRunning: boolean;
+    startedAt?: number;
+    elapsedBeforeCurrentRun: number;
+    sessionTitle?: string;
+    updatedAt?: string;
+  },
+  source: "live" | "reconcile" = "live",
+) {
   useTimerStore.getState().applyRemoteTimerState(
     {
       isRunning: state.isRunning,
       startedAt: state.startedAt,
       elapsedBeforeCurrentRun: state.elapsedBeforeCurrentRun,
       sessionTitle: state.sessionTitle,
-      lastActiveDate,
+      lastActiveDate:
+        source === "live"
+          ? getLocalDayString()
+          : state.updatedAt
+            ? getLocalDayString(new Date(state.updatedAt))
+            : getLocalDayString(),
     },
     parseRemoteUpdatedAt(state.updatedAt),
+    source,
   );
 }
 
@@ -140,13 +146,21 @@ function bindSocketEvents(activeSocket: Socket) {
 
   activeSocket.on("timer_status_response", (data) => {
     console.log("Sync event: timer_status_response received", data);
-    applySocketTimerState({
-      isRunning: data.isRunning,
-      startedAt: data.startedAt,
-      elapsedBeforeCurrentRun: data.elapsedBeforeCurrentRun,
-      sessionTitle: data.sessionTitle,
-      updatedAt: data.updatedAt,
-    });
+    // Peer echoes have no server timestamp; they can overwrite a newer
+    // local/server play or pause with Date.now() and stale isRunning.
+    if (!data.updatedAt && useTimerStore.getState().remoteUpdatedAt != null) {
+      return;
+    }
+    applySocketTimerState(
+      {
+        isRunning: data.isRunning,
+        startedAt: data.startedAt,
+        elapsedBeforeCurrentRun: data.elapsedBeforeCurrentRun,
+        sessionTitle: data.sessionTitle,
+        updatedAt: data.updatedAt,
+      },
+      "reconcile",
+    );
   });
 
   activeSocket.on("goal_updated", (data: GoalTargetFields) => {
@@ -248,11 +262,6 @@ export function syncTimerStartFromState() {
 
 export function resetTimerSync() {
   useTimerStore.getState().resetTimer();
-  emitTimerEvent("timer_reset", { deviceId: DEVICE_ID });
-}
-
-/** Sync a day-boundary reset to the server without changing local timer state. */
-export function syncTimerResetToServer() {
   emitTimerEvent("timer_reset", { deviceId: DEVICE_ID });
 }
 

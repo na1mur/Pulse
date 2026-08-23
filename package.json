@@ -8,6 +8,7 @@
     "lint": "turbo run lint",
     "format": "prettier --write \"**/*.{ts,tsx,md}\"",
     "check-types": "turbo run check-types",
+    "test": "turbo run test",
     "generate:brand": "node scripts/generate-brand-assets.mjs",
     "desktop:build:win": "pnpm --filter desktop dist:win",
     "mobile:build:android": "pnpm --filter mobile assemble:release",

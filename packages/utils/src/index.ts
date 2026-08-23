@@ -4,7 +4,12 @@ export {
   getStartOfLocalDayMs,
   getTodayTimerDisplayMs,
 } from "./timer-day";
-export { mergeTimerStates } from "./timer-sync";
+export {
+  applyIncomingTimerState,
+  mergeTimerStates,
+  type RemoteTimerSource,
+  type TimerStateWithStamp,
+} from "./timer-sync";
 export {
   getPeriodProgress,
   progressBarValue,

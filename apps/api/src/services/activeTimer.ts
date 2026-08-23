@@ -73,7 +73,6 @@ export async function persistTimerPause(
     {
       activeTimer: {
         isRunning: false,
-        startedAt: undefined,
         elapsedBeforeCurrentRun: data.elapsedBeforeCurrentRun,
         sessionTitle: data.sessionTitle,
         updatedAt: new Date(),
@@ -94,7 +93,6 @@ export async function persistTimerReset(
     {
       activeTimer: {
         isRunning: false,
-        startedAt: undefined,
         elapsedBeforeCurrentRun: 0,
         sessionTitle: undefined,
         updatedAt: new Date(),

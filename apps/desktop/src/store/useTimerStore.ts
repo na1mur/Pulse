@@ -1,9 +1,13 @@
 import { create } from "zustand";
 import { persist, createJSONStorage } from "zustand/middleware";
 import type { TimerState } from "@repo/types";
-import { getLocalDayString } from "@repo/utils";
+import {
+  applyIncomingTimerState,
+  getLocalDayString,
+  mergeTimerStates,
+  type RemoteTimerSource,
+} from "@repo/utils";
 import { PERSIST_STORE_KEYS } from "@repo/api-client";
-import { mergeTimerStates } from "@repo/utils";
 import { scopedPersistStorage } from "./scopedStorage";
 
 interface TimerStoreState extends TimerState {
@@ -13,7 +17,11 @@ interface TimerStoreState extends TimerState {
   pauseTimer: () => void;
   resetTimer: () => void;
   syncTimerState: (state: TimerState) => void;
-  applyRemoteTimerState: (state: TimerState, remoteUpdatedAt?: number) => void;
+  applyRemoteTimerState: (
+    state: TimerState,
+    remoteUpdatedAt?: number,
+    source?: RemoteTimerSource,
+  ) => void;
 }
 
 export const useTimerStore = create<TimerStoreState>()(
@@ -39,6 +47,7 @@ export const useTimerStore = create<TimerStoreState>()(
               ? 0
               : state.elapsedBeforeCurrentRun,
             lastActiveDate: today,
+            remoteUpdatedAt: Date.now(),
           };
         }),
 
@@ -52,6 +61,7 @@ export const useTimerStore = create<TimerStoreState>()(
             elapsedBeforeCurrentRun:
               state.elapsedBeforeCurrentRun + sessionElapsed,
             lastActiveDate: getLocalDayString(),
+            remoteUpdatedAt: Date.now(),
           };
         }),
 
@@ -62,7 +72,7 @@ export const useTimerStore = create<TimerStoreState>()(
           sessionTitle: undefined,
           elapsedBeforeCurrentRun: 0,
           lastActiveDate: getLocalDayString(),
-          remoteUpdatedAt: undefined,
+          remoteUpdatedAt: Date.now(),
         }),
 
       syncTimerState: (incoming) =>
@@ -70,61 +80,15 @@ export const useTimerStore = create<TimerStoreState>()(
           ...mergeTimerStates(state, incoming),
         })),
 
-      applyRemoteTimerState: (incoming, remoteUpdatedAt) =>
-        set((state) => {
-          const nextUpdatedAt = remoteUpdatedAt ?? Date.now();
-          if (
-            state.remoteUpdatedAt != null &&
-            nextUpdatedAt < state.remoteUpdatedAt
-          ) {
-            return state;
-          }
-
-          const today = getLocalDayString();
-          const incomingDay =
-            incoming.lastActiveDate ??
-            (remoteUpdatedAt
-              ? getLocalDayString(new Date(remoteUpdatedAt))
-              : today);
-
-          // Keep a same-day local timer, or an already-rolled reset. Only realign the
-          // day marker when local elapsed still matches stale server data.
-          if (state.lastActiveDate === today && incomingDay !== today) {
-            if (
-              state.elapsedBeforeCurrentRun === 0 ||
-              state.elapsedBeforeCurrentRun !==
-                incoming.elapsedBeforeCurrentRun
-            ) {
-              return { ...state, remoteUpdatedAt: nextUpdatedAt };
-            }
-
-            return {
-              ...state,
-              lastActiveDate: incomingDay,
-              remoteUpdatedAt: nextUpdatedAt,
-            };
-          }
-
-          if (incomingDay === today) {
-            return {
-              isRunning: incoming.isRunning,
-              startedAt: incoming.isRunning ? incoming.startedAt : undefined,
-              elapsedBeforeCurrentRun: incoming.elapsedBeforeCurrentRun,
-              sessionTitle: incoming.sessionTitle,
-              lastActiveDate: today,
-              remoteUpdatedAt: nextUpdatedAt,
-            };
-          }
-
-          return {
-            isRunning: incoming.isRunning,
-            startedAt: incoming.isRunning ? incoming.startedAt : undefined,
-            elapsedBeforeCurrentRun: state.elapsedBeforeCurrentRun,
-            sessionTitle: incoming.sessionTitle ?? state.sessionTitle,
-            lastActiveDate: state.lastActiveDate ?? incomingDay,
-            remoteUpdatedAt: nextUpdatedAt,
-          };
-        }),
+      applyRemoteTimerState: (incoming, remoteUpdatedAt, source = "reconcile") =>
+        set((state) =>
+          applyIncomingTimerState(
+            state,
+            incoming,
+            remoteUpdatedAt,
+            source,
+          ),
+        ),
     }),
     {
       name: PERSIST_STORE_KEYS.timer,

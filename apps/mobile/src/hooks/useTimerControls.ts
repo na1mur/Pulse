@@ -17,7 +17,6 @@ import {
   startTimer,
   pauseTimer,
   syncTimerStartFromState,
-  syncTimerResetToServer,
 } from "@/hooks/useSocketSync";
 import { api } from "@/utils/api";
 
@@ -84,8 +83,6 @@ export function useTimerControls() {
       useTimerStore.setState(next);
       if (next.isRunning) {
         syncTimerStartFromState();
-      } else {
-        syncTimerResetToServer();
       }
     } finally {
       dayChangeRunningRef.current = false;
