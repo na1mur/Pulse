@@ -55,25 +55,27 @@ export function initSocket(server: HttpServer): Server {
       `Socket connected: ${socket.id} (User: ${userId}) joined room ${room}`,
     );
 
-    socket.on("timer_start", async (data) => {
-      const saved = await persistTimerStart(userId, data);
-      socket.to(room).emit("timer_started", {
-        ...data,
-        updatedAt: saved?.updatedAt,
+    socket.on("timer_start", (data) => {
+      const updatedAt = new Date().toISOString();
+      socket.to(room).emit("timer_started", { ...data, updatedAt });
+      void persistTimerStart(userId, data).catch((err) => {
+        console.error("persistTimerStart failed:", err);
       });
     });
 
-    socket.on("timer_pause", async (data) => {
-      const saved = await persistTimerPause(userId, data);
-      socket.to(room).emit("timer_paused", {
-        ...data,
-        updatedAt: saved?.updatedAt,
+    socket.on("timer_pause", (data) => {
+      const updatedAt = new Date().toISOString();
+      socket.to(room).emit("timer_paused", { ...data, updatedAt });
+      void persistTimerPause(userId, data).catch((err) => {
+        console.error("persistTimerPause failed:", err);
       });
     });
 
-    socket.on("timer_reset", async (data?: { deviceId?: string }) => {
-      await persistTimerReset(userId, data?.deviceId);
+    socket.on("timer_reset", (data?: { deviceId?: string }) => {
       socket.to(room).emit("timer_reset");
+      void persistTimerReset(userId, data?.deviceId).catch((err) => {
+        console.error("persistTimerReset failed:", err);
+      });
     });
 
     socket.on("timer_status_request", async () => {

@@ -207,6 +207,7 @@ function connectSocket() {
     auth: { token: accessToken },
     autoConnect: true,
     reconnection: true,
+    transports: ["websocket", "polling"],
   });
   bindSocketEvents(socket);
 }
