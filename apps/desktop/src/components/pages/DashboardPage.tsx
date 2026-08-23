@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   Clock,
   Pause,
@@ -31,7 +31,6 @@ import {
 import type { TagStatsRange, WorkSession } from "@repo/types";
 import { Input } from "@/components/ui/input";
 import {
-  useCreateTag,
   useStatsByTag,
   useStatsSummary,
   useTags,
@@ -209,6 +208,31 @@ function SessionRow({
   );
 }
 
+function TagBadge({
+  label,
+  selected,
+  onClick,
+}: {
+  label: string;
+  selected: boolean;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={cn(
+        "inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-medium leading-4 transition-colors",
+        selected
+          ? "bg-primary text-primary-foreground"
+          : "bg-muted/70 text-muted-foreground hover:bg-muted hover:text-foreground",
+      )}
+    >
+      {label}
+    </button>
+  );
+}
+
 function TagChipRow({
   tags,
   selectedId,
@@ -223,31 +247,25 @@ function TagChipRow({
   onInteract?: () => void;
 }) {
   return (
-    <div className="flex flex-wrap gap-2">
-      <Button
-        type="button"
-        size="sm"
-        variant={selectedId ? "outline" : "default"}
+    <div className="flex flex-wrap gap-1.5">
+      <TagBadge
+        label={allLabel}
+        selected={!selectedId}
         onClick={() => {
           onInteract?.();
           onSelect(undefined);
         }}
-      >
-        {allLabel}
-      </Button>
+      />
       {tags.map((tag) => (
-        <Button
+        <TagBadge
           key={tag.id}
-          type="button"
-          size="sm"
-          variant={selectedId === tag.id ? "default" : "outline"}
+          label={tag.name}
+          selected={selectedId === tag.id}
           onClick={() => {
             onInteract?.();
             onSelect(tag.id);
           }}
-        >
-          {tag.name}
-        </Button>
+        />
       ))}
     </div>
   );
@@ -265,7 +283,6 @@ export function DashboardPage({
   const [showTitleModal, setShowTitleModal] = useState(false);
   const [showSummaryModal, setShowSummaryModal] = useState(false);
   const [titleInput, setTitleInput] = useState("");
-  const [newTagName, setNewTagName] = useState("");
   const [selectedTagId, setSelectedTagId] = useState<string | undefined>();
   const [statsTagId, setStatsTagId] = useState<string | undefined>();
   const [breakdownRange, setBreakdownRange] = useState<TagStatsRange>("today");
@@ -276,7 +293,6 @@ export function DashboardPage({
   const { data: todaySessions = [] } = useTodaySessions();
   const { data: tags = [] } = useTags();
   const { data: tagBreakdown } = useStatsByTag(breakdownRange);
-  const createTag = useCreateTag();
   const { isRunning, displayTime, handlePlay, beginPause, completePause } =
     useTimerControls();
   const sessionTitle = useTimerStore((state) => state.sessionTitle);
@@ -304,24 +320,22 @@ export function DashboardPage({
   );
   const bestDayDate = formatBestDayDate(lifetimeSummary?.bestDayDate);
 
+  useEffect(() => {
+    if (statsTagId && !tags.some((tag) => tag.id === statsTagId)) {
+      setStatsTagId(undefined);
+    }
+    if (selectedTagId && !tags.some((tag) => tag.id === selectedTagId)) {
+      setSelectedTagId(undefined);
+    }
+  }, [selectedTagId, statsTagId, tags]);
+
   const resetPlayModal = () => {
     setTitleInput("");
-    setNewTagName("");
     setShowTitleModal(false);
   };
 
-  const confirmResume = async () => {
-    let tagId = selectedTagId;
-    const pendingName = newTagName.trim();
-    if (pendingName) {
-      try {
-        const tag = await createTag.mutateAsync(pendingName);
-        tagId = tag.id;
-      } catch (err) {
-        console.warn("Failed to create tag", err);
-      }
-    }
-    handlePlay(titleInput, tagId);
+  const confirmResume = () => {
+    handlePlay(titleInput, selectedTagId);
     resetPlayModal();
   };
 
@@ -333,7 +347,6 @@ export function DashboardPage({
   const openPlayModal = () => {
     setSelectedTagId(useTimerStore.getState().tagId);
     setTitleInput("");
-    setNewTagName("");
     setShowTitleModal(true);
   };
 
@@ -363,19 +376,6 @@ export function DashboardPage({
     isOpen: showSummaryModal,
     onAutoSkip: dismissSummaryModal,
   });
-
-  const addNewTag = async () => {
-    const name = newTagName.trim();
-    if (!name) return;
-    titleSkip.cancelCountdown();
-    try {
-      const tag = await createTag.mutateAsync(name);
-      setSelectedTagId(tag.id);
-      setNewTagName("");
-    } catch (err) {
-      console.warn("Failed to create tag", err);
-    }
-  };
 
   return (
     <div className="space-y-6 w-full">
@@ -585,9 +585,7 @@ export function DashboardPage({
             <Button variant="outline" onClick={dismissTitleModal}>
               {titleSkip.skipLabel}
             </Button>
-            <Button onClick={() => void confirmResume()} disabled={createTag.isPending}>
-              Resume
-            </Button>
+            <Button onClick={confirmResume}>Resume</Button>
           </>
         }
       >
@@ -608,40 +606,21 @@ export function DashboardPage({
           </div>
           <div>
             <p className="text-sm text-muted-foreground mb-2">
-              Select a tag or add a new one.
+              Select a tag (optional).
             </p>
-            <TagChipRow
-              tags={tags}
-              selectedId={selectedTagId}
-              onSelect={setSelectedTagId}
-              allLabel="None"
-              onInteract={titleSkip.cancelCountdown}
-            />
-            <div className="flex gap-2 mt-3">
-              <Input
-                value={newTagName}
-                onChange={(e) => {
-                  setNewTagName(e.target.value);
-                  titleSkip.cancelCountdown();
-                }}
-                onFocus={titleSkip.cancelCountdown}
-                placeholder="New tag name"
-                onKeyDown={(e) => {
-                  if (e.key === "Enter") {
-                    e.preventDefault();
-                    void addNewTag();
-                  }
-                }}
+            {tags.length > 0 ? (
+              <TagChipRow
+                tags={tags}
+                selectedId={selectedTagId}
+                onSelect={setSelectedTagId}
+                allLabel="None"
+                onInteract={titleSkip.cancelCountdown}
               />
-              <Button
-                type="button"
-                variant="outline"
-                disabled={!newTagName.trim() || createTag.isPending}
-                onClick={() => void addNewTag()}
-              >
-                Add
-              </Button>
-            </div>
+            ) : (
+              <p className="text-xs text-muted-foreground">
+                No tags yet. Create them in Settings.
+              </p>
+            )}
           </div>
         </div>
       </AppDialog>

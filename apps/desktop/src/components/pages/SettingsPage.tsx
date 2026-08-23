@@ -1,13 +1,32 @@
+import { useState } from "react";
 import { LogOut } from "lucide-react";
 import ThemeToggle from "@/components/ThemeToggle";
+import { AppDialog } from "@/components/ui/app-dialog";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { useUserSettings } from "@/hooks/usePulseQueries";
+import {
+  useCreateTag,
+  useDeleteTag,
+  useTags,
+  useUpdateTag,
+  useUserSettings,
+} from "@/hooks/usePulseQueries";
 import { useDesktopSettings } from "@/hooks/useDesktopSettings";
 
 interface SettingsPageProps {
   onLogout: () => void;
+}
+
+function getTagErrorMessage(error: unknown) {
+  if (typeof error === "object" && error !== null && "response" in error) {
+    const data = (
+      error as { response?: { data?: { error?: unknown } } }
+    ).response?.data;
+    if (typeof data?.error === "string") return data.error;
+  }
+  return "Could not save that tag. Try a different name.";
 }
 
 function SettingToggle({
@@ -37,6 +56,187 @@ function SettingToggle({
         className="mt-1 h-4 w-4 accent-primary"
       />
     </div>
+  );
+}
+
+function TagManager() {
+  const { data: tags = [] } = useTags();
+  const createTag = useCreateTag();
+  const updateTag = useUpdateTag();
+  const deleteTag = useDeleteTag();
+  const [newName, setNewName] = useState("");
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editingName, setEditingName] = useState("");
+  const [pendingDelete, setPendingDelete] = useState<{
+    id: string;
+    name: string;
+  } | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  const handleAdd = async () => {
+    const name = newName.trim();
+    if (!name) return;
+    setError(null);
+    try {
+      await createTag.mutateAsync(name);
+      setNewName("");
+    } catch (err) {
+      setError(getTagErrorMessage(err));
+    }
+  };
+
+  const handleSaveEdit = async () => {
+    if (!editingId) return;
+    const name = editingName.trim();
+    if (!name) return;
+    setError(null);
+    try {
+      await updateTag.mutateAsync({ id: editingId, name });
+      setEditingId(null);
+      setEditingName("");
+    } catch (err) {
+      setError(getTagErrorMessage(err));
+    }
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!pendingDelete) return;
+    setError(null);
+    try {
+      await deleteTag.mutateAsync(pendingDelete.id);
+      if (editingId === pendingDelete.id) {
+        setEditingId(null);
+        setEditingName("");
+      }
+      setPendingDelete(null);
+    } catch (err) {
+      setError(getTagErrorMessage(err));
+    }
+  };
+
+  return (
+    <>
+      <div className="flex gap-2">
+        <Input
+          value={newName}
+          onChange={(e) => setNewName(e.target.value)}
+          placeholder="New tag name"
+          maxLength={50}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") {
+              e.preventDefault();
+              void handleAdd();
+            }
+          }}
+        />
+        <Button
+          type="button"
+          variant="outline"
+          disabled={!newName.trim() || createTag.isPending}
+          onClick={() => void handleAdd()}
+        >
+          Add
+        </Button>
+      </div>
+      {error ? <p className="text-sm text-destructive">{error}</p> : null}
+      {tags.length === 0 ? (
+        <p className="text-sm text-muted-foreground">No tags yet.</p>
+      ) : (
+        <ul className="divide-y divide-border rounded-lg border border-border">
+          {tags.map((tag) => (
+            <li key={tag.id} className="flex items-center gap-2 px-3 py-2">
+              {editingId === tag.id ? (
+                <>
+                  <Input
+                    value={editingName}
+                    onChange={(e) => setEditingName(e.target.value)}
+                    maxLength={50}
+                    className="flex-1"
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") {
+                        e.preventDefault();
+                        void handleSaveEdit();
+                      }
+                      if (e.key === "Escape") {
+                        setEditingId(null);
+                      }
+                    }}
+                  />
+                  <Button
+                    size="sm"
+                    onClick={() => void handleSaveEdit()}
+                    disabled={!editingName.trim() || updateTag.isPending}
+                  >
+                    Save
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => setEditingId(null)}
+                  >
+                    Cancel
+                  </Button>
+                </>
+              ) : (
+                <>
+                  <span className="flex-1 text-sm text-foreground">
+                    {tag.name}
+                  </span>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    onClick={() => {
+                      setEditingId(tag.id);
+                      setEditingName(tag.name);
+                      setError(null);
+                    }}
+                  >
+                    Rename
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    className="text-destructive hover:text-destructive"
+                    onClick={() =>
+                      setPendingDelete({ id: tag.id, name: tag.name })
+                    }
+                  >
+                    Delete
+                  </Button>
+                </>
+              )}
+            </li>
+          ))}
+        </ul>
+      )}
+      <AppDialog
+        open={Boolean(pendingDelete)}
+        onClose={() => setPendingDelete(null)}
+        title="Delete tag"
+        maxWidthClassName="max-w-md"
+        scrollable={false}
+        footer={
+          <>
+            <Button variant="outline" onClick={() => setPendingDelete(null)}>
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={() => void handleConfirmDelete()}
+              disabled={deleteTag.isPending}
+            >
+              Delete
+            </Button>
+          </>
+        }
+      >
+        <p className="text-sm text-muted-foreground">
+          {pendingDelete
+            ? `"${pendingDelete.name}" will be removed. Sessions using this tag will become untagged.`
+            : null}
+        </p>
+      </AppDialog>
+    </>
   );
 }
 
@@ -88,6 +288,17 @@ export function SettingsPage({ onLogout }: SettingsPageProps) {
             </p>
           </div>
         </div>
+      </Card>
+
+      <Card className="p-6 space-y-6">
+        <div className="space-y-1">
+          <h3 className="text-lg font-semibold text-foreground">Tags</h3>
+          <p className="text-xs text-muted-foreground">
+            Add, rename, or delete tags used when starting a session. Deleting a
+            tag untags past sessions that used it.
+          </p>
+        </div>
+        <TagManager />
       </Card>
 
       <Card className="p-6 space-y-6">

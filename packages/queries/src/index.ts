@@ -3,6 +3,7 @@ import {
   useQuery,
   useMutation,
   useQueryClient,
+  type QueryClient,
 } from "@tanstack/react-query";
 import type {
   DailyStatsPoint,
@@ -96,6 +97,18 @@ export function useTags() {
   });
 }
 
+function sortTags(tags: Tag[]) {
+  return [...tags].sort((a, b) => a.name.localeCompare(b.name));
+}
+
+function invalidateTagDependentQueries(queryClient: QueryClient) {
+  queryClient.invalidateQueries({ queryKey: queryKeys.todaySessions });
+  queryClient.invalidateQueries({ queryKey: ["sessions"] });
+  queryClient.invalidateQueries({ queryKey: queryKeys.statsByTag });
+  queryClient.invalidateQueries({ queryKey: queryKeys.todayStats });
+  queryClient.invalidateQueries({ queryKey: queryKeys.statsSummary });
+}
+
 export function useCreateTag() {
   const api = useApi();
   const queryClient = useQueryClient();
@@ -106,8 +119,43 @@ export function useCreateTag() {
       queryClient.setQueryData<Tag[]>(queryKeys.tags, (prev) => {
         if (!prev) return [tag];
         if (prev.some((existing) => existing.id === tag.id)) return prev;
-        return [...prev, tag].sort((a, b) => a.name.localeCompare(b.name));
+        return sortTags([...prev, tag]);
       });
+    },
+  });
+}
+
+export function useUpdateTag() {
+  const api = useApi();
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ id, name }: { id: string; name: string }) =>
+      (await api.patch(`/tags/${id}`, { name })).data as Tag,
+    onSuccess: (tag) => {
+      queryClient.setQueryData<Tag[]>(queryKeys.tags, (prev) => {
+        if (!prev) return [tag];
+        return sortTags(
+          prev.map((existing) => (existing.id === tag.id ? tag : existing)),
+        );
+      });
+      invalidateTagDependentQueries(queryClient);
+    },
+  });
+}
+
+export function useDeleteTag() {
+  const api = useApi();
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (id: string) => {
+      await api.delete(`/tags/${id}`);
+      return id;
+    },
+    onSuccess: (id) => {
+      queryClient.setQueryData<Tag[]>(queryKeys.tags, (prev) =>
+        prev ? prev.filter((tag) => tag.id !== id) : [],
+      );
+      invalidateTagDependentQueries(queryClient);
     },
   });
 }

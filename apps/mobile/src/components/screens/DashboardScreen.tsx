@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   View,
   Modal,
@@ -40,7 +40,6 @@ import { Progress } from "@/components/ui/Progress";
 import { StatCardGrid } from "@/components/StatCardGrid";
 import { useGoalContext } from "@/context/GoalContext";
 import {
-  useCreateTag,
   useStatsByTag,
   useStatsSummary,
   useTags,
@@ -233,6 +232,44 @@ function StatCard({
   return <View className="w-full flex-1">{content}</View>;
 }
 
+function TagBadge({
+  label,
+  selected,
+  onPress,
+  colors,
+}: {
+  label: string;
+  selected: boolean;
+  onPress: () => void;
+  colors: ReturnType<typeof useThemeColors>;
+}) {
+  return (
+    <Pressable
+      onPress={onPress}
+      hitSlop={4}
+      style={{
+        paddingHorizontal: 8,
+        paddingVertical: 3,
+        borderRadius: 999,
+        backgroundColor: selected ? colors.primary : colors.mutedSurface,
+        borderWidth: selected ? 0 : 1,
+        borderColor: colors.border,
+      }}
+    >
+      <Text
+        style={{
+          fontSize: 11,
+          lineHeight: 14,
+          fontWeight: "500",
+          color: selected ? colors.primaryForeground : colors.foreground,
+        }}
+      >
+        {label}
+      </Text>
+    </Pressable>
+  );
+}
+
 function TagChipRow({
   tags,
   selectedId,
@@ -246,27 +283,28 @@ function TagChipRow({
   allLabel: string;
   onInteract?: () => void;
 }) {
+  const colors = useThemeColors();
   return (
-    <View className="flex-row flex-wrap gap-2">
-      <Button
-        size="sm"
+    <View className="flex-row flex-wrap gap-1.5">
+      <TagBadge
         label={allLabel}
-        variant={selectedId ? "outline" : "default"}
+        selected={!selectedId}
         onPress={() => {
           onInteract?.();
           onSelect(undefined);
         }}
+        colors={colors}
       />
       {tags.map((tag) => (
-        <Button
+        <TagBadge
           key={tag.id}
-          size="sm"
           label={tag.name}
-          variant={selectedId === tag.id ? "default" : "outline"}
+          selected={selectedId === tag.id}
           onPress={() => {
             onInteract?.();
             onSelect(tag.id);
           }}
+          colors={colors}
         />
       ))}
     </View>
@@ -286,7 +324,6 @@ export function DashboardScreen() {
   const [showTitleModal, setShowTitleModal] = useState(false);
   const [showSummaryModal, setShowSummaryModal] = useState(false);
   const [titleInput, setTitleInput] = useState("");
-  const [newTagName, setNewTagName] = useState("");
   const [selectedTagId, setSelectedTagId] = useState<string | undefined>();
   const [statsTagId, setStatsTagId] = useState<string | undefined>();
   const [breakdownRange, setBreakdownRange] = useState<TagStatsRange>("today");
@@ -297,7 +334,6 @@ export function DashboardScreen() {
   const { data: todaySessions = [] } = useTodaySessions();
   const { data: tags = [] } = useTags();
   const { data: tagBreakdown } = useStatsByTag(breakdownRange);
-  const createTag = useCreateTag();
   const { data: settings } = useUserSettings();
   const { isRunning, displayTime, handlePlay, beginPause, completePause } =
     useTimerControls();
@@ -332,24 +368,22 @@ export function DashboardScreen() {
   );
   const bestDayDate = formatBestDayDate(lifetimeSummary?.bestDayDate);
 
+  useEffect(() => {
+    if (statsTagId && !tags.some((tag) => tag.id === statsTagId)) {
+      setStatsTagId(undefined);
+    }
+    if (selectedTagId && !tags.some((tag) => tag.id === selectedTagId)) {
+      setSelectedTagId(undefined);
+    }
+  }, [selectedTagId, statsTagId, tags]);
+
   const resetPlayModal = () => {
     setTitleInput("");
-    setNewTagName("");
     setShowTitleModal(false);
   };
 
-  const confirmResume = async () => {
-    let tagId = selectedTagId;
-    const pendingName = newTagName.trim();
-    if (pendingName) {
-      try {
-        const tag = await createTag.mutateAsync(pendingName);
-        tagId = tag.id;
-      } catch (err) {
-        console.warn("Failed to create tag", err);
-      }
-    }
-    handlePlay(titleInput, tagId);
+  const confirmResume = () => {
+    handlePlay(titleInput, selectedTagId);
     resetPlayModal();
   };
 
@@ -361,7 +395,6 @@ export function DashboardScreen() {
   const openPlayModal = () => {
     setSelectedTagId(useTimerStore.getState().tagId);
     setTitleInput("");
-    setNewTagName("");
     setShowTitleModal(true);
   };
 
@@ -391,19 +424,6 @@ export function DashboardScreen() {
     isOpen: showSummaryModal,
     onAutoSkip: dismissSummaryModal,
   });
-
-  const addNewTag = async () => {
-    const name = newTagName.trim();
-    if (!name) return;
-    titleSkip.cancelCountdown();
-    try {
-      const tag = await createTag.mutateAsync(name);
-      setSelectedTagId(tag.id);
-      setNewTagName("");
-    } catch (err) {
-      console.warn("Failed to create tag", err);
-    }
-  };
 
   const inputStyle = {
     borderWidth: 1,
@@ -688,35 +708,21 @@ export function DashboardScreen() {
                   style={inputStyle}
                 />
                 <ThemedText className="text-sm text-neutral-500">
-                  Select a tag or add a new one.
+                  Select a tag (optional).
                 </ThemedText>
-                <TagChipRow
-                  tags={tags}
-                  selectedId={selectedTagId}
-                  onSelect={setSelectedTagId}
-                  allLabel="None"
-                  onInteract={titleSkip.cancelCountdown}
-                />
-                <View className="flex-row gap-2">
-                  <TextInput
-                    value={newTagName}
-                    onChangeText={(text) => {
-                      setNewTagName(text);
-                      titleSkip.cancelCountdown();
-                    }}
-                    onFocus={titleSkip.cancelCountdown}
-                    placeholder="New tag name"
-                    placeholderTextColor={colors.muted}
-                    style={[inputStyle, { flex: 1 }]}
-                    onSubmitEditing={() => void addNewTag()}
+                {tags.length > 0 ? (
+                  <TagChipRow
+                    tags={tags}
+                    selectedId={selectedTagId}
+                    onSelect={setSelectedTagId}
+                    allLabel="None"
+                    onInteract={titleSkip.cancelCountdown}
                   />
-                  <Button
-                    label="Add"
-                    variant="outline"
-                    disabled={!newTagName.trim() || createTag.isPending}
-                    onPress={() => void addNewTag()}
-                  />
-                </View>
+                ) : (
+                  <ThemedText className="text-xs text-neutral-500">
+                    No tags yet. Create them in Settings.
+                  </ThemedText>
+                )}
               </View>
             </ScrollView>
             <View className="flex-row gap-2 justify-end">
@@ -727,8 +733,7 @@ export function DashboardScreen() {
               />
               <Button
                 label="Resume"
-                disabled={createTag.isPending}
-                onPress={() => void confirmResume()}
+                onPress={confirmResume}
               />
             </View>
           </Card>

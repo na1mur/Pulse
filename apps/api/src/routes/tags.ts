@@ -2,6 +2,7 @@ import { Router, RequestHandler } from "express";
 import { CreateTagSchema, ObjectIdSchema, UpdateTagSchema } from "@repo/validation";
 import { requireAuth } from "../middleware/auth";
 import { Tag } from "../models/Tag";
+import { User } from "../models/User";
 import { WorkSession } from "../models/WorkSession";
 import {
   findTagForUser,
@@ -127,6 +128,10 @@ const deleteTagHandler: RequestHandler = async (req, res) => {
     await WorkSession.updateMany(
       { userId, tagId: tag._id },
       { $unset: { tagId: 1 } },
+    );
+    await User.updateOne(
+      { _id: userId, "activeTimer.tagId": tag._id.toString() },
+      { $unset: { "activeTimer.tagId": 1 } },
     );
     await tag.deleteOne();
     res.status(204).send();
