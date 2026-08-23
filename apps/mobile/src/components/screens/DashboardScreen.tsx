@@ -20,7 +20,7 @@ import {
   Flame,
 } from "lucide-react-native";
 import type { ComponentType } from "react";
-import type { WorkSession } from "@repo/types";
+import type { TagStatsRange, WorkSession } from "@repo/types";
 import {
   formatDurationSeconds,
   formatMinutes,
@@ -40,7 +40,10 @@ import { Progress } from "@/components/ui/Progress";
 import { StatCardGrid } from "@/components/StatCardGrid";
 import { useGoalContext } from "@/context/GoalContext";
 import {
+  useCreateTag,
+  useStatsByTag,
   useStatsSummary,
+  useTags,
   useTodaySessions,
   useTodayStats,
   useUserSettings,
@@ -80,6 +83,11 @@ function SessionRow({
     >
       {session.title ? (
         <ThemedText className="font-semibold">{session.title}</ThemedText>
+      ) : null}
+      {session.tagName ? (
+        <ThemedText className="text-xs font-medium" style={{ color: colors.accentPurple }}>
+          {session.tagName}
+        </ThemedText>
       ) : null}
       <View className="flex-row items-center gap-2">
         <Clock size={14} color={colors.accentPurple} />
@@ -126,12 +134,14 @@ function PeriodProgressCard({
   iconBg,
   iconColor,
   progress,
+  filterLabel,
 }: {
   label: string;
   icon: ComponentType<{ size?: number; color?: string }>;
   iconBg: string;
   iconColor: string;
   progress: PeriodProgress;
+  filterLabel?: string;
 }) {
   return (
     <View className="w-full flex-1">
@@ -144,6 +154,11 @@ function PeriodProgressCard({
         </View>
         <View className="flex-1">
           <ThemedText className="text-sm text-neutral-500">{label}</ThemedText>
+          {filterLabel ? (
+            <ThemedText className="text-xs" style={{ color: iconColor }}>
+              {filterLabel}
+            </ThemedText>
+          ) : null}
           <View className="flex-row items-end justify-between gap-2 mt-1">
             <ThemedText className="text-2xl font-bold">
               {formatMinutes(progress.workedMinutes)}
@@ -218,6 +233,46 @@ function StatCard({
   return <View className="w-full flex-1">{content}</View>;
 }
 
+function TagChipRow({
+  tags,
+  selectedId,
+  onSelect,
+  allLabel,
+  onInteract,
+}: {
+  tags: { id: string; name: string }[];
+  selectedId?: string;
+  onSelect: (id: string | undefined) => void;
+  allLabel: string;
+  onInteract?: () => void;
+}) {
+  return (
+    <View className="flex-row flex-wrap gap-2">
+      <Button
+        size="sm"
+        label={allLabel}
+        variant={selectedId ? "outline" : "default"}
+        onPress={() => {
+          onInteract?.();
+          onSelect(undefined);
+        }}
+      />
+      {tags.map((tag) => (
+        <Button
+          key={tag.id}
+          size="sm"
+          label={tag.name}
+          variant={selectedId === tag.id ? "default" : "outline"}
+          onPress={() => {
+            onInteract?.();
+            onSelect(tag.id);
+          }}
+        />
+      ))}
+    </View>
+  );
+}
+
 export function DashboardScreen() {
   const {
     goalEnabled,
@@ -231,14 +286,27 @@ export function DashboardScreen() {
   const [showTitleModal, setShowTitleModal] = useState(false);
   const [showSummaryModal, setShowSummaryModal] = useState(false);
   const [titleInput, setTitleInput] = useState("");
+  const [newTagName, setNewTagName] = useState("");
+  const [selectedTagId, setSelectedTagId] = useState<string | undefined>();
+  const [statsTagId, setStatsTagId] = useState<string | undefined>();
+  const [breakdownRange, setBreakdownRange] = useState<TagStatsRange>("today");
   const [summaryInput, setSummaryInput] = useState("");
-  const { data: todayStats } = useTodayStats();
-  const { data: summary } = useStatsSummary();
+  const { data: todayStats } = useTodayStats(statsTagId);
+  const { data: summary } = useStatsSummary(statsTagId);
+  const { data: lifetimeSummary } = useStatsSummary();
   const { data: todaySessions = [] } = useTodaySessions();
+  const { data: tags = [] } = useTags();
+  const { data: tagBreakdown } = useStatsByTag(breakdownRange);
+  const createTag = useCreateTag();
   const { data: settings } = useUserSettings();
   const { isRunning, displayTime, handlePlay, beginPause, completePause } =
     useTimerControls();
   const sessionTitle = useTimerStore((state) => state.sessionTitle);
+  const sessionTagId = useTimerStore((state) => state.tagId);
+  const activeTagName = tags.find((tag) => tag.id === sessionTagId)?.name;
+  const statsFilterLabel = statsTagId
+    ? tags.find((tag) => tag.id === statsTagId)?.name
+    : undefined;
   const colors = useThemeColors();
   const { height: windowHeight } = useWindowDimensions();
   const sessionsModalMaxHeight = windowHeight * 0.7;
@@ -262,18 +330,39 @@ export function DashboardScreen() {
     monthlyGoalEnabled,
     monthlyGoalHours,
   );
-  const bestDayDate = formatBestDayDate(summary?.bestDayDate);
+  const bestDayDate = formatBestDayDate(lifetimeSummary?.bestDayDate);
 
-  const confirmResume = () => {
-    handlePlay(titleInput);
+  const resetPlayModal = () => {
     setTitleInput("");
+    setNewTagName("");
     setShowTitleModal(false);
   };
 
+  const confirmResume = async () => {
+    let tagId = selectedTagId;
+    const pendingName = newTagName.trim();
+    if (pendingName) {
+      try {
+        const tag = await createTag.mutateAsync(pendingName);
+        tagId = tag.id;
+      } catch (err) {
+        console.warn("Failed to create tag", err);
+      }
+    }
+    handlePlay(titleInput, tagId);
+    resetPlayModal();
+  };
+
   const dismissTitleModal = () => {
-    handlePlay();
+    handlePlay(undefined, selectedTagId);
+    resetPlayModal();
+  };
+
+  const openPlayModal = () => {
+    setSelectedTagId(useTimerStore.getState().tagId);
     setTitleInput("");
-    setShowTitleModal(false);
+    setNewTagName("");
+    setShowTitleModal(true);
   };
 
   const confirmPause = () => {
@@ -303,6 +392,19 @@ export function DashboardScreen() {
     onAutoSkip: dismissSummaryModal,
   });
 
+  const addNewTag = async () => {
+    const name = newTagName.trim();
+    if (!name) return;
+    titleSkip.cancelCountdown();
+    try {
+      const tag = await createTag.mutateAsync(name);
+      setSelectedTagId(tag.id);
+      setNewTagName("");
+    } catch (err) {
+      console.warn("Failed to create tag", err);
+    }
+  };
+
   const inputStyle = {
     borderWidth: 1,
     borderColor: colors.border,
@@ -325,6 +427,14 @@ export function DashboardScreen() {
             {sessionTitle ? (
               <ThemedText className="text-lg font-semibold text-center px-4">
                 {sessionTitle}
+              </ThemedText>
+            ) : null}
+            {activeTagName ? (
+              <ThemedText
+                className="text-sm font-medium"
+                style={{ color: colors.accentPurple }}
+              >
+                {activeTagName}
               </ThemedText>
             ) : null}
 
@@ -352,7 +462,7 @@ export function DashboardScreen() {
             <Button
               size="lg"
               onPress={
-                isRunning ? openPauseModal : () => setShowTitleModal(true)
+                isRunning ? openPauseModal : openPlayModal
               }
               className="min-w-[140px]"
             >
@@ -389,6 +499,20 @@ export function DashboardScreen() {
           </View>
         </Card>
 
+        {tags.length > 0 ? (
+          <View className="gap-2">
+            <ThemedText className="text-sm text-neutral-500">
+              Filter stats
+            </ThemedText>
+            <TagChipRow
+              tags={tags}
+              selectedId={statsTagId}
+              onSelect={setStatsTagId}
+              allLabel="All"
+            />
+          </View>
+        ) : null}
+
         <StatCardGrid>
           {[
             <PeriodProgressCard
@@ -398,6 +522,7 @@ export function DashboardScreen() {
               iconBg={colors.accentPurpleBg}
               iconColor={colors.accentPurple}
               progress={todayProgress}
+              filterLabel={statsFilterLabel}
             />,
             <PeriodProgressCard
               key="week"
@@ -406,6 +531,7 @@ export function DashboardScreen() {
               iconBg={colors.accentAmberBg}
               iconColor={colors.accentAmber}
               progress={weekProgress}
+              filterLabel={statsFilterLabel}
             />,
             <PeriodProgressCard
               key="month"
@@ -414,6 +540,7 @@ export function DashboardScreen() {
               iconBg={colors.accentBlueBg}
               iconColor={colors.accentBlue}
               progress={monthProgress}
+              filterLabel={statsFilterLabel}
             />,
             <StatCard
               key="sessions"
@@ -428,7 +555,7 @@ export function DashboardScreen() {
             <StatCard
               key="best-day"
               label="Best Day"
-              value={formatMinutes(summary?.bestDayMinutes ?? 0)}
+              value={formatMinutes(lifetimeSummary?.bestDayMinutes ?? 0)}
               icon={Star}
               iconBg={colors.accentBlueBg}
               iconColor={colors.accentBlue}
@@ -437,18 +564,58 @@ export function DashboardScreen() {
             <StatCard
               key="streak"
               label="Current Streak"
-              value={`${summary?.currentStreakDays ?? 0} days`}
+              value={`${lifetimeSummary?.currentStreakDays ?? 0} days`}
               icon={Flame}
               iconBg={colors.accentRedBg}
               iconColor={colors.accentRed}
               subtitle={
-                (summary?.currentStreakDays ?? 0) > 0
+                (lifetimeSummary?.currentStreakDays ?? 0) > 0
                   ? "Keep it up!"
                   : undefined
               }
             />,
           ]}
         </StatCardGrid>
+
+        <Card glowSubtle className="p-4 gap-3">
+          <ThemedText className="font-semibold">Time by tag</ThemedText>
+          <View className="flex-row flex-wrap gap-2">
+            {(
+              [
+                ["today", "Today"],
+                ["week", "This week"],
+                ["month", "This month"],
+              ] as const
+            ).map(([range, label]) => (
+              <Button
+                key={range}
+                size="sm"
+                label={label}
+                variant={breakdownRange === range ? "default" : "outline"}
+                onPress={() => setBreakdownRange(range)}
+              />
+            ))}
+          </View>
+          {tagBreakdown?.tags.length ? (
+            <View className="gap-2">
+              {tagBreakdown.tags.map((bucket) => (
+                <View
+                  key={bucket.tagId ?? "untagged"}
+                  className="flex-row items-center justify-between"
+                >
+                  <ThemedText>{bucket.tagName}</ThemedText>
+                  <ThemedText className="text-neutral-500">
+                    {formatMinutes(bucket.workedMinutes)}
+                  </ThemedText>
+                </View>
+              ))}
+            </View>
+          ) : (
+            <ThemedText className="text-sm text-neutral-500">
+              No tagged time in this period yet.
+            </ThemedText>
+          )}
+        </Card>
       </ScreenScroll>
 
       <Modal visible={showSessions} transparent animationType="fade">
@@ -499,29 +666,70 @@ export function DashboardScreen() {
           className="flex-1 justify-center p-4"
           style={{ backgroundColor: colors.overlay }}
         >
-          <Card className="p-6 gap-4">
-            <ThemedText className="text-xl font-bold">Session Title</ThemedText>
-            <ThemedText className="text-sm text-neutral-500">
-              Add an optional title for this session.
-            </ThemedText>
-            <TextInput
-              value={titleInput}
-              onChangeText={(text) => {
-                setTitleInput(text);
-                titleSkip.cancelCountdown();
-              }}
-              onFocus={titleSkip.cancelCountdown}
-              placeholder="What are you working on?"
-              placeholderTextColor={colors.muted}
-              style={inputStyle}
-            />
+          <Card className="p-6 gap-4" style={{ maxHeight: windowHeight * 0.8 }}>
+            <ThemedText className="text-xl font-bold">Start session</ThemedText>
+            <ScrollView
+              keyboardShouldPersistTaps="handled"
+              showsVerticalScrollIndicator={false}
+            >
+              <View className="gap-4">
+                <ThemedText className="text-sm text-neutral-500">
+                  Optional title for this session.
+                </ThemedText>
+                <TextInput
+                  value={titleInput}
+                  onChangeText={(text) => {
+                    setTitleInput(text);
+                    titleSkip.cancelCountdown();
+                  }}
+                  onFocus={titleSkip.cancelCountdown}
+                  placeholder="What are you working on?"
+                  placeholderTextColor={colors.muted}
+                  style={inputStyle}
+                />
+                <ThemedText className="text-sm text-neutral-500">
+                  Select a tag or add a new one.
+                </ThemedText>
+                <TagChipRow
+                  tags={tags}
+                  selectedId={selectedTagId}
+                  onSelect={setSelectedTagId}
+                  allLabel="None"
+                  onInteract={titleSkip.cancelCountdown}
+                />
+                <View className="flex-row gap-2">
+                  <TextInput
+                    value={newTagName}
+                    onChangeText={(text) => {
+                      setNewTagName(text);
+                      titleSkip.cancelCountdown();
+                    }}
+                    onFocus={titleSkip.cancelCountdown}
+                    placeholder="New tag name"
+                    placeholderTextColor={colors.muted}
+                    style={[inputStyle, { flex: 1 }]}
+                    onSubmitEditing={() => void addNewTag()}
+                  />
+                  <Button
+                    label="Add"
+                    variant="outline"
+                    disabled={!newTagName.trim() || createTag.isPending}
+                    onPress={() => void addNewTag()}
+                  />
+                </View>
+              </View>
+            </ScrollView>
             <View className="flex-row gap-2 justify-end">
               <Button
                 label={titleSkip.skipLabel}
                 variant="outline"
                 onPress={dismissTitleModal}
               />
-              <Button label="Resume" onPress={confirmResume} />
+              <Button
+                label="Resume"
+                disabled={createTag.isPending}
+                onPress={() => void confirmResume()}
+              />
             </View>
           </Card>
         </View>

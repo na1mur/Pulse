@@ -64,6 +64,11 @@ function HistorySessionRow({
       {session.title ? (
         <ThemedText className="font-semibold">{session.title}</ThemedText>
       ) : null}
+      {session.tagName ? (
+        <ThemedText className="text-xs font-medium" style={{ color: colors.accentPurple }}>
+          {session.tagName}
+        </ThemedText>
+      ) : null}
       <ThemedText className="text-sm text-neutral-500">
         {formatSessionClock(session.startTime, timezone)} →{" "}
         {formatSessionClock(session.endTime, timezone)} ·{" "}

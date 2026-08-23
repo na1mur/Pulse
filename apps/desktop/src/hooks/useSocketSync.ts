@@ -130,6 +130,7 @@ function bindSocketEvents(activeSocket: Socket) {
     queryClientRef?.invalidateQueries({ queryKey: queryKeys.weekStats });
     queryClientRef?.invalidateQueries({ queryKey: queryKeys.weeklyTrend });
     queryClientRef?.invalidateQueries({ queryKey: queryKeys.todaySessions });
+    queryClientRef?.invalidateQueries({ queryKey: queryKeys.statsByTag });
   });
 
   activeSocket.on("timer_reset", () => {
@@ -185,6 +186,7 @@ function bindSocketEvents(activeSocket: Socket) {
     queryClientRef?.invalidateQueries({ queryKey: queryKeys.weekStats });
     queryClientRef?.invalidateQueries({ queryKey: queryKeys.weeklyTrend });
     queryClientRef?.invalidateQueries({ queryKey: queryKeys.todaySessions });
+    queryClientRef?.invalidateQueries({ queryKey: queryKeys.statsByTag });
   });
 
   activeSocket.on("disconnect", () => {
@@ -235,8 +237,8 @@ export function reconnectTimerSocket() {
   connectSocket();
 }
 
-export function startTimer(title?: string) {
-  useTimerStore.getState().startTimer(title);
+export function startTimer(title?: string, tagId?: string) {
+  useTimerStore.getState().startTimer(title, tagId);
   const updatedState = useTimerStore.getState();
   emitTimerEvent("timer_start", {
     startedAt: updatedState.startedAt,

@@ -13,7 +13,7 @@ import { scopedPersistStorage } from "./scopedStorage";
 interface TimerStoreState extends TimerState {
   /** In-memory stamp of the latest authoritative remote timer update. */
   remoteUpdatedAt?: number;
-  startTimer: (title?: string) => void;
+  startTimer: (title?: string, tagId?: string) => void;
   pauseTimer: () => void;
   resetTimer: () => void;
   syncTimerState: (state: TimerState) => void;
@@ -34,7 +34,7 @@ export const useTimerStore = create<TimerStoreState>()(
       sessionTitle: undefined,
       tagId: undefined,
 
-      startTimer: (title?: string) =>
+      startTimer: (title?: string, tagId?: string) =>
         set((state) => {
           if (state.isRunning) return {};
           const today = getLocalDayString();
@@ -44,6 +44,7 @@ export const useTimerStore = create<TimerStoreState>()(
             isRunning: true,
             startedAt: Date.now(),
             sessionTitle: title?.trim() || state.sessionTitle || undefined,
+            tagId: tagId || undefined,
             elapsedBeforeCurrentRun: isNewDay
               ? 0
               : state.elapsedBeforeCurrentRun,

@@ -28,10 +28,13 @@ import {
   progressBarValue,
   type PeriodProgress,
 } from "@repo/utils";
-import type { WorkSession } from "@repo/types";
+import type { TagStatsRange, WorkSession } from "@repo/types";
 import { Input } from "@/components/ui/input";
 import {
+  useCreateTag,
+  useStatsByTag,
   useStatsSummary,
+  useTags,
   useTodaySessions,
   useTodayStats,
   useAutoSkipCountdown,
@@ -76,11 +79,13 @@ function PeriodProgressCard({
   icon: Icon,
   iconClass,
   progress,
+  filterLabel,
 }: {
   label: string;
   icon: LucideIcon;
   iconClass: string;
   progress: PeriodProgress;
+  filterLabel?: string;
 }) {
   return (
     <Card className="p-5 flex flex-col gap-3 h-full glow-purple-subtle border-primary/10">
@@ -91,6 +96,9 @@ function PeriodProgressCard({
       </div>
       <div className="flex-1">
         <p className="text-sm text-muted-foreground">{label}</p>
+        {filterLabel ? (
+          <p className="text-xs text-primary mt-0.5">{filterLabel}</p>
+        ) : null}
         <div className="flex items-end justify-between gap-2 mt-1">
           <div className="text-2xl font-bold text-foreground">
             {formatMinutes(progress.workedMinutes)}
@@ -183,6 +191,9 @@ function SessionRow({
       {session.title ? (
         <p className="font-semibold text-foreground mb-1">{session.title}</p>
       ) : null}
+      {session.tagName ? (
+        <p className="text-xs font-medium text-primary mb-1">{session.tagName}</p>
+      ) : null}
       <div className="flex items-center gap-3 mb-2">
         <Clock className="w-4 h-4 text-primary" />
         <span className="font-medium text-foreground">
@@ -194,6 +205,50 @@ function SessionRow({
         Duration: {formatDurationSeconds(getSessionDurationSeconds(session))}
       </div>
       {session.summary ? <ExpandableSummary text={session.summary} /> : null}
+    </div>
+  );
+}
+
+function TagChipRow({
+  tags,
+  selectedId,
+  onSelect,
+  allLabel,
+  onInteract,
+}: {
+  tags: { id: string; name: string }[];
+  selectedId?: string;
+  onSelect: (id: string | undefined) => void;
+  allLabel: string;
+  onInteract?: () => void;
+}) {
+  return (
+    <div className="flex flex-wrap gap-2">
+      <Button
+        type="button"
+        size="sm"
+        variant={selectedId ? "outline" : "default"}
+        onClick={() => {
+          onInteract?.();
+          onSelect(undefined);
+        }}
+      >
+        {allLabel}
+      </Button>
+      {tags.map((tag) => (
+        <Button
+          key={tag.id}
+          type="button"
+          size="sm"
+          variant={selectedId === tag.id ? "default" : "outline"}
+          onClick={() => {
+            onInteract?.();
+            onSelect(tag.id);
+          }}
+        >
+          {tag.name}
+        </Button>
+      ))}
     </div>
   );
 }
@@ -210,13 +265,26 @@ export function DashboardPage({
   const [showTitleModal, setShowTitleModal] = useState(false);
   const [showSummaryModal, setShowSummaryModal] = useState(false);
   const [titleInput, setTitleInput] = useState("");
+  const [newTagName, setNewTagName] = useState("");
+  const [selectedTagId, setSelectedTagId] = useState<string | undefined>();
+  const [statsTagId, setStatsTagId] = useState<string | undefined>();
+  const [breakdownRange, setBreakdownRange] = useState<TagStatsRange>("today");
   const [summaryInput, setSummaryInput] = useState("");
-  const { data: todayStats } = useTodayStats();
-  const { data: summary } = useStatsSummary();
+  const { data: todayStats } = useTodayStats(statsTagId);
+  const { data: summary } = useStatsSummary(statsTagId);
+  const { data: lifetimeSummary } = useStatsSummary();
   const { data: todaySessions = [] } = useTodaySessions();
+  const { data: tags = [] } = useTags();
+  const { data: tagBreakdown } = useStatsByTag(breakdownRange);
+  const createTag = useCreateTag();
   const { isRunning, displayTime, handlePlay, beginPause, completePause } =
     useTimerControls();
   const sessionTitle = useTimerStore((state) => state.sessionTitle);
+  const sessionTagId = useTimerStore((state) => state.tagId);
+  const activeTagName = tags.find((tag) => tag.id === sessionTagId)?.name;
+  const statsFilterLabel = statsTagId
+    ? tags.find((tag) => tag.id === statsTagId)?.name
+    : undefined;
 
   const timezone = getDisplayTimezone();
   const todayProgress = getPeriodProgress(
@@ -234,18 +302,39 @@ export function DashboardPage({
     monthlyGoalEnabled,
     monthlyGoalHours,
   );
-  const bestDayDate = formatBestDayDate(summary?.bestDayDate);
+  const bestDayDate = formatBestDayDate(lifetimeSummary?.bestDayDate);
 
-  const confirmResume = () => {
-    handlePlay(titleInput);
+  const resetPlayModal = () => {
     setTitleInput("");
+    setNewTagName("");
     setShowTitleModal(false);
   };
 
+  const confirmResume = async () => {
+    let tagId = selectedTagId;
+    const pendingName = newTagName.trim();
+    if (pendingName) {
+      try {
+        const tag = await createTag.mutateAsync(pendingName);
+        tagId = tag.id;
+      } catch (err) {
+        console.warn("Failed to create tag", err);
+      }
+    }
+    handlePlay(titleInput, tagId);
+    resetPlayModal();
+  };
+
   const dismissTitleModal = () => {
-    handlePlay();
+    handlePlay(undefined, selectedTagId);
+    resetPlayModal();
+  };
+
+  const openPlayModal = () => {
+    setSelectedTagId(useTimerStore.getState().tagId);
     setTitleInput("");
-    setShowTitleModal(false);
+    setNewTagName("");
+    setShowTitleModal(true);
   };
 
   const confirmPause = () => {
@@ -275,6 +364,19 @@ export function DashboardPage({
     onAutoSkip: dismissSummaryModal,
   });
 
+  const addNewTag = async () => {
+    const name = newTagName.trim();
+    if (!name) return;
+    titleSkip.cancelCountdown();
+    try {
+      const tag = await createTag.mutateAsync(name);
+      setSelectedTagId(tag.id);
+      setNewTagName("");
+    } catch (err) {
+      console.warn("Failed to create tag", err);
+    }
+  };
+
   return (
     <div className="space-y-6 w-full">
       <Card className="relative overflow-hidden p-8 md:p-12 glow-purple border-primary/20">
@@ -288,6 +390,9 @@ export function DashboardPage({
             <p className="text-lg font-semibold text-foreground px-4">
               {sessionTitle}
             </p>
+          ) : null}
+          {activeTagName ? (
+            <p className="text-sm font-medium text-primary">{activeTagName}</p>
           ) : null}
 
           <div
@@ -321,7 +426,7 @@ export function DashboardPage({
             <Button
               size="lg"
               className="gap-2 min-w-[140px]"
-              onClick={() => setShowTitleModal(true)}
+              onClick={openPlayModal}
             >
               <Play className="w-4 h-4" />
               Play
@@ -329,6 +434,18 @@ export function DashboardPage({
           )}
         </div>
       </Card>
+
+      {tags.length > 0 ? (
+        <div className="flex flex-wrap items-center gap-3">
+          <p className="text-sm text-muted-foreground">Filter stats</p>
+          <TagChipRow
+            tags={tags}
+            selectedId={statsTagId}
+            onSelect={setStatsTagId}
+            allLabel="All"
+          />
+        </div>
+      ) : null}
 
       <StatCardGrid>
         {[
@@ -338,6 +455,7 @@ export function DashboardPage({
             icon={Calendar}
             iconClass="stat-icon-purple"
             progress={todayProgress}
+            filterLabel={statsFilterLabel}
           />,
           <PeriodProgressCard
             key="week"
@@ -345,6 +463,7 @@ export function DashboardPage({
             icon={FolderOpen}
             iconClass="stat-icon-amber"
             progress={weekProgress}
+            filterLabel={statsFilterLabel}
           />,
           <PeriodProgressCard
             key="month"
@@ -352,6 +471,7 @@ export function DashboardPage({
             icon={CalendarDays}
             iconClass="stat-icon-blue"
             progress={monthProgress}
+            filterLabel={statsFilterLabel}
           />,
           <StatCard
             key="sessions"
@@ -365,7 +485,7 @@ export function DashboardPage({
           <StatCard
             key="best-day"
             label="Best Day"
-            value={formatMinutes(summary?.bestDayMinutes ?? 0)}
+            value={formatMinutes(lifetimeSummary?.bestDayMinutes ?? 0)}
             icon={Star}
             iconClass="stat-icon-blue"
             subtitle={bestDayDate ?? undefined}
@@ -373,15 +493,59 @@ export function DashboardPage({
           <StatCard
             key="streak"
             label="Current Streak"
-            value={`${summary?.currentStreakDays ?? 0} days`}
+            value={`${lifetimeSummary?.currentStreakDays ?? 0} days`}
             icon={Flame}
             iconClass="stat-icon-red"
             subtitle={
-              (summary?.currentStreakDays ?? 0) > 0 ? "Keep it up!" : undefined
+              (lifetimeSummary?.currentStreakDays ?? 0) > 0 ? "Keep it up!" : undefined
             }
           />,
         ]}
       </StatCardGrid>
+
+      <Card className="p-5 glow-purple-subtle border-primary/10">
+        <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
+          <p className="font-semibold text-foreground">Time by tag</p>
+          <div className="flex gap-2">
+            {(
+              [
+                ["today", "Today"],
+                ["week", "This week"],
+                ["month", "This month"],
+              ] as const
+            ).map(([range, label]) => (
+              <Button
+                key={range}
+                type="button"
+                size="sm"
+                variant={breakdownRange === range ? "default" : "outline"}
+                onClick={() => setBreakdownRange(range)}
+              >
+                {label}
+              </Button>
+            ))}
+          </div>
+        </div>
+        {tagBreakdown?.tags.length ? (
+          <div className="space-y-2">
+            {tagBreakdown.tags.map((bucket) => (
+              <div
+                key={bucket.tagId ?? "untagged"}
+                className="flex items-center justify-between gap-3 text-sm"
+              >
+                <span className="text-foreground">{bucket.tagName}</span>
+                <span className="font-medium tabular-nums text-muted-foreground">
+                  {formatMinutes(bucket.workedMinutes)}
+                </span>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <p className="text-sm text-muted-foreground">
+            No tagged time in this period yet.
+          </p>
+        )}
+      </Card>
 
       <AppDialog
         open={showSessions}
@@ -413,30 +577,73 @@ export function DashboardPage({
       <AppDialog
         open={showTitleModal}
         onClose={dismissTitleModal}
-        title="Session Title"
+        title="Start session"
         maxWidthClassName="max-w-md"
-        scrollable={false}
+        scrollable
         footer={
           <>
             <Button variant="outline" onClick={dismissTitleModal}>
               {titleSkip.skipLabel}
             </Button>
-            <Button onClick={confirmResume}>Resume</Button>
+            <Button onClick={() => void confirmResume()} disabled={createTag.isPending}>
+              Resume
+            </Button>
           </>
         }
       >
-        <p className="text-sm text-muted-foreground mb-4">
-          Add an optional title for this session.
-        </p>
-        <Input
-          value={titleInput}
-          onChange={(e) => {
-            setTitleInput(e.target.value);
-            titleSkip.cancelCountdown();
-          }}
-          onFocus={titleSkip.cancelCountdown}
-          placeholder="What are you working on?"
-        />
+        <div className="space-y-4">
+          <div>
+            <p className="text-sm text-muted-foreground mb-2">
+              Optional title for this session.
+            </p>
+            <Input
+              value={titleInput}
+              onChange={(e) => {
+                setTitleInput(e.target.value);
+                titleSkip.cancelCountdown();
+              }}
+              onFocus={titleSkip.cancelCountdown}
+              placeholder="What are you working on?"
+            />
+          </div>
+          <div>
+            <p className="text-sm text-muted-foreground mb-2">
+              Select a tag or add a new one.
+            </p>
+            <TagChipRow
+              tags={tags}
+              selectedId={selectedTagId}
+              onSelect={setSelectedTagId}
+              allLabel="None"
+              onInteract={titleSkip.cancelCountdown}
+            />
+            <div className="flex gap-2 mt-3">
+              <Input
+                value={newTagName}
+                onChange={(e) => {
+                  setNewTagName(e.target.value);
+                  titleSkip.cancelCountdown();
+                }}
+                onFocus={titleSkip.cancelCountdown}
+                placeholder="New tag name"
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    e.preventDefault();
+                    void addNewTag();
+                  }
+                }}
+              />
+              <Button
+                type="button"
+                variant="outline"
+                disabled={!newTagName.trim() || createTag.isPending}
+                onClick={() => void addNewTag()}
+              >
+                Add
+              </Button>
+            </div>
+          </div>
+        </div>
       </AppDialog>
 
       <AppDialog

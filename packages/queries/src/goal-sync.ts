@@ -40,4 +40,5 @@ export function applyRemoteGoalUpdate(
   queryClient.invalidateQueries({ queryKey: queryKeys.statsSummary });
   queryClient.invalidateQueries({ queryKey: queryKeys.weekStats });
   queryClient.invalidateQueries({ queryKey: queryKeys.weeklyTrend });
+  queryClient.invalidateQueries({ queryKey: queryKeys.statsByTag });
 }

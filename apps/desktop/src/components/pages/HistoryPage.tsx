@@ -77,6 +77,9 @@ export function HistoryPage() {
                   Title
                 </th>
                 <th className="px-6 py-3 text-left text-sm font-semibold text-foreground">
+                  Tag
+                </th>
+                <th className="px-6 py-3 text-left text-sm font-semibold text-foreground">
                   Start Time
                 </th>
                 <th className="px-6 py-3 text-left text-sm font-semibold text-foreground">
@@ -94,7 +97,7 @@ export function HistoryPage() {
               {isLoading ? (
                 <tr>
                   <td
-                    colSpan={6}
+                    colSpan={7}
                     className="px-6 py-8 text-center text-sm text-muted-foreground"
                   >
                     Loading sessions...
@@ -103,7 +106,7 @@ export function HistoryPage() {
               ) : isError ? (
                 <tr>
                   <td
-                    colSpan={6}
+                    colSpan={7}
                     className="px-6 py-8 text-center text-sm text-destructive"
                   >
                     Failed to load sessions. Please try again.
@@ -112,7 +115,7 @@ export function HistoryPage() {
               ) : sessions.length === 0 ? (
                 <tr>
                   <td
-                    colSpan={6}
+                    colSpan={7}
                     className="px-6 py-8 text-center text-sm text-muted-foreground"
                   >
                     No sessions found for this period.
@@ -134,6 +137,9 @@ export function HistoryPage() {
                       </td>
                       <td className="px-6 py-4 text-sm text-foreground">
                         {session.title || "—"}
+                      </td>
+                      <td className="px-6 py-4 text-sm text-foreground">
+                        {session.tagName || "—"}
                       </td>
                       <td className="px-6 py-4 text-sm text-foreground">
                         {formatSessionClock(session.startTime, timezone)}

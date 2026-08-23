@@ -45,6 +45,7 @@ export function useTimerControls() {
     queryClient.invalidateQueries({ queryKey: queryKeys.weeklyTrend });
     queryClient.invalidateQueries({ queryKey: queryKeys.todaySessions });
     queryClient.invalidateQueries({ queryKey: ["sessions"] });
+    queryClient.invalidateQueries({ queryKey: queryKeys.statsByTag });
   }, [queryClient]);
 
   const saveSession = useCallback(
@@ -139,12 +140,12 @@ export function useTimerControls() {
     return () => clearInterval(interval);
   }, [isRunning, startedAt, elapsedBeforeCurrentRun, lastActiveDate]);
 
-  const handlePlay = (title?: string) => {
+  const handlePlay = (title?: string, tagId?: string) => {
     const trimmed = title?.trim() || undefined;
     if (trimmed) {
       useTimerStore.setState({ sessionTitle: trimmed });
     }
-    startTimer(trimmed);
+    startTimer(trimmed, tagId);
   };
 
   const beginPause = () => {

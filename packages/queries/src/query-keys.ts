@@ -1,4 +1,4 @@
-import type { SessionRange } from "@repo/types";
+import type { SessionRange, TagStatsRange } from "@repo/types";
 
 export const queryKeys = {
   todayStats: ["todayStats"] as const,
@@ -8,6 +8,9 @@ export const queryKeys = {
   todaySessions: ["todaySessions"] as const,
   sessions: (range: SessionRange) => ["sessions", range] as const,
   settings: ["settings"] as const,
+  tags: ["tags"] as const,
+  statsByTag: ["statsByTag"] as const,
+  statsByTagRange: (range: TagStatsRange) => ["statsByTag", range] as const,
 };
 
 export const pulseQueryKeys = [
@@ -17,4 +20,6 @@ export const pulseQueryKeys = [
   queryKeys.weeklyTrend,
   queryKeys.todaySessions,
   queryKeys.settings,
+  queryKeys.tags,
+  queryKeys.statsByTag,
 ] as const;

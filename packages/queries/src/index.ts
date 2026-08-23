@@ -9,6 +9,9 @@ import type {
   PaginatedSessionsResponse,
   SessionRange,
   StatsSummary,
+  Tag,
+  TagStatsBreakdown,
+  TagStatsRange,
   TodayStats,
   UserSettings,
   WeeklyStatsPoint,
@@ -57,19 +60,64 @@ export {
   resetGoalAchievementDedup,
 } from "./goal-achievements";
 
-export function useTodayStats() {
+export function useTodayStats(tagId?: string) {
   const api = useApi();
   return useQuery<TodayStats>({
-    queryKey: queryKeys.todayStats,
-    queryFn: async () => (await api.get("/stats/today")).data,
+    queryKey: tagId ? [...queryKeys.todayStats, tagId] : queryKeys.todayStats,
+    queryFn: async () =>
+      (
+        await api.get("/stats/today", {
+          params: tagId ? { tagId } : undefined,
+        })
+      ).data,
   });
 }
 
-export function useStatsSummary() {
+export function useStatsSummary(tagId?: string) {
   const api = useApi();
   return useQuery<StatsSummary>({
-    queryKey: queryKeys.statsSummary,
-    queryFn: async () => (await api.get("/stats/summary")).data,
+    queryKey: tagId
+      ? [...queryKeys.statsSummary, tagId]
+      : queryKeys.statsSummary,
+    queryFn: async () =>
+      (
+        await api.get("/stats/summary", {
+          params: tagId ? { tagId } : undefined,
+        })
+      ).data,
+  });
+}
+
+export function useTags() {
+  const api = useApi();
+  return useQuery<Tag[]>({
+    queryKey: queryKeys.tags,
+    queryFn: async () => (await api.get("/tags")).data,
+  });
+}
+
+export function useCreateTag() {
+  const api = useApi();
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (name: string) =>
+      (await api.post("/tags", { name })).data as Tag,
+    onSuccess: (tag) => {
+      queryClient.setQueryData<Tag[]>(queryKeys.tags, (prev) => {
+        if (!prev) return [tag];
+        if (prev.some((existing) => existing.id === tag.id)) return prev;
+        return [...prev, tag].sort((a, b) => a.name.localeCompare(b.name));
+      });
+    },
+  });
+}
+
+export function useStatsByTag(range: TagStatsRange) {
+  const api = useApi();
+  return useQuery<TagStatsBreakdown>({
+    queryKey: queryKeys.statsByTagRange(range),
+    queryFn: async () =>
+      (await api.get("/stats/by-tag", { params: { range } })).data,
   });
 }
 
@@ -172,6 +220,7 @@ export function useUpdateDailyTarget() {
       queryClient.invalidateQueries({ queryKey: queryKeys.statsSummary });
       queryClient.invalidateQueries({ queryKey: queryKeys.weekStats });
       queryClient.invalidateQueries({ queryKey: queryKeys.weeklyTrend });
+      queryClient.invalidateQueries({ queryKey: queryKeys.statsByTag });
     },
   });
 }
@@ -187,6 +236,7 @@ export function useUpdateWeeklyTarget() {
       mergeGoalSettingsIntoCache(queryClient, data, data);
       void syncGoalSettingsToLocal(data);
       queryClient.invalidateQueries({ queryKey: queryKeys.statsSummary });
+      queryClient.invalidateQueries({ queryKey: queryKeys.statsByTag });
     },
   });
 }
@@ -202,6 +252,7 @@ export function useUpdateMonthlyTarget() {
       mergeGoalSettingsIntoCache(queryClient, data, data);
       void syncGoalSettingsToLocal(data);
       queryClient.invalidateQueries({ queryKey: queryKeys.statsSummary });
+      queryClient.invalidateQueries({ queryKey: queryKeys.statsByTag });
     },
   });
 }
@@ -220,6 +271,7 @@ export function useUpdateTimezone() {
       queryClient.invalidateQueries({ queryKey: queryKeys.statsSummary });
       queryClient.invalidateQueries({ queryKey: queryKeys.weekStats });
       queryClient.invalidateQueries({ queryKey: queryKeys.weeklyTrend });
+      queryClient.invalidateQueries({ queryKey: queryKeys.statsByTag });
     },
   });
 }
