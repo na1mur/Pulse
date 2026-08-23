@@ -17,6 +17,7 @@ import {
   startTimer,
   pauseTimer,
   syncTimerStartFromState,
+  syncTimerResetToServer,
 } from "@/hooks/useSocketSync";
 import { api } from "@/utils/api";
 
@@ -30,7 +31,8 @@ interface PendingPauseSession {
 export function useTimerControls() {
   const queryClient = useQueryClient();
   const { data: todayStats } = useTodayStats();
-  const { isRunning, startedAt, elapsedBeforeCurrentRun } = useTimerStore();
+  const { isRunning, startedAt, elapsedBeforeCurrentRun, lastActiveDate } =
+    useTimerStore();
   const { addPendingSession } = useOfflineStore();
   const [localElapsed, setLocalElapsed] = useState(0);
   const pendingPauseRef = useRef<PendingPauseSession | null>(null);
@@ -68,10 +70,11 @@ export function useTimerControls() {
     if (dayChangeRunningRef.current) return;
     const state = useTimerStore.getState();
     const today = getLocalDayString();
-    if (!state.lastActiveDate || state.lastActiveDate === today) {
-      if (state.lastActiveDate !== today) {
-        useTimerStore.setState({ lastActiveDate: today });
-      }
+    if (!state.lastActiveDate) {
+      useTimerStore.setState({ lastActiveDate: today });
+      return;
+    }
+    if (state.lastActiveDate === today) {
       return;
     }
 
@@ -81,6 +84,8 @@ export function useTimerControls() {
       useTimerStore.setState(next);
       if (next.isRunning) {
         syncTimerStartFromState();
+      } else {
+        syncTimerResetToServer();
       }
     } finally {
       dayChangeRunningRef.current = false;
@@ -108,7 +113,14 @@ export function useTimerControls() {
 
   useEffect(() => {
     if (!isRunning) {
-      setLocalElapsed(elapsedBeforeCurrentRun);
+      setLocalElapsed(
+        getTodayTimerDisplayMs({
+          isRunning,
+          startedAt,
+          elapsedBeforeCurrentRun,
+          lastActiveDate,
+        }),
+      );
       return;
     }
 
@@ -118,6 +130,7 @@ export function useTimerControls() {
           isRunning,
           startedAt,
           elapsedBeforeCurrentRun,
+          lastActiveDate,
         }),
       );
     };
@@ -125,7 +138,7 @@ export function useTimerControls() {
     update();
     const interval = setInterval(update, 100);
     return () => clearInterval(interval);
-  }, [isRunning, startedAt, elapsedBeforeCurrentRun]);
+  }, [isRunning, startedAt, elapsedBeforeCurrentRun, lastActiveDate]);
 
   const handlePlay = (title?: string) => {
     const trimmed = title?.trim() || undefined;

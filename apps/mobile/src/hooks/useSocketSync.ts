@@ -11,6 +11,7 @@ import {
 } from "@repo/queries";
 import type { GoalAchievementEvent } from "@repo/types";
 import { refreshTokens } from "@repo/api-client";
+import { getLocalDayString } from "@repo/utils";
 import { api, tokenStorage, setTokenRefreshHandler } from "@/utils/api";
 import { useTimerStore } from "../store/useTimerStore";
 
@@ -54,12 +55,16 @@ function applySocketTimerState(state: {
   sessionTitle?: string;
   updatedAt?: string;
 }) {
+  const lastActiveDate = state.updatedAt
+    ? getLocalDayString(new Date(state.updatedAt))
+    : undefined;
   useTimerStore.getState().applyRemoteTimerState(
     {
       isRunning: state.isRunning,
       startedAt: state.startedAt,
       elapsedBeforeCurrentRun: state.elapsedBeforeCurrentRun,
       sessionTitle: state.sessionTitle,
+      lastActiveDate,
     },
     parseRemoteUpdatedAt(state.updatedAt),
   );
@@ -227,6 +232,11 @@ export function syncTimerStartFromState() {
 
 export function resetTimerSync() {
   useTimerStore.getState().resetTimer();
+  emitTimerEvent("timer_reset", { deviceId: DEVICE_ID });
+}
+
+/** Sync a day-boundary reset to the server without changing local timer state. */
+export function syncTimerResetToServer() {
   emitTimerEvent("timer_reset", { deviceId: DEVICE_ID });
 }
 

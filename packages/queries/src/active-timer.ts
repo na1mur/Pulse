@@ -1,13 +1,18 @@
 import type { AxiosInstance } from "axios";
 import type { ActiveTimerState, TimerState } from "@repo/types";
+import { getLocalDayString } from "@repo/utils";
 
 export function activeTimerToTimerState(timer: ActiveTimerState): TimerState {
+  const lastActiveDate = timer.updatedAt
+    ? getLocalDayString(new Date(timer.updatedAt))
+    : undefined;
+
   return {
     isRunning: timer.isRunning,
     startedAt: timer.startedAt,
     elapsedBeforeCurrentRun: timer.elapsedBeforeCurrentRun,
     sessionTitle: timer.sessionTitle ?? undefined,
-    lastActiveDate: new Date().toDateString(),
+    lastActiveDate,
   };
 }
 
@@ -49,13 +54,30 @@ export async function reconcileActiveTimer(
     if (getLocalState) {
       const local = getLocalState();
       if (!remote.isRunning && !local.isRunning) {
+        const today = getLocalDayString();
+        const localDay = local.lastActiveDate ?? today;
+        const remoteDay = remote.lastActiveDate ?? today;
+
+        let elapsed = remote.elapsedBeforeCurrentRun;
+        if (localDay === today && remoteDay !== today) {
+          elapsed = local.elapsedBeforeCurrentRun;
+        } else if (localDay === today && remoteDay === today) {
+          elapsed = Math.max(
+            local.elapsedBeforeCurrentRun,
+            remote.elapsedBeforeCurrentRun,
+          );
+        } else if (localDay !== today && remoteDay === today) {
+          elapsed = remote.elapsedBeforeCurrentRun;
+        } else {
+          elapsed = 0;
+        }
+
         applyRemote(
           {
             ...remote,
-            elapsedBeforeCurrentRun: Math.max(
-              local.elapsedBeforeCurrentRun,
-              remote.elapsedBeforeCurrentRun,
-            ),
+            elapsedBeforeCurrentRun: elapsed,
+            lastActiveDate:
+              localDay === today || remoteDay === today ? today : localDay,
           },
           serverMs,
         );

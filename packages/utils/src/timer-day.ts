@@ -20,7 +20,19 @@ export function getTodayTimerDisplayMs(state: {
   isRunning: boolean;
   startedAt?: number;
   elapsedBeforeCurrentRun: number;
+  lastActiveDate?: string;
 }): number {
+  const today = getLocalDayString();
+  if (state.lastActiveDate && state.lastActiveDate !== today) {
+    if (state.isRunning && state.startedAt) {
+      const todayStart = getStartOfLocalDayMs();
+      return state.startedAt < todayStart
+        ? Date.now() - todayStart
+        : Date.now() - state.startedAt;
+    }
+    return 0;
+  }
+
   if (state.isRunning && state.startedAt) {
     return state.elapsedBeforeCurrentRun + (Date.now() - state.startedAt);
   }

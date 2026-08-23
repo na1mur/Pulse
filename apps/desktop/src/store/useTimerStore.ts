@@ -14,12 +14,11 @@ interface TimerStoreState extends TimerState {
   resetTimer: () => void;
   syncTimerState: (state: TimerState) => void;
   applyRemoteTimerState: (state: TimerState, remoteUpdatedAt?: number) => void;
-  checkDayChange: () => void;
 }
 
 export const useTimerStore = create<TimerStoreState>()(
   persist(
-    (set, get) => ({
+    (set) => ({
       isRunning: false,
       startedAt: undefined,
       elapsedBeforeCurrentRun: 0,
@@ -29,11 +28,17 @@ export const useTimerStore = create<TimerStoreState>()(
       startTimer: (title?: string) =>
         set((state) => {
           if (state.isRunning) return {};
+          const today = getLocalDayString();
+          const isNewDay =
+            !!state.lastActiveDate && state.lastActiveDate !== today;
           return {
             isRunning: true,
             startedAt: Date.now(),
             sessionTitle: title?.trim() || state.sessionTitle || undefined,
-            lastActiveDate: getLocalDayString(),
+            elapsedBeforeCurrentRun: isNewDay
+              ? 0
+              : state.elapsedBeforeCurrentRun,
+            lastActiveDate: today,
           };
         }),
 
@@ -75,25 +80,51 @@ export const useTimerStore = create<TimerStoreState>()(
             return state;
           }
 
+          const today = getLocalDayString();
+          const incomingDay =
+            incoming.lastActiveDate ??
+            (remoteUpdatedAt
+              ? getLocalDayString(new Date(remoteUpdatedAt))
+              : today);
+
+          // Keep a same-day local timer, or an already-rolled reset. Only realign the
+          // day marker when local elapsed still matches stale server data.
+          if (state.lastActiveDate === today && incomingDay !== today) {
+            if (
+              state.elapsedBeforeCurrentRun === 0 ||
+              state.elapsedBeforeCurrentRun !==
+                incoming.elapsedBeforeCurrentRun
+            ) {
+              return { ...state, remoteUpdatedAt: nextUpdatedAt };
+            }
+
+            return {
+              ...state,
+              lastActiveDate: incomingDay,
+              remoteUpdatedAt: nextUpdatedAt,
+            };
+          }
+
+          if (incomingDay === today) {
+            return {
+              isRunning: incoming.isRunning,
+              startedAt: incoming.isRunning ? incoming.startedAt : undefined,
+              elapsedBeforeCurrentRun: incoming.elapsedBeforeCurrentRun,
+              sessionTitle: incoming.sessionTitle,
+              lastActiveDate: today,
+              remoteUpdatedAt: nextUpdatedAt,
+            };
+          }
+
           return {
             isRunning: incoming.isRunning,
             startedAt: incoming.isRunning ? incoming.startedAt : undefined,
-            elapsedBeforeCurrentRun: incoming.elapsedBeforeCurrentRun,
-            sessionTitle: incoming.sessionTitle,
-            lastActiveDate: getLocalDayString(),
+            elapsedBeforeCurrentRun: state.elapsedBeforeCurrentRun,
+            sessionTitle: incoming.sessionTitle ?? state.sessionTitle,
+            lastActiveDate: state.lastActiveDate ?? incomingDay,
             remoteUpdatedAt: nextUpdatedAt,
           };
         }),
-
-      checkDayChange: () => {
-        const today = getLocalDayString();
-        const state = get();
-        if (!state.lastActiveDate || state.lastActiveDate === today) {
-          if (state.lastActiveDate !== today) {
-            set({ lastActiveDate: today });
-          }
-        }
-      },
     }),
     {
       name: PERSIST_STORE_KEYS.timer,

@@ -9,6 +9,16 @@ export function mergeTimerStates(
   const localDate = local.lastActiveDate ?? today;
   const remoteDate = remote.lastActiveDate ?? today;
 
+  if (localDate !== today && remoteDate !== today) {
+    return {
+      isRunning: false,
+      startedAt: undefined,
+      elapsedBeforeCurrentRun: 0,
+      lastActiveDate: localDate,
+      sessionTitle: remote.sessionTitle ?? local.sessionTitle,
+    };
+  }
+
   if (localDate === today && remoteDate !== today) {
     return { ...local, lastActiveDate: today };
   }
@@ -36,13 +46,18 @@ export function mergeTimerStates(
     return { ...local, lastActiveDate: today };
   }
 
+  const elapsed =
+    localDate === today && remoteDate === today
+      ? Math.max(
+          local.elapsedBeforeCurrentRun,
+          remote.elapsedBeforeCurrentRun,
+        )
+      : 0;
+
   return {
     isRunning: false,
     startedAt: undefined,
-    elapsedBeforeCurrentRun: Math.max(
-      local.elapsedBeforeCurrentRun,
-      remote.elapsedBeforeCurrentRun,
-    ),
+    elapsedBeforeCurrentRun: elapsed,
     lastActiveDate: today,
     sessionTitle: remote.sessionTitle ?? local.sessionTitle,
   };
