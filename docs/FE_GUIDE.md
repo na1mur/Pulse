@@ -8,7 +8,7 @@ The single place for how Pulse looks and behaves, on desktop (Svelte) and Androi
 - Each owner decision gets a row in the decision log (section 10) **and** a short rule in the matching section, citing its `FE-NNN` ID.
 - Rules taken from the spec cite the spec ID instead of repeating its detail (`docs/REBUILD_SPEC.md` section 10 and the rules it references). The owner's PRD (`docs/product/PRD.md`, `US-x.y`) is the source of FE-001..FE-009.
 
-Status: 2026-10-24. Spec-derived rules plus the UI decisions the owner made in the PRD (FE-001..FE-009); palette values, type, radii, motion and component details are still open.
+Status: 2026-10-24. Spec-derived rules plus the UI decisions the owner made in the PRD (FE-001..FE-009) and on the session-dialog edge cases (FE-010..FE-012); palette values, type, radii, motion and component details are still open.
 
 ## 1. Principles
 
@@ -35,12 +35,12 @@ _Owner decisions:_ FE-002, FE-005. Still open: exact palette values (including t
 Components to own (spec 10.4): Button (incl. solid destructive), IconButton, Input, Textarea, DurationInput, Select/Combobox (tag picker with search and create), Switch, Checkbox, SegmentedControl, Dialog (incl. the session dialog), Drawer, Popover, Toast (with actions), Tooltip, TagChip, ProgressBar, List/Table (virtualised), EmptyState, Skeleton, Banner; charts: stacked bars with a reference line, day timeline, calendar heatmap, line chart.
 
 - **TagChip:** the tag's name on or next to its category colour; never the category name (FE-001).
-- **Session dialog** (start and summary): visible 5 s countdown, cancelled by any interaction (FE-003, R-48).
+- **Session dialog** (start and summary): visible 5 s countdown, cancelled by any interaction (FE-003, R-48). Close keeps the values from when the dialog opened (FE-010); a change on another device saves what was typed and closes it (FE-011); an archived tag is never pre-filled, the title still is (FE-012).
 - **Tag picker:** active tags only, in category colours, with "+ New tag" (name + category) inline (TAG-02, R-07).
 
 For each component, record here once decided: variants, sizes, states (default, hover, focus, active, disabled, loading, error), keyboard behaviour, and the desktop vs Android mapping.
 
-_Owner decisions:_ FE-001, FE-003.
+_Owner decisions:_ FE-001, FE-003, FE-010..FE-012.
 
 ## 4. Layout and navigation
 
@@ -88,7 +88,7 @@ _Owner decisions:_ FE-003, FE-005..FE-009.
 - Optimistic UI: start/pause feedback under 100 ms (TIM-01, spec 9.3).
 - Only the clock text redraws every second (spec 9.3).
 - Timer state changes and sync status are announced politely; never every second, including the dialog countdown (spec 9.4).
-- An open session dialog closes when the session changes on another device (SYNC-06, R-48).
+- An open session dialog saves what was typed and closes when the session changes on another device (SYNC-06, R-48, FE-011).
 
 ## 7. Accessibility
 
@@ -122,14 +122,14 @@ _Owner decisions:_ none yet beyond the PRD stories cited.
 | FE-007 | 2026-10-24 | Stats charts | Set by the owner in the PRD (US-11.1, US-11.3, US-11.4) | Day: 24 h timeline by category; week/month: stacked bars by category with the daily-goal line; month: goal-day heatmap; credits: balance-over-time line | Stats page |
 | FE-008 | 2026-10-24 | Confirm or undo for destructive actions | Set by the owner in the PRD (US-5.5, US-6.3, US-6.5, US-4.6); replaces the pre-PRD "prefer undo" rule | Confirm, and say what changes; deleting an account requires typing DELETE | Delete session, delete tag, recategorize, delete account |
 | FE-009 | 2026-10-24 | Offline indicator | Set by the owner in the PRD (US-9.2) | A small "Offline – will sync" indicator while the outbox is not empty | Timer bar, Today |
+| FE-010 | 2026-10-24 | What Close does in a session dialog (D-25) | Keep the values from when the dialog opened · clear title and tag · save edits like Confirm | Keep the values from when the dialog opened (the pre-filled ones); the summary dialog's Close saves an empty summary | Session dialogs |
+| FE-011 | 2026-10-24 | Text typed in a dialog when the session changes on another device (D-25) | Save it to that session · discard it | Save it to that session, then close | Session dialogs |
+| FE-012 | 2026-10-24 | Pre-fill when the last session's tag is archived (D-25) | Title only · keep the archived tag | Pre-fill the title only | Start dialog |
 
 ## 11. Open questions
 
-Decisions noticed but not yet put to the owner (for example when working unattended). Each moves to the decision log once answered. Rows marked *assumed* are written into the spec as proposals (spec D-25, marked "proposed" in R-07 and R-48); confirm or change them.
+Decisions noticed but not yet put to the owner (for example when working unattended). Each moves to the decision log once answered.
 
 | Question | Where it came up | Options so far |
 |---|---|---|
 | Which timer is larger on the main screen: the current session or the day total? (D-02) | PRD US-5.1 lists both without an order | Day total larger (pre-PRD recommendation) · session timer larger · equal weight; decide at T2.6 |
-| What does Close do in the start dialog? *Assumed:* keeps the values the session had when the dialog opened (the pre-filled ones), discarding edits | R-48; US-5.2 says "waits for Confirm or Close" without defining Close | Keep pre-filled values (assumed) · clear title and tag · save the edits like Confirm |
-| If the session changes on another device while a dialog is open, what happens to text typed so far? *Assumed:* saved to that session | R-48, US-9.1 | Save what was typed (assumed) · discard it |
-| Pre-fill when the last session's tag is now archived? *Assumed:* pre-fill the title only | R-07, R-52, US-5.2 | Title only (assumed) · keep the archived tag |

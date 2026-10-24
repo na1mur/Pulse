@@ -1,6 +1,6 @@
 # Pulse - Rebuild Specification (v3)
 
-> Status: **draft for revision**. Product scope: the owner's **PRD** (`docs/product/PRD.md`, received 2026-10-24), merged into this spec on 2026-10-24. Tech stack: **decided 2026-10-24** (section 11; the database is still a proposal).
+> Status: **draft for revision**. Product scope: the owner's **PRD** (`docs/product/PRD.md`, received 2026-10-24), merged into this spec on 2026-10-24. Tech stack: **decided 2026-10-24** (section 11).
 > This spec describes *what* to build, the rules it must follow and how the work is split, without referring to any file, function or framework from the legacy code. The legacy code-analysis version is in git history at commit `aad9c2f`; the pre-PRD version of this spec is at commit `689caa1`.
 
 ## How to use this document
@@ -82,10 +82,10 @@ Every rule has an ID so features, tasks and tests can reference it. Where a rule
 | R-04 | A session must have `end > start` and a duration of at least 1 second. End times in the future are rejected (60 s tolerance for clock skew). |
 | R-05 | A user's sessions **must not overlap**, including the running session. Edits and manual entries that would overlap are rejected with a conflict error that identifies the overlapping session (US-5.5). |
 | R-06 | **Pause** ends the running session at the instant Pause is pressed, never when the dialog closes. The **summary dialog** then opens (R-48): an optional multi-line summary and Save. Auto-close saves an empty summary. The summary can be added or edited later from history. Pausing never waits for input (US-5.3). |
-| R-07 | **Start / resume** starts the session at the instant the button is pressed. The **start dialog** then opens (R-48) with Title (optional), Tag (picker of active tags in their category colours, optional), **+ New tag** (name and category; the new tag is selected at once and the countdown stays cancelled) and Confirm. **Pre-fill:** the title and tag of the user's most recent session from any day and any device; empty for the account's first session. If that tag has since been archived, only the title is pre-filled (proposed, D-25). The dialog's values are applied to the running session. Title and tag stay editable while the session runs (US-5.2, US-6.2). |
+| R-07 | **Start / resume** starts the session at the instant the button is pressed. The **start dialog** then opens (R-48) with Title (optional), Tag (picker of active tags in their category colours, optional), **+ New tag** (name and category; the new tag is selected at once and the countdown stays cancelled) and Confirm. **Pre-fill:** the title and tag of the user's most recent session from any day and any device; empty for the account's first session. If that tag has since been archived, only the title is pre-filled (D-25). The dialog's values are applied to the running session. Title and tag stay editable while the session runs (US-5.2, US-6.2). |
 | R-08 | **Delete** removes a stored session after a confirmation; a tombstone is kept for sync. **Discard** (P2) cancels the running session and records nothing. |
 | R-09 | A session records the **timezone in effect when it was created** (manual entries use the user's current timezone). |
-| R-48 | **Session dialogs** (start and summary) show a visible **5-second countdown**. Any interaction (typing, focusing a field, opening the tag picker) cancels it; the dialog then waits for Confirm/Save or Close. At 0 it closes and saves the current values. If the session changes on another device while the dialog is open, the dialog closes (US-5.2, US-5.3, US-9.1). *Proposed (D-25):* Close keeps the values the session had when the dialog opened (for the summary dialog: an empty summary); text entered before a change on another device is saved to that session. |
+| R-48 | **Session dialogs** (start and summary) show a visible **5-second countdown**. Any interaction (typing, focusing a field, opening the tag picker) cancels it; the dialog then waits for Confirm/Save or Close. At 0 it closes and saves the current values. If the session changes on another device while the dialog is open, the dialog closes (US-5.2, US-5.3, US-9.1). Close keeps the values the session had when the dialog opened (for the summary dialog: an empty summary); text entered before a change on another device is saved to that session (D-25). |
 | R-53 | **No idle detection, no auto-stop, no start reminders** (explicit owner decision). A running session keeps running on the server when the apps are closed or the devices are off. Pulse never asks the user to start the timer. |
 
 ### 3.2 Days and periods
@@ -157,7 +157,7 @@ Every rule has an ID so features, tasks and tests can reference it. Where a rule
 | R-37 | Activity tracking is **opt-in per device** and can be paused or disabled at any time. While it is active, the device shows it (tray icon state on desktop, the persistent notification on Android) (US-8.6). |
 | R-38 | **Sampling stays on the device.** The device checks the foreground app at least every 5 s: the executable name on Windows (`eldenring.exe`), the package name on Android (`com.instagram.android`), and for browsers the site's **registrable domain** (`youtube.com`): on Windows from the window title and the browser's address bar (Chrome, Edge, Firefox, Brave; D-22), on Android through the optional accessibility service that reads only the address bar of known browsers. Raw samples, window titles and URLs never leave the device; samples are kept locally for at most 7 days (for "Recently seen apps") and then deleted (US-8.1, US-8.2, US-8.5). |
 | R-39 | **Presence:** usage counts only while the user is present: a locked screen, sleep or a screen that is off stops counting. Usage on different devices may overlap and both count (one user rarely uses two devices at once) (US-8.1). |
-| R-40 | **Classification happens on the device.** Distraction classes: **Gaming** and **Social Media**. A subject's class is resolved in this order: the user's enabled usage rule on that device (Gaming / Social Media / Ignore; a domain rule covers its subdomains), then the shipped default rules, then platform signals: on Android an app whose system category is Game is Gaming; on Windows the smart game signals (ACT-03) raise a suggestion, and until it is answered the time counts as Gaming only if a game-library-folder signal matched. Anything else is not tracked. The answer to a suggestion becomes a usage rule: Yes → Gaming, No and Neutral → Ignore (proposed, D-24) (US-8.2, US-8.3, US-8.4). |
+| R-40 | **Classification happens on the device.** Distraction classes: **Gaming** and **Social Media**. A subject's class is resolved in this order: the user's enabled usage rule on that device (Gaming / Social Media / Ignore; a domain rule covers its subdomains), then the shipped default rules, then platform signals: on Android an app whose system category is Game is Gaming; on Windows the smart game signals (ACT-03) raise a suggestion, and until it is answered the time counts as Gaming only if a game-library-folder signal matched. Anything else is not tracked. The answer to a suggestion becomes a usage rule: Yes → Gaming, No and Neutral → Ignore (D-24) (US-8.2, US-8.3, US-8.4). |
 | R-41 | **Only usage totals leave the device.** While tracked usage happens, at most every 60 s (and when it ends), the device sends an **increment**: device, local day (user's timezone, R-12), class, seconds, and the ID of the session it overlapped, or none. An increment never spans local midnight or a session's start or end. Increments are commands (R-34): queued offline and replayed idempotently. The server keeps per-device, per-day, per-class totals, split by overlapped session where credits need it (R-43). Rule changes affect new usage only. If an overlapped session is later deleted, its overlap counts as usage outside a session; if it is edited shorter, its overlap is capped at its new duration (US-8.5). |
 
 ### 3.9 Credits
@@ -403,7 +403,7 @@ Settings sections follow US-12.1. **Account settings** (synced): timezone, week 
 | OPS-02 | README: first deploy, updating to a new version, backup and restore of the bundled database (restore tested), building the desktop installer and the Android APK | P0 | Changed | PRD §3 |
 | OPS-03 | Validated configuration from the variables in Appendix A; refuses weak or placeholder secrets; configurable CORS allow-list and proxy trust | P0 | Changed | PRD §3 |
 | OPS-04 | Structured logs with request IDs (P0); metrics (P2) | P0 | Changed | PRD §13 |
-| OPS-05 | Migrate legacy data (users, sessions, tags, goals) from the old deployment | P1 | New | D-08 |
+| OPS-05 | Migrate legacy data (users, sessions, tags, goals) from the old deployment | P1 | New | D-08 (decided: yes) |
 | OPS-06 | Optional reverse proxy with automatic HTTPS for `DOMAIN` (the apps need HTTPS and WSS in production) | P0 | New | PRD §3 |
 | OPS-07 | Outgoing email over SMTP (Gmail app password by default): verification, password reset, email change, account deleted | P0 | New | US-4.1, US-4.4, US-4.6 |
 
@@ -718,7 +718,7 @@ Decision record:
 | Layer | Choice | Why | Alternatives rejected |
 |---|---|---|---|
 | Server runtime | **NestJS** (TypeScript, Node.js LTS) | Owner's decision; structured modules, shares the TypeScript contract package | - |
-| Database | **PostgreSQL** - *proposed, confirm in T0.1* | Exclusion constraint on time ranges enforces "no overlapping sessions" (R-05) in the database; partial unique index for one running session; strong range and aggregation queries; the official image fits the PRD's bundled container and any managed external database | SQLite (no exclusion constraints, no external option), MongoDB (legacy; weak for these invariants) |
+| Database | **PostgreSQL** (decided 2026-10-24) | Exclusion constraint on time ranges enforces "no overlapping sessions" (R-05) in the database; partial unique index for one running session; strong range and aggregation queries; the official image fits the PRD's bundled container and any managed external database | SQLite (no exclusion constraints, no external option), MongoDB (legacy; weak for these invariants) |
 | Data access | **Kysely** (D-20, decided 2026-10-24) | Typed SQL; allows the raw SQL migrations the exclusion constraint needs | Prisma (no exclusion constraints in its schema), TypeORM |
 | Realtime transport | **Plain WebSocket** (NestJS `ws` adapter), one room per user | Lower per-message overhead; easy to use from Rust | Socket.IO (extra protocol, weak Rust clients) |
 | Contract / schema | **One TypeScript schema package** (zod proposed) emitting OpenAPI + JSON Schema; NestJS validates from it; Rust types generated with `typify` / `progenitor` | One source for server, desktop and Android | Hand-written types per client |
@@ -780,7 +780,7 @@ M0 Foundations --> M1 Accounts & deployment --> M2 Core timer --> M3 Sync & offl
 
 | ID | Task | WS | Deps | Features / rules | Done when |
 |---|---|---|---|---|---|
-| T0.1 | Resolve the open decisions (section 13) and choose the stack (section 11); record each decision. *Stack chosen 2026-10-24; D-19, D-20 decided 2026-10-24; the owner's PRD (2026-10-24) settled D-03..D-07, D-10, D-11, D-15..D-18, D-21..D-23; still open: database confirmation, D-02 (at the first UI task), D-08, D-12..D-14, D-24, D-25* | WS0 | - | all | Decision record complete; this spec updated |
+| T0.1 | Resolve the open decisions (section 13) and choose the stack (section 11); record each decision. *Stack chosen 2026-10-24; D-19, D-20 decided 2026-10-24; the owner's PRD (2026-10-24) settled D-03..D-07, D-10, D-11, D-15..D-18, D-21..D-23; the owner accepted the recommendations for PostgreSQL, D-08, D-12..D-14, D-24 and D-25 on 2026-10-24. D-02 is a design decision taken at T2.6, not here* | WS0 | - | all | Decision record complete; this spec updated |
 | T0.2 | Repo scaffold organised by module boundaries (`docs/ARCHITECTURE.md`); formatter, linter, type checks; one language version; config templates including `infra/.env.example` | WS0 | T0.1 | - | A fresh clone installs and passes all checks with one command |
 | T0.3 | CI: reproducible install, lint, type check, tests, build of every target; required on the main branch | WS0/WS11 | T0.2 | - | Pull requests blocked on red CI |
 | T0.4 | Contract: operations, events and error model of section 7, generating server validators, a typed client and a mock server | WS0 | T0.2 | §7 | Server stub and client both compile against it; mock server runs; every generated file lives under a `generated/` folder or starts with an `@generated` comment line (so agent guards refuse hand edits) |
@@ -882,7 +882,7 @@ M0 Foundations --> M1 Accounts & deployment --> M2 Core timer --> M3 Sync & offl
 | T7.7 | Android release signing, version endpoint and in-app updater (download, verify, install) | WS11 | T1.12 | MOB-05 | The app updates itself from N to N+1 |
 | T7.8 | End-to-end suites: desktop (WebdriverIO + `tauri-driver`) and Android (Maestro), including offline and cross-device flows | WS12 | T7.2..T7.5 | §12.10 | Green in CI |
 | T7.9 | Release gate: accessibility audit, performance and size budgets, README complete (deploy, update, backup and restore tested, building the installer and the APK), release notes | WS12/WS11 | all M7 | X-01, X-03, OPS-02 | Checklist signed off; v1 published |
-| T7.10 | Legacy data migration tool (if D-08 = yes) | WS1 | T2.2, T4.1, T4.3 | OPS-05 | A legacy export imports with matching totals |
+| T7.10 | Legacy data migration tool (D-08) | WS1 | T2.2, T4.1, T4.3 | OPS-05 | A legacy export imports with matching totals |
 
 ### 12.10 Backlog (P2)
 
@@ -908,20 +908,20 @@ AUTH-09 registration lock · TIM-05 switch · TIM-06 discard · TIM-07 adjust st
 
 | ID | Question | Recommendation / decision | Affects |
 |---|---|---|---|
-| D-01 | Tech stack per layer | **Decided 2026-10-24** (section 11); the database is still a proposal | Everything |
+| D-01 | Tech stack per layer | **Decided 2026-10-24** (section 11), PostgreSQL included | Everything |
 | D-02 | Main screen: which timer is larger, the current session or the day total? | Open, a design decision for the owner at T2.6 (the PRD lists both without an order); the pre-PRD recommendation was the day total | TIM-04 |
 | D-03 | Sessions across midnight: two records, or one record shown split? | **Decided 2026-10-24 (owner):** one record, attributed per day and shown as one row per day (R-11) | R-11, LOG-07 |
 | D-04 | Streak definition | **Decided 2026-10-24 (PRD US-10.2):** consecutive days meeting the daily goal; requires a daily goal; weekends optional; unfinished today never breaks it (R-22, R-23) | GOAL-07, INS-06 |
 | D-05 | Default working days | **Decided 2026-10-24 (PRD US-10.2):** replaced by "Count weekends" (default on) for streaks only (R-21) | R-21, GOAL-03 |
 | D-06 | Forgotten-timer thresholds | **Decided 2026-10-24 (PRD):** not applicable; no auto-stop or reminders (R-53) | R-33 |
 | D-07 | Away prompt default when ignored | **Decided 2026-10-24 (PRD):** not applicable; no idle detection (R-53) | R-32 |
-| D-08 | Migrate data from the legacy deployment? | Open. Yes, if there is history worth keeping | OPS-05, T7.10 |
+| D-08 | Migrate data from the legacy deployment? | **Decided 2026-10-24 (owner, recommendation):** yes; import users, sessions, tags and goals from the legacy deployment (T7.10) | OPS-05, T7.10 |
 | D-09 | Platforms for v1 | **Decided:** Windows + Android (sideloaded APK, not Google Play); others P2 | DESK-09, MOB-04, MOB-05 |
 | D-10 | iOS in scope? | **Decided 2026-10-24 (PRD out of scope):** not in v1. iOS's Screen Time API never tells an app which app is in use, so activity tracking (ACT-*) cannot exist on iOS | MOB-04 |
 | D-11 | Hosting model | **Decided 2026-10-24 (PRD):** the owner self-hosts one server and shares it with friends; open sign-up with email verification; registration lock is P2 | AUTH-09, rate limits |
-| D-12 | Notify goals reached for past periods via edits or manual entries? | Open. No (only current periods notify) | R-27 |
-| D-13 | Refresh-credential lifetime | Open. 30 days, rotating, extended with use, so a desktop left offline for a week stays signed in | AUTH-03 |
-| D-14 | Minimum session duration / accidental clicks | Open. 1 s minimum; an accidental session is deleted from history rather than auto-deleted | R-04 |
+| D-12 | Notify goals reached for past periods via edits or manual entries? | **Decided 2026-10-24 (owner, recommendation):** no; only current periods notify | R-27 |
+| D-13 | Refresh-credential lifetime | **Decided 2026-10-24 (owner, recommendation):** 30 days, rotating, extended with use, so a desktop left offline for a week stays signed in | AUTH-03 |
+| D-14 | Minimum session duration / accidental clicks | **Decided 2026-10-24 (owner, recommendation):** 1 s minimum; an accidental session is deleted from history rather than auto-deleted | R-04 |
 | D-15 | Default credit rates | **Decided 2026-10-24 (owner, PRD §7):** earn +5 per productive hour; Gaming −10, Social Media −20, other leisure −10 per hour; all configurable per user | R-42, R-43, CRED-05 |
 | D-16 | Daily free leisure allowance | **Decided 2026-10-24 (PRD):** none; the balance carries over instead | R-44 |
 | D-17 | Does unused credit carry over? | **Decided 2026-10-24 (PRD US-7.5):** always; no cap; never resets | R-44 |
@@ -931,8 +931,8 @@ AUTH-09 registration lock · TIM-05 switch · TIM-06 discard · TIM-07 adjust st
 | D-21 | Tracked Gaming / Social usage during a Productive session | **Decided 2026-10-24 (owner):** the overlapping time earns nothing and is charged at the class rate | R-42, R-43 |
 | D-22 | How the Windows app detects browser sites | **Decided 2026-10-24 (owner):** window title plus the address bar through UI Automation (Chrome, Edge, Firefox, Brave); the browser extension moves to P2 (ACT-09) | R-38, ACT-02 |
 | D-23 | Android push | **Decided 2026-10-24 (PRD US-10.3):** FCM, optional: a self-hoster without FCM credentials, or a phone without Google Play services, still gets every notification raised on the device itself | NOTIF-04 |
-| D-24 | What do the game-suggestion answers become? (US-8.3 offers Yes / No / Neutral, but rules have only Gaming / Social Media / Ignore) | Open. Yes → a Gaming rule; No and Neutral → an Ignore rule (not tracked, never suggested again) | R-40, ACT-03, T7.1 |
-| D-25 | Session-dialog edge cases the PRD leaves open: what Close does; text typed before a change on another device; pre-fill when the last tag is archived | Open. Close keeps the values from when the dialog opened; typed text is saved to the session; an archived tag is not pre-filled (the title still is). Also in `docs/FE_GUIDE.md` section 11 | R-07, R-48 |
+| D-24 | What do the game-suggestion answers become? (US-8.3 offers Yes / No / Neutral, but rules have only Gaming / Social Media / Ignore) | **Decided 2026-10-24 (owner, recommendation):** Yes → a Gaming rule; No and Neutral → an Ignore rule (not tracked, never suggested again) | R-40, ACT-03, T7.1 |
+| D-25 | Session-dialog edge cases the PRD leaves open: what Close does; text typed before a change on another device; pre-fill when the last tag is archived | **Decided 2026-10-24 (owner, recommendation):** Close keeps the values from when the dialog opened; typed text is saved to the session; an archived tag is not pre-filled (the title still is). Recorded as FE-010..FE-012 in `docs/FE_GUIDE.md` | R-07, R-48 |
 
 Decided 2026-10-24 alongside the stack, and confirmed by the PRD: activity tracking is **track-and-notify only** (no blocking); credit is earned only from timer sessions (Productive ones, R-42); a user uses one device at a time, and everything syncs live.
 

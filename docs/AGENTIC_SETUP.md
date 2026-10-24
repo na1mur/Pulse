@@ -9,8 +9,8 @@ How to use this file:
 
 ## Waiting on the owner (as of 2026-10-24)
 
-- **Remaining spec decisions:** PostgreSQL confirmation, D-08 (legacy migration), D-12..D-14, D-24, D-25 (recommendations followed until decided); D-02 comes up as a design decision at T2.6. T0.1 in the ledger.
-- **Design decisions:** none taken without the owner; `docs/FE_GUIDE.md` section 11 lists what is still open, including three assumptions about the session dialogs to confirm.
+- **Spec decisions:** all settled (T0.1 done 2026-10-24); D-02 comes up as a design decision at T2.6.
+- **Design decisions:** none taken without the owner; `docs/FE_GUIDE.md` section 11 lists what is still open.
 
 Settled 2026-10-24: hooks A0.6/A4.4/A4.5 added, A4.6 covered by the owner's Orca hooks, official Svelte MCP added (A7.2), `ARCHITECTURE.md`, ADR-0001/0002, D-19 and D-20 accepted. The owner's PRD (user stories) was merged into the spec, architecture, FE guide, agents and rules; `spec.mjs` looks up `US-x.y` and `check-docs.sh` checks every story is cited.
 
