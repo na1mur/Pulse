@@ -72,11 +72,14 @@ Known conflict to handle in A2.2: `frontend-ui-engineering` lists "purple/indigo
 
 Subagents live in `.claude/agents/`; each has a focused system prompt, a restricted tool set and the skills/rules it must follow.
 
-- [ ] **A1.1 `ux-designer`.** Owns the FE guide (A2), user flows and screen specs. Produces a design spec (and, for visual questions, a mockup artifact) **before** any UI code. Never decides a new pattern silently: uses the `design-decision` skill (A2.3). Writes only in `docs/design/` and the FE guide.
+- [x] **A1.1 `ux-designer`.** Owns the FE guide (A2), user flows and screen specs. Produces a design brief **before** any UI code; returns interview questions and every uncovered design decision to the main session as blocks (subagents cannot ask the owner), which asks via `design-decision` and builds mockups for visual choices. Writes only in `docs/design/` and the FE guide; until the guide exists, spec section 10 is the guide.
+  - Verified: Claude Code loads the agent (frontmatter valid); change review of the definitions (fixes applied).
 - [ ] **A1.2 `frontend-engineer`.** Builds Svelte (desktop) and Compose (Android) UI from the design spec and FE guide; TDD for logic, screenshot check for visuals (A2.5).
 - [ ] **A1.3 `backend-engineer`.** NestJS modules, database schema and migrations, contract package; integration tests against a real database.
-- [ ] **A1.4 `core-engineer`.** Rust client core, Tauri native side, Android foreground service and trackers. Decision: a separate agent (recommended: different language and failure modes) or part of `backend-engineer`.
-- [ ] **A1.5 `qa-engineer`.** Reviews finished work against the spec's "Done when" and R-rules; runs automated suites and exploratory checks; files findings with severity. May write tests, never product code. Details in A5.
+- [x] **A1.4 `core-engineer`.** Rust client core, Tauri native side (tray, OS events, desktop trackers, native host), UniFFI bridge, Kotlin foreground service and Android trackers. Decided: a separate agent (different language and failure modes from the NestJS backend). Never commits; returns results to the main session.
+  - Verified: Claude Code loads the agent; change review (fixes applied).
+- [x] **A1.5 `qa-engineer`.** Reviews finished work against the task's "Done when" and R-rules plus Pulse's risk areas (offline, midnight/DST, clock skew, undo, sync issues); writes `docs/qa/<task>.md`; Critical/High/Medium bugs reject the task; escalates after two rejections. Writes tests and QA reports only, never commits.
+  - Verified: Claude Code loads the agent; change review (fixes applied).
 - [ ] **A1.6 `devops-engineer`.** CI, release builds, signing, server image, update channels. Details in A6.
 - [ ] **A1.7 Delivery pipeline skill (`/task T1.4`).** Runs one spec task end to end: brief (spec rows + knowledge) → design (A1.1, asks you when needed) → plan → build (A1.2–A1.4) → verify (`auto-commit` gate) → QA review (A1.5) → fix loop → commit.
   - Decision: a sequential skill that delegates to subagents (cheaper, recommended) or a multi-agent Workflow for large tasks (on request only).
@@ -114,7 +117,7 @@ Subagents live in `.claude/agents/`; each has a focused system prompt, a restric
 
 ## A5. QA engineer
 
-- [ ] **A5.1 `qa-review` skill.** Builds a test plan from the task's "Done when" and R-rules; runs automated suites; exploratory checklist for Pulse's risk areas (offline and reconnect, midnight and DST, timezone change, two devices with skewed clocks, sync issues, undo); accessibility pass; performance and size budgets; writes `docs/qa/<task>.md` with findings by severity. High-severity findings block the commit.
+- [ ] **A5.1 `qa-review` skill.** Builds a test plan from the task's "Done when" and R-rules; runs automated suites; exploratory checklist for Pulse's risk areas (offline and reconnect, midnight and DST, timezone change, two devices with skewed clocks, sync issues, undo); accessibility pass; performance and size budgets; writes `docs/qa/<task>.md` with findings by severity. Critical, High and Medium findings block the commit (as in `qa-engineer`).
 - [ ] **A5.2 E2E tooling skills.** `playwright-cli` (installed) for the web UI; WebdriverIO + `tauri-driver` for desktop; Maestro for Android. Search with `find-skills` for Tauri and Maestro skills. *(needs scaffold)*
 - [ ] **A5.3 Bug discipline.** Every bug fix starts with a failing test (TDD skill); bugs found by QA are tracked in the QA report until closed.
 
