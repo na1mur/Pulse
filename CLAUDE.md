@@ -21,6 +21,8 @@ The agentic setup (role agents, rules, hooks, FE guide, memory) is being built i
 
 After finishing each task that changed files, run the `auto-commit` skill (`.claude/skills/auto-commit/SKILL.md`). It verifies, runs and debugs the change, then commits only if everything passes.
 
+Everything agent-related for Pulse (skills, agents, rules, hooks, settings) lives in this repo's `.claude/`, never user-level. `find-skills` (vercel-labs skills CLI helper, copied from the local `~/.agents/skills` install and adapted) searches for more skills; install them project-locally with its read-first steps.
+
 `.claude/skills/` also holds 13 third-party skills from [addyosmani/agent-skills](https://github.com/addyosmani/agent-skills) (MIT, commit `aeac41d`, installed 2026-10-24): TDD, debugging, incremental implementation, API design, frontend UI, security, performance, code review, planning, ADRs, CI/CD, observability, source-driven development. Where they conflict with this repo:
 - **Commits:** every commit (including the per-slice commits incremental-implementation asks for) goes through the `auto-commit` gate and its message style, not conventional `feat:` prefixes. `git-workflow-and-versioning` is not installed.
 - **Requirements:** `docs/REBUILD_SPEC.md` is the spec. Record decisions there (section 11 / 13), not in a separate SPEC.md; ADRs are only for decisions too detailed for the spec.

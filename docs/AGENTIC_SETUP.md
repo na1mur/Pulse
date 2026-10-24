@@ -18,9 +18,8 @@ How to use this file:
 
 ## A0. Agent environment foundations
 
-- [ ] **A0.1 Make `find-skills` visible to Claude Code.** It is installed in `~/.agents/skills/` (the `npx skills` location), which Claude Code does not read.
-  - Decision: link it user-level (`~/.claude/skills/`, all projects) or copy it into this repo.
-  - Done when: it appears in Claude Code's skill list.
+- [x] **A0.1 Make `find-skills` visible to Claude Code.** It was installed in `~/.agents/skills/` (the `npx skills` location), which Claude Code does not read.
+  - Decided: copied into this repo (`.claude/skills/find-skills/`); **everything for Pulse is project-local, nothing user-level**. Adapted to install project-locally and read every skill before installing it.
 - [ ] **A0.2 Project settings.** `.claude/settings.json` (committed): permission allowlist for build/test commands, deny list (reading `.env`/keystores, force push, `--no-verify`); `.claude/settings.local.json` for personal overrides; a root `.gitignore` (the repo has none since the legacy app was removed).
   - Note: user-level Orca hooks already exist; project hooks add to them.
   - Done when: common commands run without prompts; denied actions are blocked.
