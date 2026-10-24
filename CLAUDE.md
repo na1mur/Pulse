@@ -48,6 +48,8 @@ Everything is referenced by ID, and new code, tests and commits should cite thes
 
 ## Architecture invariants (the decisions most likely to be gotten wrong)
 
+Folder layout, dependency rules and layering: `docs/ARCHITECTURE.md`. Per-language rules load from `.claude/rules/` when you touch matching files.
+
 - **Server owns the timer and the clock.** A running session is just a session with no end; there is no paused state and no accumulated counter (pause = stop, resume = start). Clients display `deviceNow + offset` and never invent state.
 - **Statistics are never stored.** They are computed from sessions + effective-dated goal settings. Any cache must be fully rebuildable and updated in the same transaction as the session change.
 - **Sessions across midnight are one record**, clipped per local day at read time in the session's own timezone (R-11). No rollover or splitting logic anywhere.

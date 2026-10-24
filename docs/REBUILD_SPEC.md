@@ -663,7 +663,7 @@ Decision record:
 |---|---|---|---|
 | Server runtime | **NestJS** (TypeScript, Node.js LTS) | Owner's decision; structured modules, shares the TypeScript contract package | - |
 | Database | **PostgreSQL** - *proposed, confirm in T0.1* | Exclusion constraint on time ranges enforces "no overlapping sessions" (R-05) in the database; partial unique index for one running session; strong range and aggregation queries | SQLite (simpler self-hosting but no exclusion constraints), MongoDB (legacy; weak for these invariants) |
-| Data access | TBD in T0.1 | Must allow raw SQL migrations (for the exclusion constraint) | |
+| Data access | TBD in T0.1 (Kysely proposed, D-20) | Must allow raw SQL migrations (for the exclusion constraint) | |
 | Realtime transport | **Plain WebSocket** (NestJS `ws` adapter) | Lower per-message overhead; easy to use from Rust | Socket.IO (extra protocol, weak Rust clients) |
 | Contract / schema | **One TypeScript schema package** (zod proposed) emitting OpenAPI + JSON Schema; NestJS validates from it; Rust types generated with `typify` / `progenitor` | One source for server, desktop and Android | Hand-written types per client |
 | Client core | **Rust** shared by both apps: `tokio`, `reqwest` + `tokio-tungstenite` (both with `rustls`), `rusqlite` (bundled SQLite), `jiff` (embedded timezone database), `uuid` v7, `serde`; tests with `proptest` | Written once; runs without any UI; small native binary | TypeScript core (would have to be rewritten in Kotlin for the Android background service) |
@@ -719,7 +719,7 @@ M0 Foundations --> M1 Walking skeleton --> M2 Core MVP --> M3 Desktop MVP releas
 
 | ID | Task | WS | Deps | Features / rules | Done when |
 |---|---|---|---|---|---|
-| T0.1 | Resolve the open decisions (section 13) and choose the stack (section 11); record each decision. *Stack chosen 2026-10-24; still open: database confirmation, data access library, D-02..D-08, D-11..D-18* | WS0 | - | all | Decision record complete; this spec updated |
+| T0.1 | Resolve the open decisions (section 13) and choose the stack (section 11); record each decision. *Stack chosen 2026-10-24; still open: database confirmation, D-02..D-08, D-11..D-20* | WS0 | - | all | Decision record complete; this spec updated |
 | T0.2 | Repo scaffold organised by module boundaries (server, contract, client core, UI kit, app, desktop, mobile); formatter, linter, type checks; one language version; config templates | WS0 | T0.1 | - | A fresh clone installs and passes all checks with one command |
 | T0.3 | CI: reproducible install, lint, type check, tests, build of every target; required on the main branch | WS0/WS11 | T0.2 | - | Pull requests blocked on red CI |
 | T0.4 | Contract: operations, events and error model of section 7, generating server validators, a typed client and a mock server | WS0 | T0.2 | §7 | Server stub and client both compile against it; mock server runs; every generated file lives under a `generated/` folder or starts with an `@generated` comment line (so agent guards refuse hand edits) |
@@ -883,6 +883,8 @@ AUTH-10 email verification · TIM-13 Pomodoro / breaks · LOG-09 bulk edit · LO
 | D-16 | Daily free leisure allowance | 0 by default, configurable | R-42, CRED-01 |
 | D-17 | Does unused credit carry over? | Carries over; optional cap (default: no cap) | R-44, CRED-05 |
 | D-18 | Which categories count as leisure? | `game` and `social` (decided); open: should video sites and apps (YouTube, Netflix) be a third leisure category or stay under `social` / `neutral` by catalog entry? | R-40, ACT-07 |
+| D-19 | Time and credit math run on the server (TypeScript) and in the client core (Rust). How do they keep one definition (principle 3)? | One shared fixture suite (`packages/contract/fixtures/`: time zones, DST days, sessions across midnight, credit cases) that both implementations must pass in CI; revisit compiling `pulse-core` as a Node addon if they drift | R-10..R-18, R-42..R-47, T0.5 |
+| D-20 | Server data access library (section 11 "TBD in T0.1") | Kysely: typed SQL with raw migrations, which the exclusion constraint for R-05 needs | Section 11, T1.1 |
 
 Decided 2026-10-24 alongside the stack: activity tracking is **track-and-notify only** (no blocking); credit is earned **only from the manual timer**; a user uses one device at a time, and everything syncs live.
 

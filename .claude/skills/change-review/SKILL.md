@@ -56,6 +56,8 @@ Each smell reads *what it is* → *how to fix*; match it against the diff:
 
 ### 4. Spawn both sub-agents in parallel
 
+For a change with **no executable code** (docs, rules, agent or skill definitions) one sub-agent may cover both axes, as long as it gets both briefs and reports under both headings. Code, tests, hooks and build config always get two separate sub-agents.
+
 Issue both sub-agent calls together and wait until both have returned before aggregating. Tell both: the commit hash in a checklist tick and anything else that only exists after committing is **not** a finding.
 
 **Standards sub-agent prompt** should include:
