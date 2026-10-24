@@ -19,6 +19,11 @@ None yet (no code). Fill this in during T0.2: install, dev, format check, lint, 
 
 After finishing each task that changed files, run the `auto-commit` skill (`.claude/skills/auto-commit/SKILL.md`). It verifies, runs and debugs the change, then commits only if everything passes.
 
+`.claude/skills/` also holds 13 third-party skills from [addyosmani/agent-skills](https://github.com/addyosmani/agent-skills) (MIT, commit `aeac41d`, installed 2026-10-24): TDD, debugging, incremental implementation, API design, frontend UI, security, performance, code review, planning, ADRs, CI/CD, observability, source-driven development. Where they conflict with this repo:
+- **Commits:** every commit (including the per-slice commits incremental-implementation asks for) goes through the `auto-commit` gate and its message style, not conventional `feat:` prefixes. `git-workflow-and-versioning` is not installed.
+- **Requirements:** `docs/REBUILD_SPEC.md` is the spec. Record decisions there (section 11 / 13), not in a separate SPEC.md; ADRs are only for decisions too detailed for the spec.
+- **Stack:** their examples assume web/Node tooling (`npx tsc`, Prisma, Vercel, Core Web Vitals). Translate to this stack (Cargo, Gradle, Tauri, the size budgets in spec section 9.3) instead of copying them.
+
 ## What Pulse is
 
 A personal work-time tracker: one timer per user, synced live across that user's devices (Windows desktop and Android first), self-hostable backend, fully usable offline. Opt-in activity tracking classifies games and social media as leisure and spends **leisure credit** earned from timer sessions; it only tracks and notifies, never blocks. See spec section 1 for non-goals.
