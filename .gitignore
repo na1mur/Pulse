@@ -1,0 +1,33 @@
+# Dependencies and build output
+node_modules/
+dist/
+build/
+coverage/
+target/
+.gradle/
+.svelte-kit/
+*.tsbuildinfo
+
+# Android / IDE
+local.properties
+.idea/
+*.iml
+.vscode/*
+!.vscode/extensions.json
+
+# Secrets and signing keys (never commit)
+.env
+.env.*
+!.env.example
+*.jks
+*.keystore
+*.p12
+secrets/
+
+# Claude Code: personal overrides and worktrees stay local
+.claude/settings.local.json
+.claude/worktrees/
+
+# OS
+.DS_Store
+Thumbs.db

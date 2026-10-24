@@ -20,9 +20,10 @@ How to use this file:
 
 - [x] **A0.1 Make `find-skills` visible to Claude Code.** It was installed in `~/.agents/skills/` (the `npx skills` location), which Claude Code does not read.
   - Decided: copied into this repo (`.claude/skills/find-skills/`); **everything for Pulse is project-local, nothing user-level**. Adapted to install project-locally and read every skill before installing it.
-- [ ] **A0.2 Project settings.** `.claude/settings.json` (committed): permission allowlist for build/test commands, deny list (reading `.env`/keystores, force push, `--no-verify`); `.claude/settings.local.json` for personal overrides; a root `.gitignore` (the repo has none since the legacy app was removed).
+- [x] **A0.2 Project settings.** `.claude/settings.json` (committed): allowlist for git read/commit, pnpm, cargo and Gradle commands; deny list for force push, `git commit --no-verify`/`-n`, `git config`, and reading or editing `.env`, keystores and `secrets/`. `.claude/settings.local.json` (gitignored) for personal overrides. Root `.gitignore` and `.gitattributes` (LF everywhere, CRLF for Windows scripts).
+  - Verified: the `git config` deny rule blocks in a live session.
+  - Limit: permission rules match command prefixes, so a flag placed later (`git commit -m x --no-verify`) slips through; A4.2's hook closes that gap.
   - Note: user-level Orca hooks already exist; project hooks add to them.
-  - Done when: common commands run without prompts; denied actions are blocked.
 - [ ] **A0.3 Path-scoped rules.** `.claude/rules/*.md` with `paths:` frontmatter, so each rule loads only when files it covers are touched. Keeps `CLAUDE.md` short and saves tokens.
   - Done when: `CLAUDE.md` holds only repo-wide guidance; area guidance lives in rules.
 - [ ] **A0.4 Agent memory / knowledge graph.** A project memory that lets an agent find relevant facts without rereading large files.
