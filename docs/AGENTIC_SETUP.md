@@ -7,6 +7,14 @@ How to use this file:
 - Items marked *(needs scaffold)* can only be finished after T0.2 creates the code layout; their rules/agents can be drafted earlier.
 - Status: `[ ]` open · `[~]` in progress · `[x]` done (commit).
 
+## Waiting on the owner (as of 2026-10-24)
+
+- **Hooks that need settings edits** (the guards now ask before `.claude/settings.json` or `.claude/hooks/` change): A0.6/A4.4 session briefing, A4.5 unfinished-work reminder (also decide: remind, or block stopping), A4.6 needs-input notification (check whether the Orca hooks already notify).
+- **T0.1** (in progress in the ledger): the remaining spec decisions, worked through as a conversation (`/deliver-task T0.1`).
+- **Confirm or change proposals:** `docs/ARCHITECTURE.md` (proposed), ADR-0001/0002 (proposed), spec D-19 (shared time/credit fixtures) and D-20 (Kysely), plus the older open decisions in spec section 13.
+- **A7.2 MCP servers:** adding the official Svelte MCP or others runs third-party code each session; decide which, if any.
+- **Design decisions:** none taken without you; `docs/FE_GUIDE.md` lists what is still open.
+
 ## Already in place
 
 - [x] `CLAUDE.md` with spec navigation and architecture invariants (`bff9d75`, `8841e9b`)
@@ -122,21 +130,22 @@ Subagents live in `.claude/agents/`; each has a focused system prompt, a restric
 
 ## A5. QA engineer
 
-- [ ] **A5.1 `qa-review` skill.** Builds a test plan from the task's "Done when" and R-rules; runs automated suites; exploratory checklist for Pulse's risk areas (offline and reconnect, midnight and DST, timezone change, two devices with skewed clocks, sync issues, undo); accessibility pass; performance and size budgets; writes `docs/qa/<task>.md` with findings by severity. Critical, High and Medium findings block the commit (as in `qa-engineer`).
+- [x] **A5.1 QA review.** Delivered by the `qa-engineer` agent (A1.5) instead of a separate skill: test plan from "Done when" and R-rules, Pulse risk checklist, accessibility, budgets, `docs/qa/<task>.md` with severities, Critical/High/Medium block; uses `break-ui`, `web-design-guidelines`, `playwright-cli`, `playwright-best-practices`. Original plan kept below for reference.
+- Original plan: **`qa-review` skill.** Builds a test plan from the task's "Done when" and R-rules; runs automated suites; exploratory checklist for Pulse's risk areas (offline and reconnect, midnight and DST, timezone change, two devices with skewed clocks, sync issues, undo); accessibility pass; performance and size budgets; writes `docs/qa/<task>.md` with findings by severity. Critical, High and Medium findings block the commit (as in `qa-engineer`).
 - [ ] **A5.2 E2E tooling skills.** `playwright-cli` (installed) for the web UI; WebdriverIO + `tauri-driver` for desktop; Maestro for Android. Search with `find-skills` for Tauri and Maestro skills. *(needs scaffold)*
-- [ ] **A5.3 Bug discipline.** Every bug fix starts with a failing test (TDD skill); bugs found by QA are tracked in the QA report until closed.
+- [x] **A5.3 Bug discipline.** `.claude/rules/code-style.md`: every bug fix starts with a failing test that stays; QA bugs are tracked in `docs/qa/<task>.md` and deferred ones in the task ledger until closed.
 
 ## A6. DevOps engineer
 
 - [ ] **A6.1 CI.** GitHub Actions: lint, type check, tests, builds for server image, Windows installer and Android APK; size budgets checked in CI; required on `main`. Adapt the `ci-cd-and-automation` skill to this stack. *(needs scaffold; T0.3)*
 - [ ] **A6.2 `ship` skill.** Version bump, changelog, tag, signed Windows installer, signed APK, server image, release notes, updater manifests. Pushing and publishing only with your explicit approval.
-- [ ] **A6.3 Secrets and signing.** Signing keys and tokens outside the repo (CI secrets, offline backup of the Android key); documented recovery.
+- [~] **A6.3 Secrets and signing.** (Plan done.) `docs/operations/secrets-and-signing.md`: inventory (server secrets, updater key, Windows certificate, Android keystore, CI tokens, legacy credentials) with location, backup, loss and leak consequences; rules for repo, CI, agents, backups and rotation; owner recovery checklist. Concrete locations are filled in when CI and releases exist.
 - [ ] **A6.4 Dependency hygiene.** Automated update PRs (Renovate or Dependabot), `cargo audit`, `pnpm audit`, Gradle dependency checks.
 - [ ] **A6.5 Self-host operations.** Backup/restore runbook, health checks, logs (the `observability-and-instrumentation` skill).
 
 ## A7. Skills, MCP servers and docs access
 
-- [ ] **A7.1 Skill search.** With `find-skills`, search for Svelte 5, Tauri 2, Rust, Kotlin/Compose, NestJS, PostgreSQL, Maestro, GitHub Actions. Read each candidate before installing; install only what adds knowledge the agents lack.
+- [x] **A7.1 Skill search.** Searched skills.sh for every checklist need (2026-10-24); 18 repos reviewed without running anything; installed and rejected items are in the sourcing table above and `.claude/THIRD_PARTY.md`. Deferred to T0.2 (they need code): the Maestro skill (adapted) and the official `android-cli` skill.
 - [ ] **A7.2 MCP servers.** Candidates: the official Svelte MCP (current docs + autofixer), Context7 (current library docs; overlaps the `source-driven-development` skill), Serena (A0.4), a read-only Postgres MCP for the dev database. `gh` CLI covers GitHub.
 - [ ] **A7.3 Fewer permission prompts.** After a few working sessions, run the `fewer-permission-prompts` skill to tune the allowlist.
 

@@ -15,13 +15,28 @@ local.properties
 .vscode/*
 !.vscode/extensions.json
 
-# Secrets and signing keys (never commit)
+# Secrets and signing keys (never commit); keep in step with .claude/hooks/lib/secrets.js
 .env
 .env.*
-!.env.example
+!.env*.example
+!.env*.sample
+!.env*.template
 *.jks
 *.keystore
 *.p12
+*.pfx
+*.pem
+*.key
+*.p8
+*.asc
+*.gpg
+key.properties
+keystore.properties
+signing.properties
+id_rsa
+id_dsa
+id_ecdsa
+id_ed25519
 secrets/
 
 # Claude Code: personal overrides and worktrees stay local

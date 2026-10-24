@@ -14,6 +14,7 @@ Start here to find a fact without reading whole files. Each line says where a ki
 | What did QA find? | `docs/qa/<task-id>.md` |
 | How is the agent setup built, and why? | `docs/AGENTIC_SETUP.md` |
 | Where did a skill, agent or hook come from? | `.claude/THIRD_PARTY.md` |
+| Where do secrets and signing keys live, and what if one is lost? | `docs/operations/secrets-and-signing.md` |
 | How to work in this repo | `CLAUDE.md`, path-scoped `.claude/rules/` |
 | Code structure and call paths | graphify (after T0.2, A0.4) |
 
