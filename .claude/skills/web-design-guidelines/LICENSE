@@ -1,0 +1,5 @@
+SKILL.md is adapted from vercel-labs/agent-skills `skills/web-design-guidelines` (commit 063bee9).
+That repository declares the MIT License in its README; it ships no LICENSE file.
+
+references/guidelines.md is vercel-labs/web-interface-guidelines `command.md` (commit 434b7f9),
+MIT License, Copyright (c) 2025 Vercel Labs; full text in references/LICENSE.

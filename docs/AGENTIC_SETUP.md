@@ -59,13 +59,12 @@ Known conflict to handle in A2.2: `frontend-ui-engineering` lists "purple/indigo
 - [x] **A0.3 Path-scoped rules.** `.claude/rules/*.md` with `paths:` frontmatter, so each rule loads only when files it covers are touched. Keeps `CLAUDE.md` short and saves tokens.
   - Verified with headless sessions: a rule with a quoted `paths:` list loaded after reading its file and stayed out when another file was read.
   - First rules: `spec-editing.md` (spec) and `agent-config.md` (`.claude/`, `CLAUDE.md`, this file). `scripts/check-docs.sh` checks spec IDs, checklist items and commit hashes; the `auto-commit` gate uses it for docs-only changes.
-- [ ] **A0.4 Agent memory / knowledge graph.** A project memory that lets an agent find relevant facts without rereading large files.
+- [~] **A0.4 Agent memory / knowledge graph.** A project memory that lets an agent find relevant facts without rereading large files.
+  - Done: `docs/knowledge/INDEX.md` (where each kind of fact lives, plus notes) and a first note of tooling gotchas; `CLAUDE.md` points to it. Pending: graphify, after T0.2.
   - Plan (revised after review): **graphify** for code (project install, `GRAPHIFY_BACKEND=none` so code graphs never call a model, CLI in a gitignored repo-local Python venv, git hook rebuilds; its generated `CLAUDE.md` section moved into a path-scoped rule; its PreToolUse hooks pipe-tested with ours) once code exists, plus a small in-repo `docs/knowledge/` (`INDEX.md` + linked notes) for decisions and facts that are not in code. Serena and an MCP memory server are no longer needed.
   - Done when: an agent answers "where is X / why is Y" by reading the index and one or two notes.
-- [ ] **A0.5 Token-efficient spec access.** The spec is ~70 KB; agents should read only the parts they need.
-  - Options: (a) a lookup script/skill (`spec R-42`, `spec T1.4`, `spec §8.3`) that prints just those rows or sections; (b) split the spec into `docs/spec/*.md` with an index.
-  - Recommendation: (a): keeps one file, no broken references.
-  - Done when: implementing a task needs no full read of the spec.
+- [x] **A0.5 Token-efficient spec access.** Decided: option (a), a lookup script (one spec file, no broken references). `node scripts/spec.mjs R-42 T1.4 R-37..R-39 T1.1..T1.3 TIM-01/02/03 MOB-* 8.3 A1.7 FE-003` prints only those table rows (with their header), sections, checklist items or FE decisions; `--task T1.4` prints a task plus everything it cites. Unknown IDs and empty ranges exit 1. Agents and `deliver-task` use it instead of reading whole files.
+  - Verified: by hand and by the change review: rows, all range forms (padded, unpadded, dotted, reversed), slash lists, wildcards, sections, checklist items, `--task T1.4`, missing IDs.
 - [ ] **A0.6 Session-start briefing.** A `SessionStart` hook that prints a ~30-line "current state": current milestone, next open tasks, open decisions, pointers to the knowledge index. Generated from the spec and this file, not hand-maintained.
 
 ## A1. Role agents and the delivery pipeline
@@ -74,15 +73,20 @@ Subagents live in `.claude/agents/`; each has a focused system prompt, a restric
 
 - [x] **A1.1 `ux-designer`.** Owns the FE guide (A2), user flows and screen specs. Produces a design brief **before** any UI code; returns interview questions and every uncovered design decision to the main session as blocks (subagents cannot ask the owner), which asks via `design-decision` and builds mockups for visual choices. Writes only in `docs/design/` and the FE guide; until the guide exists, spec section 10 is the guide.
   - Verified: Claude Code loads the agent (frontmatter valid); change review of the definitions (fixes applied).
-- [ ] **A1.2 `frontend-engineer`.** Builds Svelte (desktop) and Compose (Android) UI from the design spec and FE guide; TDD for logic, screenshot check for visuals (A2.5).
-- [ ] **A1.3 `backend-engineer`.** NestJS modules, database schema and migrations, contract package; integration tests against a real database.
+- [x] **A1.2 `frontend-engineer`.** Custom (no Svelte/Compose agent exists). Builds desktop and Android UI from the design brief and FE guide; returns `DECISION NEEDED` instead of deciding; tokens and primitives only; Vitest / ViewModel tests, light/dark screenshots, `break-ui`; never commits.
+  - Verified: Claude Code loads the agent; change review (fixes applied).
+- [x] **A1.3 `backend-engineer`.** Custom (wshobson's `backend-architect` is microservice-centric). NestJS, PostgreSQL, realtime gateway and contract package: contract first, idempotent revisioned writes, database-enforced invariants, shared fixtures, integration tests on real PostgreSQL; never commits or asks the owner directly.
+  - Verified: Claude Code loads the agent; change review (fixes applied).
 - [x] **A1.4 `core-engineer`.** Rust client core, Tauri native side (tray, OS events, desktop trackers, native host), UniFFI bridge, Kotlin foreground service and Android trackers. Decided: a separate agent (different language and failure modes from the NestJS backend). Never commits; returns results to the main session.
   - Verified: Claude Code loads the agent; change review (fixes applied).
 - [x] **A1.5 `qa-engineer`.** Reviews finished work against the task's "Done when" and R-rules plus Pulse's risk areas (offline, midnight/DST, clock skew, undo, sync issues); writes `docs/qa/<task>.md`; Critical/High/Medium bugs reject the task; escalates after two rejections. Writes tests and QA reports only, never commits.
   - Verified: Claude Code loads the agent; change review (fixes applied).
-- [ ] **A1.6 `devops-engineer`.** CI, release builds, signing, server image, update channels. Details in A6.
-- [ ] **A1.7 Delivery pipeline skill (`/task T1.4`).** Runs one spec task end to end: brief (spec rows + knowledge) → design (A1.1, asks you when needed) → plan → build (A1.2–A1.4) → verify (`auto-commit` gate) → QA review (A1.5) → fix loop → commit.
-  - Decision: a sequential skill that delegates to subagents (cheaper, recommended) or a multi-agent Workflow for large tasks (on request only).
+- [x] **A1.6 `devops-engineer`.** Custom (wshobson's `deployment-engineer` is GitOps/Kubernetes). CI for pnpm/Cargo/Gradle, server image, signed installer and APK, update channels, size budgets in CI (dependency hygiene and backups from A6 too); never commits, pushes, publishes or touches keys, and never asks the owner directly.
+  - Verified: Claude Code loads the agent; change review (fixes applied).
+- [x] **A1.7 Delivery pipeline skill.** `deliver-task` (`/deliver-task T1.4`, or "next task"): brief (`spec.mjs --task` plus architecture, ADRs, FE guide, knowledge) → design via `ux-designer` and `design-decision` (UI tasks) → plan with slices, Interfaces and Review focus → build with the owning engineer agents → verify (`auto-commit` verify-only) → QA (`qa-engineer`) → fix loop (resume the original implementer, scoped re-checks, separate QA and gate budgets, then escalate) → `auto-commit` (verify, `change-review`, commit, ledger in the same commit) → report. "Next task" reads the Deps column formats; decision tasks like T0.1 run as owner conversations. Task memory in `docs/tasks/<task-id>.md`, status in `docs/tasks/LEDGER.md` (seeded with T0.1 in progress). Process ideas borrowed from superpowers (credited in the skill and `THIRD_PARTY.md`).
+  - Verified: change review of the skill against `auto-commit`, `change-review`, the agents and the spec's section 12 formats (fixes applied).
+  - Decided: a sequential skill that delegates to subagents (cheaper); multi-agent Workflows only on the owner's request.
+  - Not yet verified on a real task (A8.1 dry run, after T0.2).
 - [x] **A1.8 Senior code review in the gate.** `change-review` skill (adapted from mattpocock `code-review`), run by `auto-commit` step 5 on every change except trivial docs edits. Decided: by change type, not diff size, since small diffs can break the spec.
   - Verified: dry-run on its own change; the two reviewers found 2 hard violations and 6 logic bugs (folder-only untracked listing, empty-diff check, review scope ≠ commit scope, unfixable "missing hash" block, unclear round budget, unnamed second axis), all fixed before commit.
 
@@ -91,7 +95,7 @@ Subagents live in `.claude/agents/`; each has a focused system prompt, a restric
 - [x] **A2.1 `docs/FE_GUIDE.md` skeleton.** Principles, tokens, component catalogue, layout and navigation, patterns, behaviour, accessibility, copy, desktop vs Android, **decision log** (`FE-NNN`) and **open questions** (decisions noticed while the owner is away). Holds only spec-derived rules cited by ID; every section marks where owner decisions are still open.
 - [x] **A2.2 Frontend rule.** Lives in the platform rules instead of a separate `frontend.md`: `.claude/rules/svelte.md` (desktop UI) and `kotlin.md` (Android) both make the FE guide binding, require reading it before building UI, and send uncovered design or flow questions to `design-decision`.
 - [x] **A2.3 `design-decision` skill.** Check the guide first; frame the question and its scope of reuse; 2–4 options with ASCII previews, live variants (`prototype` skill, adapted from Emil Kowalski) or a mockup artifact, recommended first; ask via AskUserQuestion (subagents return a `DECISION NEEDED` block; when the owner is away, park it under open questions instead of deciding); apply; record the `FE-NNN` log row and the reusable rule in the matching section.
-  - Also installed for design quality: `break-ui` (worst-case data; QA) from Emil Kowalski's skills, and the `playwright-cli` skill copied into the project for screenshots.
+  - Also installed for design quality: `break-ui` (worst-case data; QA) from Emil Kowalski's skills, the `playwright-cli` skill copied into the project for screenshots, and `web-design-guidelines` (Vercel's UI audit, rules pinned locally instead of fetched at runtime).
 - [ ] **A2.4 One source of design tokens.** A tokens file that generates both the desktop CSS variables and the Compose theme; lint against hard-coded colours, spacing and font sizes. *(needs scaffold; overlaps T1.7)*
 - [ ] **A2.5 Visual verification.** UI changes are checked with screenshots in light and dark themes (the `playwright-cli` skill for the Svelte UI in a browser; the running app for Tauri and Android). *(needs scaffold)*
 

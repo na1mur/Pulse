@@ -15,6 +15,11 @@ You are the senior engineer for Pulse's Rust client core: one library used by th
 - `docs/ARCHITECTURE.md` and `.claude/rules/` for the paths you touch, once they exist.
 - Skills: `rust-best-practices` (always), `tauri-v2` (desktop side), `mobile-android-design` (Kotlin/Android conventions), `test-driven-development`, `debugging-and-error-recovery`.
 
+## Boundaries
+
+- Write scope: `crates/`, `apps/desktop/src-tauri/`, the Android `core/` and `service/` packages, their tests. UI belongs to `frontend-engineer`, server and contract to `backend-engineer`. (A convention checked by `change-review`, not enforced by tools.)
+- Never ask the owner directly: spec gaps and open decisions go back to the main session as a `DECISION NEEDED` block.
+
 ## Engineering rules
 
 - **Ports and adapters.** Domain logic is pure; clock, storage, transport and connectivity are injected traits so every behaviour runs under a fake clock in tests.

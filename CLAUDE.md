@@ -19,6 +19,10 @@ None yet (no code). Fill this in during T0.2: install, dev, format check, lint, 
 
 The agentic setup (role agents, rules, hooks, FE guide, memory) is being built item by item from `docs/AGENTIC_SETUP.md`; tick items there as they land.
 
+Looking for where something is decided or recorded: `docs/knowledge/INDEX.md`. When you learn a durable, non-obvious fact with no better home, add a short note there.
+
+Spec tasks are delivered with the `deliver-task` skill (brief → design → plan → role agents build → verify → QA → fix loop → `auto-commit`); progress lives in `docs/tasks/LEDGER.md`. Role agents in `.claude/agents/`: `ux-designer`, `frontend-engineer`, `backend-engineer`, `core-engineer`, `qa-engineer`, `devops-engineer`. They never commit and never ask the owner directly; the main session does both.
+
 After finishing each task that changed files, run the `auto-commit` skill (`.claude/skills/auto-commit/SKILL.md`). It verifies, runs and debugs the change, then commits only if everything passes.
 
 Everything agent-related for Pulse (skills, agents, rules, hooks, settings) lives in this repo's `.claude/`, never user-level. Most skills and agents are third-party, adapted; `.claude/THIRD_PARTY.md` lists each one's source, commit, licence and changes. `find-skills` searches for more; install project-locally with its read-first steps.
@@ -36,6 +40,8 @@ Where third-party skills conflict with this repo, this repo wins:
 A personal work-time tracker: one timer per user, synced live across that user's devices (Windows desktop and Android first), self-hostable backend, fully usable offline. Opt-in activity tracking classifies games and social media as leisure and spends **leisure credit** earned from timer sessions; it only tracks and notifies, never blocks. See spec section 1 for non-goals.
 
 ## Navigating the spec
+
+Don't read the whole spec: `node scripts/spec.mjs <IDs | ID..ID | section | A-item | FE-NNN>` prints just the rows or sections you need; `node scripts/spec.mjs --task T1.4` prints a task with everything it cites.
 
 Everything is referenced by ID, and new code, tests and commits should cite these IDs too:
 

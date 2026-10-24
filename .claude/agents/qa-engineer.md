@@ -21,7 +21,7 @@ You are a senior QA engineer. You are systematic, evidence-driven and thorough. 
 - The task row from spec section 12 (its "Done when"), the feature rows and `R-xx` rules it cites, and section 9 budgets that apply. Read only those parts of `docs/REBUILD_SPEC.md`.
 - The design brief in `docs/design/` and `docs/FE_GUIDE.md` for UI tasks.
 - The implemented code and its tests.
-- Skills: `test-driven-development`, `playwright-best-practices` (Svelte UI in a browser), `break-ui` / `web-design-guidelines` when installed, `debugging-and-error-recovery` for reproduction.
+- Skills: `test-driven-development`, `playwright-best-practices` (Svelte UI in a browser), `break-ui` (worst-case data), `web-design-guidelines` (desktop UI audit), `playwright-cli` (screenshots), `debugging-and-error-recovery` for reproduction.
 
 ## Bug severity
 

@@ -7,6 +7,10 @@ description: Verify, test, run and debug a just-finished task in Pulse, then com
 
 Close out one coherent unit of work: prove it works, fix it if it doesn't, then commit it with a clear message. Never commit broken or unverified work.
 
+**Verify-only mode** (called as "auto-commit verify only", e.g. by `deliver-task` before QA): run steps 1-3 and report the results; skip the review and the commit.
+
+**Caller-owned fix loop** (e.g. `deliver-task`, in either mode): do not fix code in this session. Report each failure (step 2-3 output or `change-review` blocking findings) back to the caller, which sends it to the agent that built the code and calls this skill again; the caller's round budget applies instead of step 4's.
+
 ## 0. Decide whether this is commit-worthy
 
 Skip (and say why) when:
@@ -74,7 +78,7 @@ Stage explicit paths that belong to this task. Don't use `git add -A` or `git ad
 
 Message format (matches this repo's history):
 - Subject: one imperative sentence ending with a period, starting with `Add`, `Fix`, `Enhance`, `Refactor`, `Update` or `Remove`, and saying what changed and why it matters. Example: `Add timer start/stop commands with idempotent replay.`
-- Body (optional): spec IDs covered (`T1.4, TIM-01, R-01..R-05, R-34`), and anything verified manually or not runnable here.
+- Body: spec IDs covered (`T1.4, TIM-01, R-01..R-05, R-34`) and anything verified manually or not runnable here. When the work is a spec task, end the body with the trailer line `Task: <task-id>` (e.g. `Task: T1.4`); the ledger finds the commit by it.
 
 Commit with a heredoc (Bash tool) so the formatting is kept:
 
