@@ -13,6 +13,38 @@ How to use this file:
 - [x] `auto-commit` skill: verify → run → debug → commit gate (`bff9d75`)
 - [x] 13 agent-skills skills (TDD, debugging, incremental implementation, API design, frontend UI, security, performance, code review, planning, ADRs, CI/CD, observability, source-driven development) (`e462d4e`)
 - [x] Stack decided and recorded in the spec (`8841e9b`)
+- [x] Stack knowledge skills (installed 2026-10-24, see sourcing below): `tauri-v2`, `svelte5-best-practices` (SvelteKit/migration parts removed), `mobile-android-design`, `rust-best-practices`, `nestjs-best-practices` and `postgresql-table-design` (both with Pulse overrides), `playwright-best-practices` (browser UI checks only)
+
+## Sourcing: existing skills first
+
+Rule: install an existing, well-made skill/agent when one fits; adapt it when it nearly fits; write our own only when nothing fits. Reviewed 2026-10-24 from a skills.sh search (18 repos read, nothing executed).
+
+| Need | Source | Verdict |
+|---|---|---|
+| Commit gate (`auto-commit`) | nothing replaces it (superpowers `verification-before-completion` is already covered by steps 2–3) | keep custom |
+| A0.4 code context / memory | **graphify** (`graphify-labs/graphify` @92741d1, Apache-2.0): local tree-sitter graph for TS, Svelte, Rust, Kotlin; project-scoped install; git hook rebuilds | adapt, after T0.2 |
+| A0.4 decision memory | nothing fits | small custom `docs/knowledge/` |
+| A0.5 spec lookup, A0.6 briefing | nothing fits (superpowers' SessionStart hook forces skill use every session: rejected) | custom |
+| A1.1 `ux-designer` | wshobson `ui-ux-designer` agent + impeccable references (`shape.md`, critique heuristics, `android.md`) | adapt |
+| A1.2 `frontend-engineer` | no Svelte/Compose agent exists | custom agent using `frontend-ui-engineering`, `svelte5-best-practices`, `mobile-android-design` |
+| A1.3 `backend-engineer` | wshobson `backend-architect` is microservice/K8s-centric | custom agent using `nestjs-best-practices`, `postgresql-table-design` |
+| A1.4 `core-engineer` | wshobson `rust-pro` agent | adapt; uses `rust-best-practices`, `tauri-v2` |
+| A1.5 `qa-engineer` | wshobson ship-mate `qa` agent (acceptance criteria → test cases, severity, never edits product code) | adapt |
+| A1.6 `devops-engineer` | wshobson `deployment-engineer` is GitOps/K8s | custom agent on `ci-cd-and-automation` |
+| A1.7 delivery pipeline | nothing fits as-is | custom; borrow superpowers' reviewer prompt, ledger and fix loop, and writing-plans' Interfaces / Review Focus |
+| A1.8 review before commit | mattpocock `code-review` (parallel standards + spec reviewers) | adapt as `spec-review` (diff vs `HEAD`, our spec and rules), called by `auto-commit` |
+| A2.3 design decisions | Emil Kowalski `prototype` (3–5 live variants, owner picks) | adapt for visual options; custom `design-decision` skill owns the ask → apply → record loop |
+| A2 design quality | Vercel `web-design-guidelines` (pin its remote rules locally), Emil `break-ui` (edge-case data) | adapt / install |
+| A2.4 tokens, Compose UI rule | nothing fits | custom |
+| A2.5 / A5.2 visual and E2E | `playwright-cli` (copy into project), `playwright-best-practices`; Android: official `android-cli` (adapt, after T0.2); Maestro skill (adapt: Compose `testTag`, drop RN/iOS); Tauri window: WebdriverIO + `tauri-driver` | mixed; desktop E2E custom |
+| A3 architecture and standards | ECC `rules/{rust,kotlin,typescript}` as seeds; mattpocock `codebase-design` as reading | custom docs |
+| A4.2 command guard | ECC `block-no-verify.js` + `shell-scan.js` (parses the shell command, fails closed) | adapt + small custom push/delete check |
+| A4.3 protected files | ECC `config-protection.js` | adapt (secrets, generated contract files) |
+| A4.5 Stop reminder, A6.2 ship | nothing fits | custom |
+
+Rejected after review: superpowers bundle (forces skill use every session, commits per step, decides design itself), impeccable as installed (downloads a binary to `~/.impeccable`, competing `DESIGN.md`), ui-ux-pro-max (picks palettes itself), Anthropic `frontend-design` (bold aesthetics vs the spec's restraint), Understand-Anything (user-level install, LLM-driven auto-updates), mattpocock `git-guardrails` (needs `jq`, misses `--no-verify`), wshobson frontend/backend/devops/test agents (React/K8s-generic), `github-actions-templates`.
+
+Known conflict to handle in A2.2: `frontend-ui-engineering` lists "purple/indigo everything" as an anti-pattern, but the brand colour is violet `#7C3AED`; the brand colour comes from the tokens.
 
 ---
 
@@ -28,8 +60,7 @@ How to use this file:
   - Verified with headless sessions: a rule with a quoted `paths:` list loaded after reading its file and stayed out when another file was read.
   - First rules: `spec-editing.md` (spec) and `agent-config.md` (`.claude/`, `CLAUDE.md`, this file). `scripts/check-docs.sh` checks spec IDs, checklist items and commit hashes; the `auto-commit` gate uses it for docs-only changes.
 - [ ] **A0.4 Agent memory / knowledge graph.** A project memory that lets an agent find relevant facts without rereading large files.
-  - Options: (a) **in-repo knowledge base** `docs/knowledge/`: an `INDEX.md` map plus small linked notes (`[[note]]`), git-tracked and shared across machines; (b) **MCP memory server** storing an entity/relation graph in a repo JSON file; (c) **Serena MCP**: symbol-level code navigation through language servers (TypeScript, Rust, Kotlin), so agents read functions instead of whole files.
-  - Recommendation: (a) for decisions and project facts + (c) for code, once code exists. Claude Code's built-in per-machine memory stays for personal preferences.
+  - Plan (revised after review): **graphify** for code (project install, `GRAPHIFY_BACKEND=none` so code graphs never call a model, CLI in a gitignored repo-local Python venv, git hook rebuilds; its generated `CLAUDE.md` section moved into a path-scoped rule; its PreToolUse hooks pipe-tested with ours) once code exists, plus a small in-repo `docs/knowledge/` (`INDEX.md` + linked notes) for decisions and facts that are not in code. Serena and an MCP memory server are no longer needed.
   - Done when: an agent answers "where is X / why is Y" by reading the index and one or two notes.
 - [ ] **A0.5 Token-efficient spec access.** The spec is ~70 KB; agents should read only the parts they need.
   - Options: (a) a lookup script/skill (`spec R-42`, `spec T1.4`, `spec §8.3`) that prints just those rows or sections; (b) split the spec into `docs/spec/*.md` with an index.
