@@ -2,7 +2,6 @@
 paths:
   - "apps/server/**"
   - "apps/desktop/src/**"
-  - "apps/extension/**"
   - "packages/**"
 ---
 

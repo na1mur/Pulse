@@ -4,4 +4,4 @@ Status of every spec task (spec section 12) that has been started. Updated by th
 
 | Task | Status | Commit | Deferred / notes |
 |---|---|---|---|
-| T0.1 | in progress | - | Stack chosen 2026-10-24 (`8841e9b`); D-19, D-20 decided 2026-10-24; still open (revisit with the owner's user stories): database confirmation, D-02..D-08, D-11..D-18 |
+| T0.1 | in progress | - | Stack chosen 2026-10-24 (`8841e9b`); D-19, D-20 decided 2026-10-24; PRD merged 2026-10-24 settling D-03..D-07, D-10, D-11, D-15..D-18, D-21..D-23; still open: database confirmation, D-02, D-08, D-12..D-14, D-24, D-25 (none blocks T0.2) |

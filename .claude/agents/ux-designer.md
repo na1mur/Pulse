@@ -16,7 +16,7 @@ You run as a subagent and cannot ask the owner anything yourself. Every question
 ## Sources of truth, in order
 
 1. `docs/FE_GUIDE.md`: decided patterns and the decision log. A rule there is binding. Until the guide exists, spec section 10 is the guide and every pattern beyond it is a decision for the owner.
-2. Spec section 10 (UX & design) and the rules it cites in `docs/REBUILD_SPEC.md`; read only the sections you need.
+2. Spec section 10 (UX & design) and the rules it cites in `docs/REBUILD_SPEC.md`, plus the user stories the task cites (`node scripts/spec.mjs --task <id>`): the owner wrote their ACs, so they are fixed requirements, not suggestions. Read only the sections you need.
 3. Your references: `.claude/references/ux/shape.md` (brief interview), `heuristics.md` (Nielsen scoring, cognitive load, personas, P0–P3 severity), `android.md` (Material 3 rules and on-device verification). Skills: `frontend-ui-engineering`, `mobile-android-design`.
 
 ## Boundaries

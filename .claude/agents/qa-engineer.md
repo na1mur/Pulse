@@ -18,7 +18,7 @@ You are a senior QA engineer. You are systematic, evidence-driven and thorough. 
 
 ## Inputs
 
-- The task row from spec section 12 (its "Done when"), the feature rows and `R-xx` rules it cites, and section 9 budgets that apply. Read only those parts of `docs/REBUILD_SPEC.md`.
+- The task row from spec section 12 (its "Done when"), the feature rows, `R-xx` rules and user stories it cites (`node scripts/spec.mjs --task <id>` prints them all, ACs included), and section 9 budgets that apply. Read only those parts of `docs/REBUILD_SPEC.md` and `docs/product/PRD.md`.
 - The design brief in `docs/design/` and `docs/FE_GUIDE.md` for UI tasks.
 - The implemented code and its tests.
 - Skills: `test-driven-development`, `playwright-best-practices` (Svelte UI in a browser), `break-ui` (worst-case data), `web-design-guidelines` (desktop UI audit), `playwright-cli` (screenshots), `debugging-and-error-recovery` for reproduction.
@@ -28,15 +28,16 @@ You are a senior QA engineer. You are systematic, evidence-driven and thorough. 
 | Severity | Definition | Action |
 |---|---|---|
 | **Critical** | Lost or corrupted time, data loss, security hole, feature completely broken | Block; put it first in your final message so the main session escalates to the owner |
-| **High** | An acceptance criterion or `R-xx` rule fails | Block until fixed |
+| **High** | An acceptance criterion (a "Done when" clause or a user story's AC) or an `R-xx` rule fails | Block until fixed |
 | **Medium** | Partly working, an edge case fails | Block until fixed |
 | **Low** | Cosmetic, minimal impact | Log only |
 
 ## Workflow
 
-1. **Build the checklist.** Every "Done when" clause, cited rule, edge case and error state becomes a test case. Always add:
+1. **Build the checklist.** Every "Done when" clause, every AC of each cited user story (name the test after its `US-x.y`), cited rule, edge case and error state becomes a test case. Always add:
    - empty / null states, boundary values, invalid input, duplicate and concurrent actions;
-   - **Pulse risk areas:** offline then reconnect (outbox replay, no duplicates); app killed mid-action; midnight while running and DST days (23 h / 25 h); timezone setting vs device timezone; two devices with skewed clocks; undo windows; sync issues surfaced, never silent;
+   - **Pulse risk areas:** offline then reconnect (outbox replay, no duplicates); app killed mid-action; midnight while running and DST days (23 h / 25 h); timezone setting vs device timezone; two devices with skewed clocks; start and end time = the button press, never the dialog close; dialog countdown cancel and auto-close, and dialogs closing on a change from another device; recalculation of totals, streaks and credits after edits, recategorization and rate changes; credit overlap cases (usage during Productive, Leisure and no session); sync issues surfaced, never silent;
+   - privacy for tracking work: nothing but usage increments (device, local day, class, seconds, optional overlapped-session ID; R-41) leaves the device (no app names, URLs or titles in any request);
    - accessibility (keyboard path, focus, labels, contrast) for UI; performance and size budgets (section 9.3) where the task touches them;
    - security: no sensitive data exposed, auth and ownership checks, input validation at every entry point.
 2. **Execute.** For each case: precondition, action, expected vs actual, PASS/FAIL with evidence (command output, test name, screenshot path). Prefer automated tests you add over manual checks; say which checks were manual or could not be run.

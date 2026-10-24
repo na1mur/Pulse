@@ -7,6 +7,7 @@ Start here to find a fact without reading whole files. Each line says where a ki
 | Question | Source |
 |---|---|
 | What must the product do? Rules, features, tasks, open decisions | `docs/REBUILD_SPEC.md` via `node scripts/spec.mjs <ID>` |
+| What did the owner ask for, in their words? User stories and ACs | `docs/product/PRD.md` via `node scripts/spec.mjs US-x.y` (input to the spec; the spec says where it differs, section 4.3) |
 | How is the code organised, what may depend on what? | `docs/ARCHITECTURE.md` |
 | How does the UI look and behave? Owner's design decisions | `docs/FE_GUIDE.md` (decision log: section 10) |
 | Why was a technical choice made? | `docs/decisions/` (ADRs) |

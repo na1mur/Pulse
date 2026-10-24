@@ -7,7 +7,8 @@
 //   node scripts/spec.mjs 8.3 "§12.4"            a section, up to the next heading of the same level
 //   node scripts/spec.mjs A1.7                   a checklist item from docs/AGENTIC_SETUP.md
 //   node scripts/spec.mjs FE-003                 a decision-log row from docs/FE_GUIDE.md
-//   node scripts/spec.mjs --task T1.4            a task row plus every row and section it cites
+//   node scripts/spec.mjs US-5.2 US-4.3..US-4.7  user stories with their ACs from docs/product/PRD.md
+//   node scripts/spec.mjs --task T1.4            a task row plus every row, story and section it cites
 import { existsSync, readFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -85,20 +86,38 @@ function section(number) {
   return lines.slice(i, end).join('\n').replace(/\n+---\s*$/, '').trim();
 }
 
-function checklistItem(id) {
-  const lines = read('docs/AGENTIC_SETUP.md');
+// The lines of `file` from the first line matching `isStart` while `continues(line)` holds,
+// without trailing blank lines.
+function block(file, isStart, continues) {
+  const lines = read(file);
   if (!lines) return null;
-  const i = lines.findIndex((line) => /^- \[/.test(line) && line.includes(`**${id} `));
+  const i = lines.findIndex(isStart);
   if (i === -1) return null;
   let end = i + 1;
-  while (end < lines.length && /^\s{2,}\S/.test(lines[end])) end++;
+  while (end < lines.length && continues(lines[end])) end++;
+  while (end > i + 1 && lines[end - 1].trim() === '') end--;
   return lines.slice(i, end).join('\n');
+}
+
+function checklistItem(id) {
+  return block('docs/AGENTIC_SETUP.md', (line) => /^- \[/.test(line) && line.includes(`**${id} `), (line) => /^\s{2,}\S/.test(line));
+}
+
+// A user story starts with "**US-4.1 " and runs (ACs, tables, notes) until the next story,
+// heading or bold-only label line such as "**Edge cases**".
+function userStory(id) {
+  return block(
+    'docs/product/PRD.md',
+    (line) => line.startsWith(`**${id} `),
+    (line) => !/^(\*\*US-\d|#|\*\*[^*]+\*\*$)/.test(line),
+  );
 }
 
 // One handler per argument shape; the first that matches wins.
 const HANDLERS = [
   [/^§?\d+(\.\d+)*$/, (arg) => section(arg.replace('§', ''))],
   [/^A\d+\.\d+$/, checklistItem],
+  [/^US-\d+\.\d+$/, userStory],
   [/^FE-\d+$/, (arg) => rows('docs/FE_GUIDE.md', (id) => sameId(id, arg))],
   [/^[A-Z]+-\*$/, (arg) => rows(SPEC, (id) => id.startsWith(arg.slice(0, -1)))],
   [/./, (arg) => rows(SPEC, (id) => sameId(id, arg))],
@@ -118,7 +137,7 @@ function citedBy(taskId) {
   const cells = line.split('|').map((c) => c.trim());
   const cited = (cells[5] || '') // | ID | Task | WS | Deps | Features / rules | Done when |
     .split(/[,\s]+/)
-    .filter((t) => /^(§\d+(\.\d+)*|[A-Z]+-[\d*][\d/.*]*|R-\d+\.\.R-\d+)$/.test(t));
+    .filter((t) => /^(§\d+(\.\d+)*|[A-Z]+-[\d*][\d/.*]*|[A-Z]+-[\d.]+\.\.[A-Z]+-[\d.]+)$/.test(t));
   const sections = [...(cells[2] || '').matchAll(/section (\d+(?:\.\d+)*)/g)].map((m) => m[1]);
   return [...new Set([...cited, ...sections])];
 }
@@ -134,7 +153,7 @@ if (args[0] === '--task') {
   args = [task, ...cited];
 }
 if (args.length === 0) {
-  console.error('usage: node scripts/spec.mjs [--task T1.4] <ID | ID..ID | TIM-01/02 | MOB-* | section | A-item | FE-NNN> ...');
+  console.error('usage: node scripts/spec.mjs [--task T1.4] <ID | ID..ID | TIM-01/02 | MOB-* | section | A-item | FE-NNN | US-x.y> ...');
   process.exit(1);
 }
 

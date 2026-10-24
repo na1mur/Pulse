@@ -9,10 +9,10 @@ How to use this file:
 
 ## Waiting on the owner (as of 2026-10-24)
 
-- **User stories:** the owner will share them; update the spec, architecture and FE guide from them. The remaining spec decisions (database confirmation, D-02..D-08, D-11..D-18; T0.1 in the ledger) are revisited then.
-- **Design decisions:** none taken without the owner; `docs/FE_GUIDE.md` lists what is still open.
+- **Remaining spec decisions:** PostgreSQL confirmation, D-08 (legacy migration), D-12..D-14, D-24, D-25 (recommendations followed until decided); D-02 comes up as a design decision at T2.6. T0.1 in the ledger.
+- **Design decisions:** none taken without the owner; `docs/FE_GUIDE.md` section 11 lists what is still open, including three assumptions about the session dialogs to confirm.
 
-Settled 2026-10-24: hooks A0.6/A4.4/A4.5 added, A4.6 covered by the owner's Orca hooks, official Svelte MCP added (A7.2), `ARCHITECTURE.md`, ADR-0001/0002, D-19 and D-20 accepted.
+Settled 2026-10-24: hooks A0.6/A4.4/A4.5 added, A4.6 covered by the owner's Orca hooks, official Svelte MCP added (A7.2), `ARCHITECTURE.md`, ADR-0001/0002, D-19 and D-20 accepted. The owner's PRD (user stories) was merged into the spec, architecture, FE guide, agents and rules; `spec.mjs` looks up `US-x.y` and `check-docs.sh` checks every story is cited.
 
 ## Already in place
 
@@ -70,7 +70,7 @@ Known conflict to handle in A2.2: `frontend-ui-engineering` lists "purple/indigo
   - Done: `docs/knowledge/INDEX.md` (where each kind of fact lives, plus notes) and a first note of tooling gotchas; `CLAUDE.md` points to it. Pending: graphify, after T0.2.
   - Plan (revised after review): **graphify** for code (project install, `GRAPHIFY_BACKEND=none` so code graphs never call a model, CLI in a gitignored repo-local Python venv, git hook rebuilds; its generated `CLAUDE.md` section moved into a path-scoped rule; its PreToolUse hooks pipe-tested with ours) once code exists, plus a small in-repo `docs/knowledge/` (`INDEX.md` + linked notes) for decisions and facts that are not in code. Serena and an MCP memory server are no longer needed.
   - Done when: an agent answers "where is X / why is Y" by reading the index and one or two notes.
-- [x] **A0.5 Token-efficient spec access.** Decided: option (a), a lookup script (one spec file, no broken references). `node scripts/spec.mjs R-42 T1.4 R-37..R-39 T1.1..T1.3 TIM-01/02/03 MOB-* 8.3 A1.7 FE-003` prints only those table rows (with their header), sections, checklist items or FE decisions; `--task T1.4` prints a task plus everything it cites. Unknown IDs and empty ranges exit 1. Agents and `deliver-task` use it instead of reading whole files.
+- [x] **A0.5 Token-efficient spec access.** Decided: option (a), a lookup script (one spec file, no broken references). `node scripts/spec.mjs R-42 T1.4 R-37..R-39 T1.1..T1.3 TIM-01/02/03 MOB-* 8.3 A1.7 FE-003` prints only those table rows (with their header), sections, checklist items or FE decisions; `US-5.2` prints a user story with its ACs (added 2026-10-24 with the PRD); `--task T1.4` prints a task plus everything it cites. Unknown IDs and empty ranges exit 1. Agents and `deliver-task` use it instead of reading whole files.
   - Verified: by hand and by the change review: rows, all range forms (padded, unpadded, dotted, reversed), slash lists, wildcards, sections, checklist items, `--task T1.4`, missing IDs.
 - [x] **A0.6 Session-start briefing.** `.claude/hooks/session-brief.js` on `SessionStart`: current milestone and next spec task not started, unfinished ledger tasks, open spec decisions, open design questions, setup progress, uncommitted changes, last three commits, where to look things up; generated from the spec, ledger and docs, under 20 lines, never fails the session.
   - Verified: tests in `.claude/hooks/session-hooks.test.js` (milestone, next task, open decisions without decided ones, short output, survives missing docs); output checked by hand.
@@ -88,7 +88,7 @@ Subagents live in `.claude/agents/`; each has a focused system prompt, a restric
   - Verified: Claude Code loads the agent; change review (fixes applied).
 - [x] **A1.4 `core-engineer`.** Rust client core, Tauri native side (tray, OS events, desktop trackers, native host), UniFFI bridge, Kotlin foreground service and Android trackers. Decided: a separate agent (different language and failure modes from the NestJS backend). Never commits; returns results to the main session.
   - Verified: Claude Code loads the agent; change review (fixes applied).
-- [x] **A1.5 `qa-engineer`.** Reviews finished work against the task's "Done when" and R-rules plus Pulse's risk areas (offline, midnight/DST, clock skew, undo, sync issues); writes `docs/qa/<task>.md`; Critical/High/Medium bugs reject the task; escalates after two rejections. Writes tests and QA reports only, never commits.
+- [x] **A1.5 `qa-engineer`.** Reviews finished work against the task's "Done when" and R-rules plus Pulse's risk areas (offline, midnight/DST, clock skew, session-dialog timing, recalculation, sync issues); writes `docs/qa/<task>.md`; Critical/High/Medium bugs reject the task; escalates after two rejections. Writes tests and QA reports only, never commits.
   - Verified: Claude Code loads the agent; change review (fixes applied).
 - [x] **A1.6 `devops-engineer`.** Custom (wshobson's `deployment-engineer` is GitOps/Kubernetes). CI for pnpm/Cargo/Gradle, server image, signed installer and APK, update channels, size budgets in CI (dependency hygiene and backups from A6 too); never commits, pushes, publishes or touches keys, and never asks the owner directly.
   - Verified: Claude Code loads the agent; change review (fixes applied).
@@ -105,7 +105,7 @@ Subagents live in `.claude/agents/`; each has a focused system prompt, a restric
 - [x] **A2.2 Frontend rule.** Lives in the platform rules instead of a separate `frontend.md`: `.claude/rules/svelte.md` (desktop UI) and `kotlin.md` (Android) both make the FE guide binding, require reading it before building UI, and send uncovered design or flow questions to `design-decision`.
 - [x] **A2.3 `design-decision` skill.** Check the guide first; frame the question and its scope of reuse; 2–4 options with ASCII previews, live variants (`prototype` skill, adapted from Emil Kowalski) or a mockup artifact, recommended first; ask via AskUserQuestion (subagents return a `DECISION NEEDED` block; when the owner is away, park it under open questions instead of deciding); apply; record the `FE-NNN` log row and the reusable rule in the matching section.
   - Also installed for design quality: `break-ui` (worst-case data; QA) from Emil Kowalski's skills, the `playwright-cli` skill copied into the project for screenshots, and `web-design-guidelines` (Vercel's UI audit, rules pinned locally instead of fetched at runtime).
-- [ ] **A2.4 One source of design tokens.** A tokens file that generates both the desktop CSS variables and the Compose theme; lint against hard-coded colours, spacing and font sizes. *(needs scaffold; overlaps T1.7)*
+- [ ] **A2.4 One source of design tokens.** A tokens file that generates both the desktop CSS variables and the Compose theme; lint against hard-coded colours, spacing and font sizes. *(needs scaffold; overlaps T1.9)*
 - [ ] **A2.5 Visual verification.** UI changes are checked with screenshots in light and dark themes (the `playwright-cli` skill for the Svelte UI in a browser; the running app for Tauri and Android). *(needs scaffold)*
 
 ## A3. Engineering standards (clean code and architecture)

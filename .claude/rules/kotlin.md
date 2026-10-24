@@ -13,6 +13,7 @@ Use `mobile-android-design` (Material 3, Compose) and `.claude/references/ux/and
 - State: one ViewModel per screen exposing immutable UI state (`StateFlow`); events in, state out. Coroutines with structured concurrency; no `GlobalScope`.
 - Null safety: no `!!` without a comment saying why it is safe. Prefer sealed types for UI state and results.
 - The foreground service (MOB-02) is the only long-lived component. It declares the `specialUse` foreground-service type (Android 14+ requires a type; `dataSync` is capped at 6 h on Android 15; fine for a sideloaded app) and never wakes the device while the screen is off (spec 9.3).
-- Activity data: only package names or domains leave the device (principle 11).
+- Activity data: trackers hand samples to the core and nothing else; package names, domains and samples never leave the device, only the core's usage increments (per-day, per-class totals, optionally tied to the overlapped session) do (principle 11, R-41).
+- FCM is optional at runtime (D-23): the app must work fully without Google Play services or FCM configuration; the widget and the persistent notification read state only through `core/`.
 - Tests: unit tests for ViewModels with fakes; Compose UI tests with `Modifier.testTag`; device flows in Maestro.
 - Size: no dependency without a reason (APK budget, spec 9.3); no DI framework (spec section 11).

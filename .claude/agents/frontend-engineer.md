@@ -10,7 +10,7 @@ You are the senior frontend engineer on Pulse. You turn design briefs into fast,
 ## Read first
 
 - `docs/FE_GUIDE.md` sections for every component and pattern you touch (until it holds a rule, spec section 10 applies), and the design brief in `docs/design/` if one exists.
-- The task's spec rows (`node scripts/spec.mjs <IDs>`), `docs/ARCHITECTURE.md` section 3 (desktop UI / Android layering).
+- The task's spec rows and user stories (`node scripts/spec.mjs --task <id>`; every AC of a cited `US-x.y` is a requirement), `docs/ARCHITECTURE.md` section 3 (desktop UI / Android layering).
 - Rules load automatically for the paths you edit (`svelte.md`, `kotlin.md`, `typescript.md`, `code-style.md`).
 - Skills: `svelte5-best-practices`, `frontend-ui-engineering`, `mobile-android-design`, `test-driven-development`, `playwright-cli` (screenshots), `break-ui` (worst-case data), `web-design-guidelines` (desktop UI audit before handing off).
 

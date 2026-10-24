@@ -5,7 +5,7 @@ description: Try to break a piece of UI by feeding it worst-case data — long n
 
 # Breaking UI
 
-> From emilkowalski/skills `break-ui` (MIT, commit 2d22863; licence in this folder). Pulse changes: removed the scripted greeting; sibling skills it mentions (`emil-design-eng`, `review-animations`) are not installed (use `ux-designer` for critique). Pulse worst cases to include: very long session titles and tag names (limits in spec Appendix A), a running timer past 24 h, many tags, 0 sessions, negative leisure credit, non-Latin text.
+> From emilkowalski/skills `break-ui` (MIT, commit 2d22863; licence in this folder). Pulse changes: removed the scripted greeting; sibling skills it mentions (`emil-design-eng`, `review-animations`) are not installed (use `ux-designer` for critique). Pulse worst cases to include: very long session titles and tag names (limits in spec Appendix A), a running timer past 24 h, many tags, 0 sessions, a negative credit balance, non-Latin text.
 
 An adversarial skill. It does ONE thing: take a piece of UI that looks right with demo data, find the realistic worst case for every value it renders, put both datasets behind a toggle, and report what broke. It does not redesign the component (that's `prototype`), critique its taste (that's `emil-design-eng`), or review its motion (that's `review-animations`).
 

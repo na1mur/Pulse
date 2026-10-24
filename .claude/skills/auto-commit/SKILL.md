@@ -77,16 +77,16 @@ Then check:
 Stage explicit paths that belong to this task. Don't use `git add -A` or `git add .`.
 
 Message format (matches this repo's history):
-- Subject: one imperative sentence ending with a period, starting with `Add`, `Fix`, `Enhance`, `Refactor`, `Update` or `Remove`, and saying what changed and why it matters. Example: `Add timer start/stop commands with idempotent replay.`
-- Body: spec IDs covered (`T1.4, TIM-01, R-01..R-05, R-34`) and anything verified manually or not runnable here. When the work is a spec task, end the body with the trailer line `Task: <task-id>` (e.g. `Task: T1.4`); the ledger finds the commit by it.
+- Subject: one imperative sentence ending with a period, starting with `Add`, `Fix`, `Enhance`, `Refactor`, `Update` or `Remove`, and saying what changed and why it matters. Example: `Add timer start/pause commands with idempotent replay.`
+- Body: spec IDs covered (`T2.1, TIM-01, R-01..R-05, R-34`) and anything verified manually or not runnable here. When the work is a spec task, end the body with the trailer line `Task: <task-id>` (e.g. `Task: T2.1`); the ledger finds the commit by it.
 
 Commit with a heredoc (Bash tool) so the formatting is kept:
 
 ```bash
 git commit -F - <<'EOF'
-Add timer start/stop commands with idempotent replay.
+Add timer start/pause commands with idempotent replay.
 
-Implements T1.4 (TIM-01, R-01..R-05, R-34).
+Implements T2.1 (TIM-01, R-01..R-05, R-34).
 EOF
 ```
 

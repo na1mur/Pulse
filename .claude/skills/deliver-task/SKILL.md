@@ -20,7 +20,7 @@ You are the lead: you coordinate, the role agents do the work, the owner decides
 
 ## 1. Brief
 
-Run `node scripts/spec.mjs --task <task-id>` (the task row plus every rule, feature and section it cites). Paste it into the task file under **Brief**, with "Done when" verbatim, and add the context the engineers need:
+Run `node scripts/spec.mjs --task <task-id>` (the task row plus every rule, feature, user story and section it cites). Paste it into the task file under **Brief**, with "Done when" and the cited user stories' ACs verbatim (both are the acceptance bar), and add the context the engineers need:
 - the `docs/ARCHITECTURE.md` sections for the parts the task touches;
 - ADRs in `docs/decisions/` that cite those IDs (`grep -l <ID> docs/decisions/`);
 - for UI tasks, the relevant `docs/FE_GUIDE.md` sections and `FE-NNN` decisions;
@@ -63,4 +63,4 @@ Set the ledger row to `done`, Commit `(this commit)`, with any deferred items, a
 
 ## 8. Report
 
-Tell the owner in a few lines: what was delivered against "Done when", the commit, decisions they made along the way (`FE-NNN`, `D-xx`), QA verdict, deferred items, and what could not be verified here.
+Tell the owner in a few lines: what was delivered against "Done when" and the user stories' ACs, the commit, decisions they made along the way (`FE-NNN`, `D-xx`), QA verdict, deferred items, and what could not be verified here.

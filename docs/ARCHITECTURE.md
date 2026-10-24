@@ -1,30 +1,31 @@
 # Pulse architecture
 
-How the code is organised, which parts may depend on which, and how each part is layered. Product rules live in `docs/REBUILD_SPEC.md` (cited by ID); this file covers structure only. Status: **accepted by the owner 2026-10-24**; made concrete by T0.2 (scaffold) and revisited when user stories add requirements. Decisions are listed at the end.
+How the code is organised, which parts may depend on which, and how each part is layered. Product rules live in `docs/REBUILD_SPEC.md` (cited by ID); this file covers structure only. Status: **accepted by the owner 2026-10-24**; updated 2026-10-24 for the owner's PRD (`docs/product/PRD.md`: email, Google sign-in, push, Compose deployment, on-device activity classification, no browser extension in v1); made concrete by T0.2 (scaffold). The PRD's folder layout is indicative; this one meets its intent (one monorepo, shared rules, `infra/` for deployment). Decisions are listed at the end.
 
 ## 1. Repository layout
 
 ```
 apps/
-  server/          NestJS API + realtime gateway (TypeScript)
+  server/          NestJS API + realtime gateway + mail + push (TypeScript)
   desktop/         Tauri 2 app
     src/           Svelte 5 UI (TypeScript)
-    src-tauri/     Rust shell: window, tray, OS events, trackers, Tauri commands
-  android/         Gradle project: Kotlin + Jetpack Compose app, foreground service
-  extension/       WXT browser extension (TypeScript)
+    src-tauri/     Rust shell: windows (main, mini), tray, shortcut, OS events, trackers, Tauri commands
+  android/         Gradle project: Kotlin + Jetpack Compose app, foreground service, widget
 crates/
-  core/            pulse-core: domain, sync, outbox, local store (Rust library)
+  core/            pulse-core: domain, sync, outbox, local store, tracking pipeline (Rust library)
   core-ffi/        UniFFI bindings of pulse-core for Android
-  native-host/     browser native-messaging host (small Rust binary)
   contract-types/  Rust types generated from the contract (generated/ only)
 packages/
-  contract/        zod schemas -> OpenAPI + JSON Schema -> generated TS client, mocks
-  tokens/          design tokens source -> generated CSS variables and Compose theme
-docs/              spec, architecture, FE guide, design briefs, QA reports, ADRs, knowledge
+  contract/        zod schemas -> OpenAPI + JSON Schema -> generated TS client, mocks;
+                   fixtures/ (shared time, streak and credit cases, D-19);
+                   data/ (default usage rules, read by the core at build time)
+  tokens/          design tokens source (incl. category colours) -> generated CSS variables and Compose theme
+infra/             docker-compose.yml (server, `db` profile, `proxy` profile with Caddy), .env.example, Caddyfile
+docs/              spec, PRD, architecture, FE guide, design briefs, QA reports, ADRs, knowledge
 scripts/           repo tooling (docs checks, spec lookup)
 ```
 
-Workspaces: pnpm (`apps/server`, `apps/desktop`, `apps/extension`, `packages/*`), Cargo (`crates/*`, `apps/desktop/src-tauri`), Gradle (`apps/android`, building `crates/core-ffi` through `cargo-ndk`).
+Workspaces: pnpm (`apps/server`, `apps/desktop`, `packages/*`), Cargo (`crates/*`, `apps/desktop/src-tauri`), Gradle (`apps/android`, building `crates/core-ffi` through `cargo-ndk`). The browser extension and its native host (ACT-09) are P2; they would return as `apps/extension` and `crates/native-host`.
 
 Generated code always lives in a `generated/` folder or starts with an `@generated` comment line, is never hand-edited (the edit guard refuses it), and is rebuilt by one command per package.
 
@@ -33,14 +34,13 @@ Generated code always lives in a `generated/` folder or starts with an `@generat
 Arrows mean "may depend on". Anything not listed is forbidden.
 
 ```
-packages/contract  <- apps/server, apps/desktop/src, apps/extension, crates/contract-types (generated from it)
+packages/contract  <- apps/server, apps/desktop/src, crates/contract-types (generated from it),
+                      crates/core (fixtures in tests, data/ at build time)
 packages/tokens    <- apps/desktop/src, apps/android (generated theme)
-crates/contract-types <- crates/core, crates/native-host
+crates/contract-types <- crates/core
 crates/core        <- apps/desktop/src-tauri, crates/core-ffi
 crates/core-ffi    <- apps/android (as a native library)
 ```
-
-The browser-extension protocol (messages between the extension and the native host) is defined in `packages/contract` like everything else, so the TypeScript extension and the Rust host share one source.
 
 - **The UI never talks to the server.** `apps/desktop/src` calls only Tauri commands and listens to Tauri events; the Rust core owns HTTP, WebSocket, the outbox and the cache (spec 8.7). Android screens likewise call the core through the service.
 - **`crates/core` has no UI, Tauri, Android or OS dependency.** Clock, storage, transport, connectivity and notifications are ports (traits) implemented by adapters; tests use fakes.
@@ -53,22 +53,24 @@ The browser-extension protocol (messages between the extension and the native ho
 
 ```
 src/
-  domain/     pure logic, no I/O: time math (R-10..R-18), timer reducer (R-01..R-05),
-              goals/streaks (R-19..R-28), credit math (R-42..R-47), segments (R-38..R-41)
+  domain/     pure logic, no I/O: time math (R-10..R-18), timer reducer (R-01..R-07),
+              goals/streaks (R-19..R-28), credit math (R-42..R-46),
+              classification and usage increments (R-38..R-41)
   app/        use cases: commands and queries that orchestrate domain + ports
-  sync/       outbox, change feed, revisions, clock offset (spec section 8)
-  ports/      traits: Clock, Store, Transport, Connectivity, Notifier
+  sync/       outbox, snapshot + change feed, revisions, clock offset (spec section 8)
+  tracking/   sample store (7 days), presence, accumulation into increments (spec 8.8)
+  ports/      traits: Clock, Store, Transport, Connectivity, Notifier, ForegroundSource, Presence
   adapters/   sqlite store, http/ws transport, system clock (behind cargo features)
   api.rs      the small public facade used by Tauri commands and UniFFI
 ```
 
-`domain` depends on nothing else in the crate; `app` on `domain` and `ports`; `sync` on `app`, `domain`, `ports`; `adapters` implement `ports`; `api` wires everything.
+`domain` depends on nothing else in the crate; `app` on `domain` and `ports`; `sync` and `tracking` on `app`, `domain`, `ports`; `adapters` implement `ports`; `api` wires everything. Platform trackers (Windows, Android) only produce foreground samples and presence changes through the ports; classification, accumulation and everything that leaves the device happen in the core, so the privacy rule (principle 11) is enforced in one place.
 
 ### Desktop UI (`apps/desktop/src`)
 
 ```
-app/              shell, navigation, persistent timer bar, theme bootstrap
-features/<name>/  today, log, insights, goals, settings, auth, activity
+app/              shell, navigation, persistent timer bar, session dialogs, theme bootstrap
+features/<name>/  today, history, stats, settings, auth, tracking, mini
                   (components, state, feature logic; entry file index.ts)
 lib/ui/           design-system primitives from the FE guide's component catalogue
 lib/core/         the only place that calls Tauri invoke / listens to events, typed from the contract
@@ -77,19 +79,21 @@ lib/format/       Intl-based date, duration and number formatting
 
 ### Desktop shell (`apps/desktop/src-tauri`)
 
-Commands are thin: parse input, call `pulse-core`'s `api`, map errors. Platform code (tray, autostart, idle/lock/sleep, foreground tracker, notifications) lives in its own modules and feeds the core through its ports.
+Commands are thin: parse input, call `pulse-core`'s `api`, map errors. Platform code (tray, autostart, global shortcut, mini window, lock/sleep, foreground tracker with UI Automation for browsers, game signals, notifications with actions, Google sign-in loopback) lives in its own modules and feeds the core through its ports.
 
 ### Server (`apps/server`)
 
 ```
 src/
-  modules/<name>/   one per spec 7.2 group: auth, timer, sessions, tags, goals, preferences,
-                    insights, achievements, activity, classification, credits,
-                    sync (realtime + change feed), data (export/import), health
+  modules/<name>/   one per spec 7.2 group: auth (incl. Google, email tokens), timer, sessions,
+                    tags, goals, preferences, stats (incl. daily aggregates), achievements,
+                    usage, credits (rates + ledger), push, sync (realtime + snapshot + change feed),
+                    data (export/import), app-updates, health
+  mail/             SMTP transport and templates (used by auth)
     *.controller.ts / *.gateway.ts   transport only: validate with the contract, call the service
     *.service.ts                     use case, transaction boundary, emits events
     *.repository.ts                  SQL only
-  domain/           pure functions (no Nest, no database): time math, credit math, classification
+  domain/           pure functions (no Nest, no database): time math, streaks, credit math and ledger
   platform/         config, database, logging, errors, idempotency, revisions
 ```
 
@@ -101,8 +105,11 @@ One app module at first (size budget, spec 9.3), packages:
 
 ```
 core/          wrapper around the UniFFI bindings, lifecycle, service binding
-service/       foreground service: hosts the core, realtime connection, trackers, notification
-feature/<name>/ screen composables + ViewModel per feature
+service/       foreground service: hosts the core, realtime connection, trackers (usage events,
+               accessibility), persistent notification with actions
+widget/        home-screen widget (Glance), reading state through core/
+push/          FCM token registration and message handling (optional at runtime)
+feature/<name>/ screen composables + ViewModel per feature (incl. permissions onboarding)
 ui/            theme (generated from packages/tokens) and shared components
 ```
 
@@ -125,5 +132,5 @@ There is deliberately no Kotlin data layer (no Room, Retrofit or repositories): 
 
 ## 6. Decisions
 
-- Spec-level (decided 2026-10-24): D-19 (one shared fixture suite keeps time and credit math identical in the TypeScript server and the Rust core) and D-20 (Kysely for server data access), spec section 13.
+- Spec-level (decided 2026-10-24): D-19 (one shared fixture suite keeps time and credit math identical in the TypeScript server and the Rust core) and D-20 (Kysely for server data access); from the PRD: D-03 (a midnight-crossing session stays one record), D-22 (UI Automation instead of a browser extension), D-23 (FCM push, optional at runtime); spec section 13.
 - Structure-level ADRs (accepted 2026-10-24): `docs/decisions/0001-no-monorepo-task-runner.md`, `docs/decisions/0002-ui-primitives-inside-desktop-app.md`.

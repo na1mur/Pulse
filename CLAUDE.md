@@ -4,11 +4,11 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Current state
 
-Pulse is being **rebuilt from scratch**. The repository currently contains only `docs/REBUILD_SPEC.md`; there is no code, no build and no tests yet. The stack is decided (spec section 11) but not scaffolded (T0.2).
+Pulse is being **rebuilt from scratch**. The repository holds planning docs and the agentic setup only; there is no code, no build and no tests yet. The stack is decided (spec section 11) but not scaffolded (T0.2).
 
-Stack: NestJS server (PostgreSQL proposed) · plain WebSocket realtime · a shared **Rust client core** (sync, outbox, SQLite cache, time math, activity segments) · **Tauri 2 + Svelte 5** desktop (Windows) · **native Kotlin + Jetpack Compose** Android app (sideloaded APK) calling the core through UniFFI · WXT browser extension talking to the desktop app over native messaging. Small installers and low memory are release gates (spec section 9.3).
+Stack: NestJS server (PostgreSQL proposed) shipped with Docker Compose (bundled or external database, optional Caddy HTTPS) · email over SMTP, Google sign-in, optional FCM push · plain WebSocket realtime · a shared **Rust client core** (sync, outbox, SQLite cache, time and credit math, activity tracking) · **Tauri 2 + Svelte 5** desktop (Windows) · **native Kotlin + Jetpack Compose** Android app (sideloaded APK) calling the core through UniFFI. Small installers and low memory are release gates (spec section 9.3).
 
-- The spec is the single source of truth. Read the relevant section before designing or writing anything, and update the spec when a decision changes it (section 11 decision record, section 13 open decisions).
+- The spec (`docs/REBUILD_SPEC.md`) is the single source of truth. It was built from the owner's **PRD** (`docs/product/PRD.md`, user stories `US-x.y`): spec features and tasks cite the stories, and every AC is a testable requirement. Read the relevant section before designing or writing anything, and update the spec when a decision changes it (section 11 decision record, section 13 decisions). Never edit the PRD's content; where the spec implements a story differently, spec section 4.3 says why.
 - The legacy app (pnpm/turbo monorepo, v0.0.5, git tags `win-v0.0.5` and `android-v0.0.5`) was deleted in commit `aad9c2f`; browse it with `git show 92a9660:<path>`. The older code-citing version of the spec is also in history. Use legacy code only for context: the spec deliberately drops legacy wire compatibility and many legacy behaviours (spec section 4 lists the mismatches and their resolutions).
 
 ## Commands
@@ -37,19 +37,20 @@ Where third-party skills conflict with this repo, this repo wins:
 
 ## What Pulse is
 
-A personal work-time tracker: one timer per user, synced live across that user's devices (Windows desktop and Android first), self-hostable backend, fully usable offline. Opt-in activity tracking classifies games and social media as leisure and spends **leisure credit** earned from timer sessions; it only tracks and notifies, never blocks. See spec section 1 for non-goals.
+A work-hours tracker for individuals (the owner, then friends, each with their own account): one timer per user, synced live across that user's devices (Windows desktop and Android), self-hostable, fully usable offline. Every tag belongs to a category (Productive, Leisure, Neutral); goals, streaks and stats lead with productive hours. Productive time earns **credits**; Leisure sessions and opt-in tracked gaming or social media spend them; the balance may go negative and Pulse only notifies, never blocks. See spec section 1 for non-goals.
 
 ## Navigating the spec
 
-Don't read the whole spec: `node scripts/spec.mjs <IDs | ID..ID | section | A-item | FE-NNN>` prints just the rows or sections you need; `node scripts/spec.mjs --task T1.4` prints a task with everything it cites.
+Don't read the whole spec: `node scripts/spec.mjs <IDs | ID..ID | section | A-item | FE-NNN | US-x.y>` prints just the rows, stories or sections you need; `node scripts/spec.mjs --task T2.6` prints a task with everything it cites, user stories and their ACs included.
 
 Everything is referenced by ID, and new code, tests and commits should cite these IDs too:
 
-- `R-xx` domain rules (section 3): the canonical definition of every time, goal, streak and stat concept.
-- `L1`-`L24` / `S1`-`S15` legacy mismatches and spec contradictions (section 4), each with its resolution.
-- `AUTH-`, `TIM-`, `LOG-`, `TAG-`, `GOAL-`, `INS-`, `SYNC-`, `NOTIF-`, `DESK-`, `MOB-`, `SET-`, `OPS-`, `X-` features (section 5), with priority P0 (MVP) / P1 (v1.0) / P2 (later).
-- `T<milestone>.<n>` tasks (section 12) with dependencies and "done when" criteria; `WS0`-`WS12` workstreams.
-- `D-xx` open decisions (section 13) with recommendations; until resolved, follow the recommendation and say so.
+- `US-x.y` the owner's user stories (PRD); name acceptance tests after them.
+- `R-xx` domain rules (section 3): the canonical definition of every time, goal, streak, credit and tracking concept.
+- `L1`-`L24` / `S1`-`S15` legacy mismatches and spec contradictions (section 4), each with its resolution; section 4.3 lists where the spec meets a PRD story differently.
+- `AUTH-`, `TIM-`, `LOG-`, `TAG-`, `GOAL-`, `INS-`, `SYNC-`, `NOTIF-`, `DESK-`, `MOB-`, `SET-`, `OPS-`, `X-`, `ACT-`, `CRED-` features (section 5), with priority P0 (v1, PRD scope) / P1 (v1, spec additions) / P2 (later).
+- `T<milestone>.<n>` tasks (section 12; milestones M1-M7 are the PRD's delivery phases, built in order) with dependencies and "done when" criteria; `WS0`-`WS13` workstreams.
+- `D-xx` decisions (section 13); open ones carry a recommendation: until resolved, follow it and say so.
 - Appendix A holds defaults and limits; Appendix B holds user-facing copy.
 
 ## Architecture invariants (the decisions most likely to be gotten wrong)
@@ -57,12 +58,14 @@ Everything is referenced by ID, and new code, tests and commits should cite thes
 Folder layout, dependency rules and layering: `docs/ARCHITECTURE.md`. Per-language rules load from `.claude/rules/` when you touch matching files.
 
 - **Server owns the timer and the clock.** A running session is just a session with no end; there is no paused state and no accumulated counter (pause = stop, resume = start). Clients display `deviceNow + offset` and never invent state.
-- **Statistics are never stored.** They are computed from sessions + effective-dated goal settings. Any cache must be fully rebuildable and updated in the same transaction as the session change.
-- **Sessions across midnight are one record**, clipped per local day at read time in the session's own timezone (R-11). No rollover or splitting logic anywhere.
+- **Derived data is never source data.** Stats, streaks, per-day aggregates and the credit ledger are computed from sessions, usage totals, tags, effective-dated goals and credit rates. Aggregates must be fully rebuildable and recalculated in the same transaction as the change (R-54); recategorizing a tag rewrites history (R-50).
+- **Sessions across midnight are one record**, clipped per local day at read time in the session's own timezone and shown as one history row per day (R-11, D-03). No scheduled split job and no rollover logic anywhere, whatever the PRD's wording.
 - **"Today/this week" use the user's timezone setting**, never the device timezone, and the setting never changes without explicit user action (R-12, R-15).
 - **Integer seconds from instants**, one IANA timezone library, all period math in one shared time-math module (T0.5) tested against the timezone/DST matrix listed there. Summaries round down to the minute.
 - **Every write is a command with a client-generated ID**, applied optimistically, queued in a durable per-user outbox and replayed idempotently. Per-user revision counter on every change; clients apply only newer revisions and fetch the change feed on gaps. Rejected commands become user-visible sync issues, never silent drops (R-34..R-36, section 8).
 - **One contract source** generates server validators, the typed client and mocks; realtime messages are validated too. Clients send commands only through normal operations, never state over the realtime channel.
 - **Shared client core** has no UI dependency and takes clock, storage, transport and connectivity by injection so it can be tested with a fake clock. It runs in the desktop's native process (the window is destroyed when closed to tray) and in Android's foreground service, never in the UI.
-- **Activity data is minimal:** only the executable name, package name or registrable domain leaves the device; never full URLs or window titles (principle 11). Credit balances, like all stats, are derived and rebuildable.
-- No blocking dialogs around start/stop; the note is added after stopping, and the end time is always the stop instant.
+- **Activity data stays on the device:** sampling and classification run in the client core; only per-day, per-class usage totals (Gaming, Social Media, each tied at most to the session it overlapped) leave it, never app names, URLs, window titles or samples (principle 11, R-38..R-41).
+- **Start and end times are the button presses.** The start and summary dialogs (5 s countdown, R-48) never block and never move the times (R-06, R-07).
+- **Credits and goals:** goals and streaks count Productive time only (R-51); credit math is per second with rates effective from the instant they are saved (R-42..R-44), identical on server and core through the shared fixtures (D-19).
+- **No idle detection, no auto-stop, no "start your timer" reminders** (R-53, owner decision).

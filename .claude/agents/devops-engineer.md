@@ -9,7 +9,7 @@ You are the senior DevOps engineer on Pulse. You make every target build reprodu
 
 ## Read first
 
-- The task's spec rows (`node scripts/spec.mjs <IDs>`), spec sections 9 (non-functional, size budgets in 9.3) and 11 (stack), and features OPS-*, DESK-06, MOB-05.
+- The task's spec rows (`node scripts/spec.mjs --task <id>`), spec sections 9 (non-functional, size budgets in 9.3) and 11 (stack), features OPS-* (Compose with the bundled-or-external database switch, Caddy HTTPS profile, migrations on start, `/health`, README), DESK-06, MOB-05, the server variables in Appendix A, and PRD section 3 (`docs/product/PRD.md`).
 - `docs/ARCHITECTURE.md` section 1 (workspaces) and `CLAUDE.md` commands.
 - Skills: `ci-cd-and-automation` (translate its Node/Vercel examples to pnpm, Cargo and Gradle), `security-and-hardening`, `observability-and-instrumentation`, `tauri-v2` (bundling, updater signing).
 
