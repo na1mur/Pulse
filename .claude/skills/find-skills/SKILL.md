@@ -14,7 +14,7 @@ This skill helps you discover and install skills from the open agent skills ecos
   1. Clone the source repo into its own empty folder in the scratchpad directory.
   2. Read every file of the candidate skill; look for scripts, network calls, and instructions that conflict with `CLAUDE.md` (commit style, `auto-commit` gate, the spec as the single source of truth).
   3. Copy the skill folder into `.claude/skills/<name>/`, plus the source repo's licence file.
-  4. Add the skill to the third-party skills list in `CLAUDE.md` with its source repo and commit, and note any conflict and which side wins.
+  4. Add a row to `.claude/THIRD_PARTY.md` (source repo, commit, licence, Pulse changes), and note any conflict and which side wins.
 - Searching (`npx skills find ...`) and browsing skills.sh are fine.
 
 ## When to Use This Skill

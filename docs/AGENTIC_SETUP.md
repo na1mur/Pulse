@@ -39,7 +39,7 @@ Rule: install an existing, well-made skill/agent when one fits; adapt it when it
 | A2.5 / A5.2 visual and E2E | `playwright-cli` (copy into project), `playwright-best-practices`; Android: official `android-cli` (adapt, after T0.2); Maestro skill (adapt: Compose `testTag`, drop RN/iOS); Tauri window: WebdriverIO + `tauri-driver` | mixed; desktop E2E custom |
 | A3 architecture and standards | ECC `rules/{rust,kotlin,typescript}` as seeds; mattpocock `codebase-design` as reading | custom docs |
 | A4.2 command guard | ECC `block-no-verify.js` + `shell-scan.js` (parses the shell command, fails closed) | adapt + small custom push/delete check |
-| A4.3 protected files | ECC `config-protection.js` | adapt (secrets, generated contract files) |
+| A4.3 protected files | ECC `config-protection.js` | adapt (secrets, generated contract files; its linter-config lock kept) |
 | A4.5 Stop reminder, A6.2 ship | nothing fits | custom |
 
 Rejected after review: superpowers bundle (forces skill use every session, commits per step, decides design itself), impeccable as installed (downloads a binary to `~/.impeccable`, competing `DESIGN.md`), ui-ux-pro-max (picks palettes itself), Anthropic `frontend-design` (bold aesthetics vs the spec's restraint), Understand-Anything (user-level install, LLM-driven auto-updates), mattpocock `git-guardrails` (needs `jq`, misses `--no-verify`), wshobson frontend/backend/devops/test agents (React/K8s-generic), `github-actions-templates`.
@@ -52,9 +52,9 @@ Known conflict to handle in A2.2: `frontend-ui-engineering` lists "purple/indigo
 
 - [x] **A0.1 Make `find-skills` visible to Claude Code.** It was installed in `~/.agents/skills/` (the `npx skills` location), which Claude Code does not read.
   - Decided: copied into this repo (`.claude/skills/find-skills/`); **everything for Pulse is project-local, nothing user-level**. Adapted to install project-locally and read every skill before installing it.
-- [x] **A0.2 Project settings.** `.claude/settings.json` (committed): allowlist for git read/commit, pnpm, cargo and Gradle commands; deny list for force push, `git commit --no-verify`/`-n`, `git config`, and reading or editing `.env`, keystores and `secrets/`. `.claude/settings.local.json` (gitignored) for personal overrides. Root `.gitignore` and `.gitattributes` (LF everywhere, CRLF for Windows scripts).
+- [x] **A0.2 Project settings.** `.claude/settings.json` (committed): allowlist for git read/commit, pnpm, cargo and Gradle commands; deny list for force push, `git commit --no-verify`/`-n`, `git config`, and reading secrets and signing material (writes to them are blocked by A4.3's hook; a test keeps both lists in step). `.claude/settings.local.json` (gitignored) for personal overrides. Root `.gitignore` and `.gitattributes` (LF everywhere, CRLF for Windows scripts).
   - Verified: the `git config` deny rule blocks in a live session.
-  - Limit: permission rules match command prefixes, so a flag placed later (`git commit -m x --no-verify`) slips through; A4.2's hook closes that gap.
+  - Limit: permission rules match command prefixes, so a flag placed later (`git commit -m x --no-verify`) slips through; A4.2's hook closes that gap (verified).
   - Note: user-level Orca hooks already exist; project hooks add to them.
 - [x] **A0.3 Path-scoped rules.** `.claude/rules/*.md` with `paths:` frontmatter, so each rule loads only when files it covers are touched. Keeps `CLAUDE.md` short and saves tokens.
   - Verified with headless sessions: a rule with a quoted `paths:` list loaded after reading its file and stayed out when another file was read.
@@ -101,8 +101,13 @@ Subagents live in `.claude/agents/`; each has a focused system prompt, a restric
 ## A4. Hooks (automation that doesn't depend on the model remembering)
 
 - [ ] **A4.1 Format on edit.** `PostToolUse` on Edit/Write: format just the edited file (Prettier / `rustfmt` / `ktlint`). *(needs scaffold)*
-- [ ] **A4.2 Dangerous-command guard.** `PreToolUse` on Bash: block `--no-verify`, force push, `git push` without an explicit request, recursive deletes outside the repo.
-- [ ] **A4.3 Protected files.** `PreToolUse` on Edit/Write: block secrets (`.env`, keystores, signing keys) and generated files (contract outputs: "edit the schema instead").
+- [x] **A4.2 Dangerous-command guard.** `.claude/hooks/guard-bash.js` on Bash and PowerShell, built on the vendored ECC shell parser (subshells, `env`/`command`/`sudo` prefixes, `bash -c`, heredocs, quoting): blocks hook bypasses, destructive pushes (force, `+`/`:` refspecs, delete, mirror, inline git aliases) and recursive deletes outside the repo and temp dir or with an uncheckable target (variables, brace expansion, xargs or `find -exec` shell scripts, pipelines, backtick-escaped or encoded PowerShell, provider drives), following `cd`/`pushd` and stripping `time`/`timeout`/`nohup`-style wrappers. Every other `git push` (or a git command with a variable subcommand) returns an approval prompt to the owner. Prose that only mentions these commands (PR bodies, script arguments) passes.
+  - Verified: 12 regression tests (`node --test .claude/hooks/guards.test.js`) covering the cases from three review rounds; live in-session blocks of `git commit -m probe --no-verify`, `(git push --force --dry-run)` and `cd /c/Users && rm -rf …`.
+  - Limits (a guardrail against mistakes, not a sandbox): deletes performed by other programs (`node -e "fs.rmSync(…)"`, `npx rimraf`, .NET calls) are not seen; git aliases defined in config files are not expanded. Not verified: whether the approval prompt appears in bypass-permissions mode.
+- [x] **A4.3 Protected files.** `.claude/hooks/guard-edit.js` on Write/Edit/MultiEdit/NotebookEdit: secrets and signing material (one definition in `.claude/hooks/lib/secrets.js`: `.env*` except templates, keystores, certificates and private keys, SSH/GPG keys, signing properties, `secrets/`), generated files (under a `generated/` folder, or an `@generated` comment line in the header; T0.4 makes generators follow this), and edits to existing linter/formatter configs (vendored ECC `config-protection.js`, plus `rustfmt`, `clippy`, `detekt`). Edits to the guards and settings themselves prompt the owner (settings `ask` rules).
+  - Decision (beyond the original item): keep ECC's linter-config lock, because loosening a lint rule to make a check pass is the shortcut the `auto-commit` gate forbids; creating a config for the first time (T0.2 scaffold) stays allowed.
+  - Verified: same test file; a live Edit of a generated file was blocked in-session; the owner confirmed the approval prompts appeared for edits to `.claude/hooks/` and `.claude/settings.json`.
+  - Limit: writes through shell commands (`sed -i`, redirection) bypass Edit/Write hooks; read-deny rules and the review gate remain the backstop.
 - [ ] **A4.4 Session briefing.** The `SessionStart` hook from A0.6.
 - [ ] **A4.5 Unfinished-work reminder.** `Stop` hook: if files changed since the last commit and the gate hasn't run, remind to run `auto-commit`. Decision: remind, or block stopping until the gate runs.
 - [ ] **A4.6 Needs-input notification.** Windows toast when Claude is waiting for you. Check first whether the existing Orca hooks already do this.

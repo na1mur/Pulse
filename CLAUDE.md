@@ -21,14 +21,15 @@ The agentic setup (role agents, rules, hooks, FE guide, memory) is being built i
 
 After finishing each task that changed files, run the `auto-commit` skill (`.claude/skills/auto-commit/SKILL.md`). It verifies, runs and debugs the change, then commits only if everything passes.
 
-Everything agent-related for Pulse (skills, agents, rules, hooks, settings) lives in this repo's `.claude/`, never user-level. `find-skills` (vercel-labs skills CLI helper, copied from the local `~/.agents/skills` install and adapted) searches for more skills; install them project-locally with its read-first steps.
+Everything agent-related for Pulse (skills, agents, rules, hooks, settings) lives in this repo's `.claude/`, never user-level. Most skills and agents are third-party, adapted; `.claude/THIRD_PARTY.md` lists each one's source, commit, licence and changes. `find-skills` searches for more; install project-locally with its read-first steps.
 
-`.claude/skills/` also holds 13 third-party skills from [addyosmani/agent-skills](https://github.com/addyosmani/agent-skills) (MIT, commit `aeac41d`, installed 2026-10-24): TDD, debugging, incremental implementation, API design, frontend UI, security, performance, code review, planning, ADRs, CI/CD, observability, source-driven development. Where they conflict with this repo:
-- `change-review` (adapted from mattpocock/skills `code-review` @5beb35b, MIT): the two-axis Standards + Spec review that `auto-commit` runs before committing.
-- **Commits:** every commit (including the per-slice commits incremental-implementation asks for) goes through the `auto-commit` gate and its message style, not conventional `feat:` prefixes. `git-workflow-and-versioning` is not installed.
+Guard hooks (`.claude/hooks/`) block dangerous commands and protected-file writes and make every `git push` ask the owner. A block comes back as a hook error with the reason: fix the cause, never route around the guard.
+
+Where third-party skills conflict with this repo, this repo wins:
+- **Commits:** every commit (including the per-slice commits incremental-implementation asks for) goes through the `auto-commit` gate and its message style, not conventional `feat:` prefixes.
 - **Requirements:** `docs/REBUILD_SPEC.md` is the spec. Record decisions there (section 11 / 13), not in a separate SPEC.md; ADRs are only for decisions too detailed for the spec.
-- Stack knowledge skills (installed 2026-10-24, licences in each folder): `tauri-v2` (nodnarbnitram/claude-code-extensions @35e7f7d), `svelte5-best-practices` (ejirocodes/agent-skills @6e805e4, SvelteKit/migration removed), `mobile-android-design` and `postgresql-table-design` (wshobson/agents @0874a27), `rust-best-practices` (apollographql/skills @f9843dc), `nestjs-best-practices` (kadajett/agent-nestjs-skills @3986e0c), `playwright-best-practices` (currents-dev @283d5cb). `nestjs-best-practices` and `postgresql-table-design` start with **Pulse overrides** that win over their own rules.
-- **Stack:** their examples assume web/Node tooling (`npx tsc`, Prisma, Vercel, Core Web Vitals). Translate to this stack (Cargo, Gradle, Tauri, the size budgets in spec section 9.3) instead of copying them.
+- **Pulse overrides** at the top of a skill (e.g. `nestjs-best-practices`, `postgresql-table-design`) win over the rest of that skill.
+- **Stack:** examples that assume web/Node tooling (`npx tsc`, Prisma, Vercel, Core Web Vitals, React) are translated to this stack (Svelte 5, Compose, Cargo, Gradle, Tauri, the size budgets in spec section 9.3), not copied.
 
 ## What Pulse is
 
