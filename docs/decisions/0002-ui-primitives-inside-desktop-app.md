@@ -1,7 +1,7 @@
 # ADR-0002: UI primitives live inside the desktop app
 
 ## Status
-Proposed
+Accepted (owner, 2026-10-24)
 
 ## Date
 2026-10-24

@@ -5,7 +5,7 @@ paths:
 
 # Svelte desktop UI
 
-Use `svelte5-best-practices` (runes, snippets) and `frontend-ui-engineering`; **the FE guide (`docs/FE_GUIDE.md`) wins** over both on any design or behaviour question. Structure: `docs/ARCHITECTURE.md` section 3.
+Use the official Svelte MCP server (`svelte`, remote, in `.mcp.json`) for current Svelte 5 documentation and to check Svelte code, `svelte5-best-practices` (runes, snippets) as the quick reference, and `frontend-ui-engineering`; **the FE guide (`docs/FE_GUIDE.md`) wins** over both on any design or behaviour question. Structure: `docs/ARCHITECTURE.md` section 3.
 
 - Before building or changing UI, read the FE guide sections for the components and patterns involved and reuse an existing pattern when one fits. A design or flow question the guide does not answer is not yours to decide: run the `design-decision` skill.
 - Use `lib/ui` primitives and design tokens only: no raw colours, spacing, font sizes or z-index values in components. The brand colour is the violet token, whatever generic guidance says about purple.

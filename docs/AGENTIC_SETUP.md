@@ -9,11 +9,10 @@ How to use this file:
 
 ## Waiting on the owner (as of 2026-10-24)
 
-- **Hooks that need settings edits** (the guards now ask before `.claude/settings.json` or `.claude/hooks/` change): A0.6/A4.4 session briefing, A4.5 unfinished-work reminder (also decide: remind, or block stopping), A4.6 needs-input notification (check whether the Orca hooks already notify).
-- **T0.1** (in progress in the ledger): the remaining spec decisions, worked through as a conversation (`/deliver-task T0.1`).
-- **Confirm or change proposals:** `docs/ARCHITECTURE.md` (proposed), ADR-0001/0002 (proposed), spec D-19 (shared time/credit fixtures) and D-20 (Kysely), plus the older open decisions in spec section 13.
-- **A7.2 MCP servers:** adding the official Svelte MCP or others runs third-party code each session; decide which, if any.
-- **Design decisions:** none taken without you; `docs/FE_GUIDE.md` lists what is still open.
+- **User stories:** the owner will share them; update the spec, architecture and FE guide from them. The remaining spec decisions (database confirmation, D-02..D-08, D-11..D-18; T0.1 in the ledger) are revisited then.
+- **Design decisions:** none taken without the owner; `docs/FE_GUIDE.md` lists what is still open.
+
+Settled 2026-10-24: hooks A0.6/A4.4/A4.5 added, A4.6 covered by the owner's Orca hooks, official Svelte MCP added (A7.2), `ARCHITECTURE.md`, ADR-0001/0002, D-19 and D-20 accepted.
 
 ## Already in place
 
@@ -73,7 +72,9 @@ Known conflict to handle in A2.2: `frontend-ui-engineering` lists "purple/indigo
   - Done when: an agent answers "where is X / why is Y" by reading the index and one or two notes.
 - [x] **A0.5 Token-efficient spec access.** Decided: option (a), a lookup script (one spec file, no broken references). `node scripts/spec.mjs R-42 T1.4 R-37..R-39 T1.1..T1.3 TIM-01/02/03 MOB-* 8.3 A1.7 FE-003` prints only those table rows (with their header), sections, checklist items or FE decisions; `--task T1.4` prints a task plus everything it cites. Unknown IDs and empty ranges exit 1. Agents and `deliver-task` use it instead of reading whole files.
   - Verified: by hand and by the change review: rows, all range forms (padded, unpadded, dotted, reversed), slash lists, wildcards, sections, checklist items, `--task T1.4`, missing IDs.
-- [ ] **A0.6 Session-start briefing.** A `SessionStart` hook that prints a ~30-line "current state": current milestone, next open tasks, open decisions, pointers to the knowledge index. Generated from the spec and this file, not hand-maintained.
+- [x] **A0.6 Session-start briefing.** `.claude/hooks/session-brief.js` on `SessionStart`: current milestone and next spec task not started, unfinished ledger tasks, open spec decisions, open design questions, setup progress, uncommitted changes, last three commits, where to look things up; generated from the spec, ledger and docs, under 20 lines, never fails the session.
+  - Verified: tests in `.claude/hooks/session-hooks.test.js` (milestone, next task, open decisions without decided ones, short output, survives missing docs); output checked by hand.
+- Original plan: **A0.6 Session-start briefing.** A `SessionStart` hook that prints a ~30-line "current state": current milestone, next open tasks, open decisions, pointers to the knowledge index. Generated from the spec and this file, not hand-maintained.
 
 ## A1. Role agents and the delivery pipeline
 
@@ -124,9 +125,11 @@ Subagents live in `.claude/agents/`; each has a focused system prompt, a restric
   - Decision (beyond the original item): keep ECC's linter-config lock, because loosening a lint rule to make a check pass is the shortcut the `auto-commit` gate forbids; creating a config for the first time (T0.2 scaffold) stays allowed.
   - Verified: same test file; a live Edit of a generated file was blocked in-session; the owner confirmed the approval prompts appeared for edits to `.claude/hooks/` and `.claude/settings.json`.
   - Limit: writes through shell commands (`sed -i`, redirection) bypass Edit/Write hooks; read-deny rules and the review gate remain the backstop.
-- [ ] **A4.4 Session briefing.** The `SessionStart` hook from A0.6.
-- [ ] **A4.5 Unfinished-work reminder.** `Stop` hook: if files changed since the last commit and the gate hasn't run, remind to run `auto-commit`. Decision: remind, or block stopping until the gate runs.
-- [ ] **A4.6 Needs-input notification.** Windows toast when Claude is waiting for you. Check first whether the existing Orca hooks already do this.
+- [x] **A4.4 Session briefing.** The `SessionStart` hook from A0.6.
+- [x] **A4.5 Unfinished-work reminder.** `.claude/hooks/stop-reminder.js` on `Stop`. The owner approved building the hooks; the implementer chose remind over block. When Claude stops with uncommitted changes it is nudged to run `auto-commit` or say in one line why the work is not ready: once per new set of changes, never twice for the same set, never in a loop; its own errors never block.
+  - Limits: it cannot tell whether the gate already ran (the nudge asks Claude to say so); in a multi-turn task each turn that edits files ends with one nudge.
+  - Verified: tests (clean tree silent, nudge once, no repeat for the same changes, silent when already continuing, nudge again on new changes, bad input never blocks); the exact hook command pipe-tested.
+- [x] **A4.6 Needs-input notification.** Left to the owner's user-level hooks (Orca), which are registered on `PermissionRequest`, `Stop` and other events; no project hook added, to avoid duplicate notifications. Checked: the event names in `~/.claude/settings.json`; not checked: what the Orca app shows. There is no `Notification` hook, so if idle-wait reminders are missing, add one there.
 
 ## A5. QA engineer
 
@@ -146,7 +149,8 @@ Subagents live in `.claude/agents/`; each has a focused system prompt, a restric
 ## A7. Skills, MCP servers and docs access
 
 - [x] **A7.1 Skill search.** Searched skills.sh for every checklist need (2026-10-24); 18 repos reviewed without running anything; installed and rejected items are in the sourcing table above and `.claude/THIRD_PARTY.md`. Deferred to T0.2 (they need code): the Maestro skill (adapted) and the official `android-cli` skill.
-- [ ] **A7.2 MCP servers.** Candidates: the official Svelte MCP (current docs + autofixer), Context7 (current library docs; overlaps the `source-driven-development` skill), Serena (A0.4), a read-only Postgres MCP for the dev database. `gh` CLI covers GitHub.
+- [~] **A7.2 MCP servers.** Owner chose the official Svelte MCP: added as the remote HTTP server `https://mcp.svelte.dev/mcp` in `.mcp.json` (project scope, nothing runs locally) and pre-approved in `.claude/settings.json`. graphify (A0.4) comes after T0.2; Context7 and a Postgres MCP not added.
+- Original plan: **A7.2 MCP servers.** Candidates: the official Svelte MCP (current docs + autofixer), Context7 (current library docs; overlaps the `source-driven-development` skill), Serena (A0.4), a read-only Postgres MCP for the dev database. `gh` CLI covers GitHub.
 - [ ] **A7.3 Fewer permission prompts.** After a few working sessions, run the `fewer-permission-prompts` skill to tune the allowlist.
 
 ## A8. Validate the setup

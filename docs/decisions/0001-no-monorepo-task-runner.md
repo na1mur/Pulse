@@ -1,7 +1,7 @@
 # ADR-0001: No monorepo task runner at first
 
 ## Status
-Proposed
+Accepted (owner, 2026-10-24)
 
 ## Date
 2026-10-24

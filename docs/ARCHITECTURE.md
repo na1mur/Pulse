@@ -1,6 +1,6 @@
 # Pulse architecture
 
-How the code is organised, which parts may depend on which, and how each part is layered. Product rules live in `docs/REBUILD_SPEC.md` (cited by ID); this file covers structure only. Status: **proposed 2026-10-24**, to be confirmed by the owner and made concrete by T0.2 (scaffold). Decisions still open are listed at the end.
+How the code is organised, which parts may depend on which, and how each part is layered. Product rules live in `docs/REBUILD_SPEC.md` (cited by ID); this file covers structure only. Status: **accepted by the owner 2026-10-24**; made concrete by T0.2 (scaffold) and revisited when user stories add requirements. Decisions are listed at the end.
 
 ## 1. Repository layout
 
@@ -123,7 +123,7 @@ There is deliberately no Kotlin data layer (no Room, Retrofit or repositories): 
 - Kotlin: package-level rules checked in review until modules are split.
 - `change-review` checks new code against this file.
 
-## 6. Open decisions
+## 6. Decisions
 
-- Spec-level: D-19 (one definition of time and credit math across the TypeScript server and the Rust core) and D-20 (server data access library) in spec section 13.
-- Structure-level, as proposed ADRs: `docs/decisions/0001-no-monorepo-task-runner.md`, `docs/decisions/0002-ui-primitives-inside-desktop-app.md`.
+- Spec-level (decided 2026-10-24): D-19 (one shared fixture suite keeps time and credit math identical in the TypeScript server and the Rust core) and D-20 (Kysely for server data access), spec section 13.
+- Structure-level ADRs (accepted 2026-10-24): `docs/decisions/0001-no-monorepo-task-runner.md`, `docs/decisions/0002-ui-primitives-inside-desktop-app.md`.
