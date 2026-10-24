@@ -33,7 +33,7 @@ Run, in this order, scoped to the affected packages first and then the whole rep
 4. Tests: unit, plus property, contract and integration tests that touch the change
 5. Build every affected target
 
-Before any code exists (only docs changed): check that every spec ID referenced in the change exists, that section numbers and cross-references still line up, and that the decision record (section 11) and open decisions (section 13) agree with each other.
+When only docs changed: run `bash scripts/check-docs.sh` (spec IDs defined and unique, checklist items and commit hashes valid), then check by reading that section numbers and cross-references still line up, and that the decision record (section 11) and open decisions (section 13) agree with each other.
 
 ## 3. Run it
 

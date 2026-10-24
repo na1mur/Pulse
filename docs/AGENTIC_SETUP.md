@@ -24,8 +24,9 @@ How to use this file:
   - Verified: the `git config` deny rule blocks in a live session.
   - Limit: permission rules match command prefixes, so a flag placed later (`git commit -m x --no-verify`) slips through; A4.2's hook closes that gap.
   - Note: user-level Orca hooks already exist; project hooks add to them.
-- [ ] **A0.3 Path-scoped rules.** `.claude/rules/*.md` with `paths:` frontmatter, so each rule loads only when files it covers are touched. Keeps `CLAUDE.md` short and saves tokens.
-  - Done when: `CLAUDE.md` holds only repo-wide guidance; area guidance lives in rules.
+- [x] **A0.3 Path-scoped rules.** `.claude/rules/*.md` with `paths:` frontmatter, so each rule loads only when files it covers are touched. Keeps `CLAUDE.md` short and saves tokens.
+  - Verified with headless sessions: a rule with a quoted `paths:` list loaded after reading its file and stayed out when another file was read.
+  - First rules: `spec-editing.md` (spec) and `agent-config.md` (`.claude/`, `CLAUDE.md`, this file). `scripts/check-docs.sh` checks spec IDs, checklist items and commit hashes; the `auto-commit` gate uses it for docs-only changes.
 - [ ] **A0.4 Agent memory / knowledge graph.** A project memory that lets an agent find relevant facts without rereading large files.
   - Options: (a) **in-repo knowledge base** `docs/knowledge/`: an `INDEX.md` map plus small linked notes (`[[note]]`), git-tracked and shared across machines; (b) **MCP memory server** storing an entity/relation graph in a repo JSON file; (c) **Serena MCP**: symbol-level code navigation through language servers (TypeScript, Rust, Kotlin), so agents read functions instead of whole files.
   - Recommendation: (a) for decisions and project facts + (c) for code, once code exists. Claude Code's built-in per-machine memory stays for personal preferences.
