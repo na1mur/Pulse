@@ -4,7 +4,9 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Current state
 
-Pulse is being **rebuilt from scratch**. The repository currently contains only `docs/REBUILD_SPEC.md`; there is no code, no build, no tests and no chosen tech stack yet. There are no build/lint/test commands to run. When the stack is chosen (task T0.1, section 11 of the spec) and scaffolded (T0.2), replace this section with the real commands.
+Pulse is being **rebuilt from scratch**. The repository currently contains only `docs/REBUILD_SPEC.md`; there is no code, no build and no tests yet. The stack is decided (spec section 11) but not scaffolded (T0.2).
+
+Stack: NestJS server (PostgreSQL proposed) · plain WebSocket realtime · a shared **Rust client core** (sync, outbox, SQLite cache, time math, activity segments) · **Tauri 2 + Svelte 5** desktop (Windows) · **native Kotlin + Jetpack Compose** Android app (sideloaded APK) calling the core through UniFFI · WXT browser extension talking to the desktop app over native messaging. Small installers and low memory are release gates (spec section 9.3).
 
 - The spec is the single source of truth. Read the relevant section before designing or writing anything, and update the spec when a decision changes it (section 11 decision record, section 13 open decisions).
 - The legacy app (pnpm/turbo monorepo, v0.0.5, git tags `win-v0.0.5` and `android-v0.0.5`) was deleted in commit `aad9c2f`; browse it with `git show 92a9660:<path>`. The older code-citing version of the spec is also in history. Use legacy code only for context: the spec deliberately drops legacy wire compatibility and many legacy behaviours (spec section 4 lists the mismatches and their resolutions).
@@ -19,7 +21,7 @@ After finishing each task that changed files, run the `auto-commit` skill (`.cla
 
 ## What Pulse is
 
-A personal work-time tracker: one timer per user, synced live across that user's devices (Windows desktop and Android first), self-hostable backend, fully usable offline. See spec section 1 for non-goals.
+A personal work-time tracker: one timer per user, synced live across that user's devices (Windows desktop and Android first), self-hostable backend, fully usable offline. Opt-in activity tracking classifies games and social media as leisure and spends **leisure credit** earned from timer sessions; it only tracks and notifies, never blocks. See spec section 1 for non-goals.
 
 ## Navigating the spec
 
@@ -41,5 +43,6 @@ Everything is referenced by ID, and new code, tests and commits should cite thes
 - **Integer seconds from instants**, one IANA timezone library, all period math in one shared time-math module (T0.5) tested against the timezone/DST matrix listed there. Summaries round down to the minute.
 - **Every write is a command with a client-generated ID**, applied optimistically, queued in a durable per-user outbox and replayed idempotently. Per-user revision counter on every change; clients apply only newer revisions and fetch the change feed on gaps. Rejected commands become user-visible sync issues, never silent drops (R-34..R-36, section 8).
 - **One contract source** generates server validators, the typed client and mocks; realtime messages are validated too. Clients send commands only through normal operations, never state over the realtime channel.
-- **Shared client core** has no UI dependency and takes clock, storage, transport and connectivity by injection so it can be tested with a fake clock.
+- **Shared client core** has no UI dependency and takes clock, storage, transport and connectivity by injection so it can be tested with a fake clock. It runs in the desktop's native process (the window is destroyed when closed to tray) and in Android's foreground service, never in the UI.
+- **Activity data is minimal:** only the executable name, package name or registrable domain leaves the device; never full URLs or window titles (principle 11). Credit balances, like all stats, are derived and rebuildable.
 - No blocking dialogs around start/stop; the note is added after stopping, and the end time is always the stop instant.

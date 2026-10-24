@@ -1,6 +1,6 @@
 # Pulse - Rebuild Specification (v2)
 
-> Status: **draft for revision**. Tech stack: **to be decided** (see section 11).
+> Status: **draft for revision**. Tech stack: **decided 2026-10-24** (see section 11; the database is still a proposal).
 > This version replaces the legacy code-analysis spec. It describes *what* to build, the rules it must follow and how the work is split, without referring to any file, function or framework from the old code. The previous version (full legacy analysis with code citations) is preserved in git history at commit `aad9c2f`.
 
 ## How to use this document
@@ -17,7 +17,7 @@
 | 8. Sync, realtime & offline | How devices stay consistent and nothing is lost |
 | 9. Non-functional requirements | Security, reliability, performance, accessibility, observability |
 | 10. UX & design | Information architecture, screens, flows, design-system rules |
-| 11. Tech stack | Requirements the stack must satisfy; decision record (TBD) |
+| 11. Tech stack | Requirements the stack must satisfy; decision record |
 | 12. Task distribution | Workstreams, milestones, tasks with dependencies and "done when" |
 | 13. Open decisions | Questions to settle before / while building |
 | Appendices | Defaults & limits, copy deck, legacy carry-over actions |
@@ -38,10 +38,13 @@ Origin: **Kept** (legacy behaviour, unchanged), **Changed** (legacy behaviour, r
 - History is editable: fix, delete or add sessions after the fact.
 - Works offline; everything done offline syncs later without loss or duplication.
 - Self-hostable backend; clients can be pointed at any server.
+- **Activity tracking and leisure credit** (opt-in): the desktop and Android apps detect which app or website is in the foreground, classify games and social media as *leisure*, and spend **leisure credit** earned from timer sessions, minute by minute. Pulse only tracks and notifies when the credit runs out; it never blocks anything.
 
-Target platforms (legacy parity): **Windows desktop** and **Android**. Others are open (D-09).
+Single user per account, who uses one device at a time (PC or phone); every change syncs live between them.
 
-Non-goals: teams/shared workspaces, billing or invoicing, project management, per-second server sync, time-tracking for other people.
+Target platforms: **Windows desktop** and **Android** (distributed as a **sideloaded APK**, not through Google Play). Others are P2 (D-09).
+
+Non-goals: teams/shared workspaces, billing or invoicing, project management, per-second server sync, time-tracking for other people, parental control, blocking apps or websites.
 
 Legacy at a glance (context only): the old app (v0.0.5) had a client-run timer, sessions created by the client on pause, a server that relayed and stored an opaque timer snapshot, no session editing, and many inconsistencies in time definitions. Section 4 lists them.
 
@@ -58,6 +61,8 @@ Legacy at a glance (context only): the old app (v0.0.5) had a client-run timer, 
 7. **Derived data is rebuildable.** Statistics are computed from sessions. Any cache can be thrown away and recomputed.
 8. **Small surface, low traffic.** No per-second network or database writes; a handful of requests per session.
 9. **Simple to self-host.** One server process plus one database, configured by validated settings.
+10. **Small and fast.** Pulse is a basic app that runs all day: small installers, low memory when minimised, instant start, event-driven work instead of polling. Size and speed budgets (section 9.3) are release gates.
+11. **Minimal activity data.** Only the app identifier or the website's domain ever leaves the device: never full URLs, page content or window titles.
 
 ---
 
@@ -135,6 +140,27 @@ Every rule has an ID so features, tasks and tests can reference it. Where a rule
 | R-34 | Every write carries a **client-generated ID** (idempotency key). The server keeps the result for at least 30 days, and a replay returns the original result. |
 | R-35 | Each user has a **revision counter** that increases on every change. Events and change-feed entries carry the revision. Clients apply only newer revisions; a gap triggers a change-feed fetch. |
 | R-36 | The server **never silently drops** a client change. A rejected queued change becomes a **sync issue** that the user can fix or discard. |
+
+### 3.8 Activity tracking
+
+| ID | Rule |
+|---|---|
+| R-37 | Activity tracking is **opt-in per device** and can be paused at any time. While it is active, the device shows it (tray icon state on desktop, the ongoing notification on Android). |
+| R-38 | An **activity segment** is one continuous stretch of one foreground *subject* on one device: device, subject kind (`app` or `domain`), subject ID, optional platform category hint, start, end. Subject IDs: the executable file name on Windows (`eldenring.exe`), the package name on Android (`com.instagram.android`), the registrable domain for websites (`youtube.com`, never the full URL). Window titles are used only on the device, as a classification fallback, and are never sent (principle 11). |
+| R-39 | Segments are recorded only while the device is **in use**: a segment ends when the device goes idle (the away threshold, R-32), locks, sleeps or turns its screen off. Segments shorter than 5 s are dropped; consecutive segments of the same subject less than 5 s apart are merged. Segments from one device never overlap. Segments from different devices may overlap and both count (one user rarely uses two devices at once). |
+| R-40 | **Categories:** `game` and `social` are **leisure**; everything else is `neutral`. A subject's category is resolved in this order: the user's own rule, then the server catalog, then the platform hint (Android app category, a game-library install folder on desktop), otherwise `neutral` (D-18). |
+| R-41 | The server resolves the category **when it receives a segment** and stores it on the segment. Changing a rule affects new segments only, unless the user explicitly applies it to past segments for a chosen range. |
+
+### 3.9 Leisure credit
+
+| ID | Rule |
+|---|---|
+| R-42 | Credit is **earned only from timer sessions**: worked time (R-17) × the **earn rate** (D-15), plus the optional daily free allowance (D-16). Detected productive apps earn nothing (for now). |
+| R-43 | Credit is **spent** one second per second of leisure segment. The balance may go negative: Pulse tracks and notifies, it never blocks. |
+| R-44 | **Balance** = credit earned − credit spent, computed in integer seconds from sessions, segments and credit settings, walking day by day and applying the carry-over rule (D-17). It is derived data (principle 7). Credit settings are **effective-dated** like goals (R-20): a change never rewrites past days. Display follows R-18 (`Xh Ym`, rounded down; negative balances shown as "over by"). |
+| R-45 | The **live balance** on a device = the last balance from the server + this device's unsynced worked time × earn rate − its unsynced leisure time. It ticks while leisure is in the foreground. |
+| R-46 | **Notifications** are raised by the device where the leisure is happening, from its live balance, so they work offline: a warning when the balance drops to the warning threshold, "out of credit" when it reaches 0, then a reminder at every reminder interval while leisure continues and the balance stays at or below 0. Each fires once per crossing. Thresholds are in Appendix A and configurable. |
+| R-47 | **Leisure while the timer is running:** both count (the session still earns, the leisure still spends). After 5 continuous minutes of leisure during a running session, the device notifies "Timer still running while on {subject}". |
 
 ---
 
@@ -314,8 +340,9 @@ Columns: **ID** · **Feature** · **Pri** · **Origin** · Notes / acceptance. R
 
 | ID | Feature | Pri | Origin | Notes / acceptance |
 |---|---|---|---|---|
-| MOB-01 | Android app with Today, Log, Insights, Goals and Settings, sharing the client core | P1 | Kept | Legacy mobile behaviour was never analysed - see T4.0 |
-| MOB-02 | Ongoing notification while running, showing elapsed time and a Stop action; battery-optimisation guidance | P1 | Kept | |
+| MOB-01 | Native Android app with Today, Log, Insights, Goals and Settings, sharing the client core | P1 | Changed | Legacy mobile behaviour was never analysed - see T4.0 |
+| MOB-02 | Ongoing notification while running, showing elapsed time and a Stop action; battery-optimisation guidance | P1 | Kept | The foreground service behind it also keeps the realtime connection open, so the phone reflects the PC at once |
+| MOB-05 | Sideloaded distribution: signed APK, in-app updater (download from the server or release page, verify, install), first-run guide for granting permissions | P1 | New | The signing key must be backed up; losing it forces users to reinstall |
 | MOB-03 | Home-screen widget / quick-settings tile | P2 | New | |
 | MOB-04 | iOS | P2 | New | D-10 |
 
@@ -330,7 +357,7 @@ Columns: **ID** · **Feature** · **Pri** · **Origin** · Notes / acceptance. R
 | SET-05 | About: version from build info, update status, export client logs | P1 | Changed | Legacy version string was hard-coded |
 | SET-06 | Translatable strings (no inline copy); additional languages | P2 | New | Externalising strings is cheap early |
 
-Preferences are split into **account preferences** (synced: timezone, week start, working days, time format, goals, notification types) and **device preferences** (local: theme, tray, launch at login, shortcut, away threshold).
+Preferences are split into **account preferences** (synced: timezone, week start, working days, time format, goals, notification types, credit settings, classification rules) and **device preferences** (local: theme, tray, launch at login, shortcut, away threshold, activity tracking on/off, browser-extension pairing).
 
 ### 5.12 Self-hosting & operations (OPS)
 
@@ -348,7 +375,32 @@ Preferences are split into **account preferences** (synced: timezone, week start
 |---|---|---|---|---|
 | X-01 | Accessibility baseline WCAG 2.2 AA | P0 | Changed | Section 9.4 |
 | X-02 | Keyboard shortcuts and command palette | P1 | New | |
-| X-03 | Performance budgets met | P0 | New | Section 9.3 |
+| X-03 | Performance and size budgets met | P0 | New | Section 9.3 |
+
+### 5.14 Activity tracking (ACT)
+
+| ID | Feature | Pri | Origin | Notes / acceptance |
+|---|---|---|---|---|
+| ACT-01 | Desktop (Windows) foreground-app tracking: event-driven (no polling), opt-in per device, pause, visible indicator | P1 | New | R-37..R-39; near-zero CPU |
+| ACT-02 | Browser extension (Chromium-based browsers and Firefox) that reports the active tab's registrable domain to the desktop app through native messaging; window-title fallback when it is not installed | P1 | New | R-38; the native host accepts only the Pulse extension IDs |
+| ACT-03 | Game detection on desktop: executables inside Steam / Epic / GOG / Xbox library folders, the server catalog, and a full-screen hint | P1 | New | R-40 |
+| ACT-04 | Android foreground-app tracking via usage access, using the app's own category as a hint; runs inside the ongoing-notification service | P1 | New | R-37..R-40 |
+| ACT-05 | Android browser-domain detection through an opt-in accessibility service, with a guided setup that includes "Allow restricted settings" (required for sideloaded apps since Android 13) | P1 | New | R-38 |
+| ACT-06 | Activity view: per-day leisure time by category and subject, with "reclassify" on any subject | P1 | New | R-41 |
+| ACT-07 | Classification: server catalog of games and social apps/domains, user rules (game / social / neutral), optional "apply to past segments" for a range | P1 | New | R-40, R-41 |
+| ACT-08 | Privacy controls: exclude list, delete activity data for a range, clear explanation of what is collected | P1 | New | Principle 11 |
+
+### 5.15 Leisure credit (CRED)
+
+| ID | Feature | Pri | Origin | Notes / acceptance |
+|---|---|---|---|---|
+| CRED-01 | Earn credit from timer sessions at the earn rate, plus an optional daily free allowance | P1 | New | R-42, D-15, D-16 |
+| CRED-02 | Spend credit per second of leisure; live balance on Today, in the timer bar, in the tray tooltip and in the Android ongoing notification | P1 | New | R-43..R-45 |
+| CRED-03 | Low-credit warning, out-of-credit notification and repeat reminders while over | P1 | New | R-46; track only, never blocks |
+| CRED-04 | Credit history: per day earned, spent and closing balance | P1 | New | R-44 |
+| CRED-05 | Credit settings: earn rate, daily allowance, carry-over cap, warning threshold, reminder interval (effective-dated) | P1 | New | R-44 |
+| CRED-06 | "Timer still running while on {subject}" notification | P1 | New | R-47 |
+| CRED-07 | Manual credit adjustment with a note | P2 | New | |
 
 ---
 
@@ -369,8 +421,12 @@ IDs are opaque strings that **clients can generate** (time-ordered UUIDs recomme
 | **ProcessedCommand** | user, command ID, result, created | Kept at least 30 days (R-34) |
 | **Revision** | user, current revision; every change record stores its revision | Increases with every change |
 | **SyncIssue** (client-side) | command, error, created | Shown until resolved |
+| **ActivitySegment** | id, user, device, subject kind (app / domain), subject ID, platform category hint?, resolved category (game / social / neutral), started at, ended at, deleted at? | end > start; no overlap per device; end only ever grows while the segment is open; no URLs or titles (R-38) |
+| **ClassificationRule** | id, owner (a user, or none for the server catalog), subject kind, subject ID (a domain rule covers its subdomains), category, updated | Unique (owner, subject kind, subject ID) |
+| **CreditSetting** | user, earn rate, daily free allowance, carry-over cap, warning threshold, reminder interval, effective from (day key) | One effective value per (user, day) (R-44) |
+| **CreditAdjustment** (P2) | id, user, seconds (±), note, created | |
 
-Statistics are **not stored**; they are computed from Session plus GoalSetting (principle 7). A per-day cache is allowed only if it can be fully rebuilt and is updated in the same transaction as the session change.
+Statistics and credit balances are **not stored**; they are computed from Session, ActivitySegment, GoalSetting and CreditSetting (principle 7). A per-day cache is allowed only if it can be fully rebuilt and is updated in the same transaction as the change it depends on.
 
 ---
 
@@ -396,7 +452,10 @@ One contract source defines every operation, event and error. Server validation 
 | Tags | list; create (idempotent by name key); rename; delete; set colour (P1); archive / merge (P2) |
 | Goals | get current and history; set (kind, minutes or disabled) |
 | Preferences | get; update account preferences |
-| Insights | **today snapshot** (closed today total, running session, week and month totals, goals, streak); summary (range, tag?); series (range, granularity day / week / month, tag?); by-tag (range) |
+| Insights | **today snapshot** (closed today total, running session, week and month totals, goals, streak, credit balance); summary (range, tag?); series (range, granularity day / week / month, tag?); by-tag (range) |
+| Activity | **upsert segments** (batch; each segment by its ID, end may only grow); list segments (range, category?, subject?); delete range |
+| Classification | list catalog and user rules; set rule (subject, category, apply-to-past range?); delete rule |
+| Credits | balance snapshot (balance, today earned and spent, settings); history (range, per day); get / set settings |
 | Achievements | list recent / unseen; mark seen |
 | Sync | changes since revision (including tombstones); subscribe to the event stream |
 | Data | export; import (legacy migration / CSV) |
@@ -406,7 +465,7 @@ Commands and mutations return the resulting state **and the new revision**, so t
 
 ### 7.3 Events (server to all of the user's devices)
 
-`timer.changed`, `session.upserted`, `session.deleted`, `tag.upserted`, `tag.deleted`, `goals.changed`, `preferences.changed`, `achievement.unlocked`, `credentials.revoked` (forces sign-out on that device). Every event carries the revision. Clients never send state over the realtime channel; they send commands through the normal operations.
+`timer.changed`, `session.upserted`, `session.deleted`, `tag.upserted`, `tag.deleted`, `goals.changed`, `preferences.changed`, `achievement.unlocked`, `classification.changed`, `credits.changed` (new balance snapshot), `credentials.revoked` (forces sign-out on that device). Every event carries the revision. Clients never send state over the realtime channel; they send commands through the normal operations.
 
 ---
 
@@ -451,6 +510,19 @@ Commands and mutations return the resulting state **and the new revision**, so t
 
 The local copy, outbox and caches are keyed by user. Signing out closes the realtime channel and clears in-memory state; a user's outbox stays stored until that user signs in again (or is explicitly discarded). Nothing is ever read from another user's storage.
 
+### 8.7 Where the client core runs
+
+- **Desktop:** the client core (outbox, cache, realtime connection, clock, activity tracker) runs in the native process, not in the UI. Closing to tray **destroys the window and its web view**; only the tray and the core keep running, which keeps memory low all day. Reopening recreates the window from the local copy.
+- **Android:** the same core runs inside the **foreground service** behind the ongoing notification. The service tracks activity and keeps the realtime connection open, so the phone reflects changes from the PC immediately. If the system suspends the connection while the phone is idle, the core catches up through the change feed when it wakes (8.4).
+
+### 8.8 Activity pipeline
+
+1. The platform tracker reports foreground changes (desktop: OS foreground events plus the browser extension; Android: usage events, and the accessibility service if enabled) to the core.
+2. The core builds segments locally (R-38, R-39) and stores them in the local copy.
+3. Segments are sent through the outbox as **batched upserts**: when a segment closes, and at most every 60 s while one is open (the same segment ID with a later end). Idempotency (R-34) makes resends safe.
+4. The core computes the live balance (R-45) and raises credit notifications locally (R-46, R-47), online or offline.
+5. The server resolves categories (R-41), recomputes the balance and sends `credits.changed` to the user's devices.
+
 ---
 
 ## 9. Non-functional requirements
@@ -465,6 +537,9 @@ The local copy, outbox and caches are keyed by user. Signing out closes the real
 - Login errors identical for unknown email and wrong password (including timing); rate limits per IP and per account on auth operations.
 - Configuration refuses weak or placeholder secrets; CORS allow-list and proxy trust are configurable; no wildcard origins by default.
 - Desktop: content security policy, navigation and new-window guards, no developer tools or menus in production, credentials in OS secure storage.
+- Browser-extension bridge: the native messaging host accepts only the Pulse extension IDs and only well-formed domain messages; nothing else is forwarded.
+- Android sideloading: release APKs are signed with a key kept offline and backed up; the in-app updater installs only APKs signed with the same key, downloaded over HTTPS.
+- Activity data: only subject IDs leave the device (principle 11); activity data is covered by export and account deletion.
 - No secrets in the repository; see Appendix C for legacy credentials that must be rotated.
 
 ### 9.2 Reliability
@@ -486,6 +561,13 @@ The local copy, outbox and caches are keyed by user. Signing out closes the real
 | Idle CPU with the timer running | Near zero; 1 Hz redraw of the clock only (not the whole screen) |
 | Network while idle | Heartbeat only |
 | Charts and other heavy views | Loaded on demand, not in the first bundle |
+| Windows installer size | < 15 MB |
+| Android APK size (64-bit ARM) | < 15 MB |
+| Desktop memory, closed to tray with the timer running | < 50 MB |
+| Android cold start to timer visible | < 1 s |
+| Activity tracking cost | Desktop: event-driven, no polling. Android: checks usage events at most every 5 s and only while the screen is on; no wake-ups while it is off |
+
+The size and memory figures are targets to confirm with the T0.7 spike; adjust them there if a measured hello-world build cannot meet them.
 
 ### 9.4 Accessibility (WCAG 2.2 AA baseline)
 
@@ -528,12 +610,12 @@ Timer-first shell, four destinations, with Goals as a drawer:
 
 | Screen | Content |
 |---|---|
-| **Today** | Hero: today's total (large, tabular numerals), current session elapsed with editable title and tag, big Start/Stop, Continue chip. Goal rings for day, week and month with remaining time and projected finish. Today's timeline of sessions with inline edit, add note, change tag, delete and "Add missed time". Compact chips: week total, month total, current streak. |
+| **Today** | Hero: today's total (large, tabular numerals), current session elapsed with editable title and tag, big Start/Stop, Continue chip. Goal rings for day, week and month with remaining time and projected finish. Today's timeline of sessions with inline edit, add note, change tag, delete and "Add missed time". Compact chips: week total, month total, current streak, leisure credit balance (P1). |
 | **Log** | Sessions grouped by day with totals; range presets and custom range; tag filter and text search (P1); row actions edit / delete; "Add entry"; midnight-crossing and review flags; virtualised list; loading, empty and error states with retry. |
-| **Insights** | Range control (Week / Month / Year / Custom, previous/next) and tag filter. Summary tiles (total, average per active day, best day with date, current and longest streak, goal achievement %). Daily bars with goal line (week, month); monthly bars (year, P1); weekly trend; by-tag breakdown with share bars; previous-period comparison (P1). Goal-based tiles hidden when a tag filter is active (R-31). |
-| **Settings** | General (theme, time format, week start, timezone); Goals (opens the drawer, working days); Desktop (tray, launch at login + start hidden, global shortcut, away threshold, forgotten-timer thresholds); Notifications; Tags (create, rename, colour, delete with usage count); Account (profile, password, devices, export, delete account); Server (URL); About (version, updates, export logs). |
+| **Insights** | Range control (Week / Month / Year / Custom, previous/next) and tag filter. Summary tiles (total, average per active day, best day with date, current and longest streak, goal achievement %). Daily bars with goal line (week, month); monthly bars (year, P1); weekly trend; by-tag breakdown with share bars; previous-period comparison (P1). Goal-based tiles hidden when a tag filter is active (R-31). An **Activity** tab (P1): leisure by category and subject per day with reclassify (ACT-06), and credit history (CRED-04). |
+| **Settings** | General (theme, time format, week start, timezone); Goals (opens the drawer, working days); Desktop (tray, launch at login + start hidden, global shortcut, away threshold, forgotten-timer thresholds); Notifications; Activity & credit (P1: tracking on/off and pause for this device, browser-extension status, Android permission setup, classification rules, exclude list, credit settings); Tags (create, rename, colour, delete with usage count); Account (profile, password, devices, export, delete account); Server (URL); About (version, updates, export logs). |
 | **Auth** | Sign in / Create account; show-password toggle; inline field errors; loading state; "Forgot password" (P1); "Advanced: server URL" (P1); banner when the session has expired. |
-| **Overlays** | Away prompt (R-32); stop toast (Add note / Undo); goal-reached toast; sync-issues panel; delete/discard confirmations only where undo is not possible. |
+| **Overlays** | Away prompt (R-32); stop toast (Add note / Undo); goal-reached toast; credit warning / out-of-credit / timer-still-running notifications (R-46, R-47); sync-issues panel; delete/discard confirmations only where undo is not possible. |
 
 ### 10.3 Key flows
 
@@ -557,9 +639,9 @@ Timer-first shell, four destinations, with Goals as a drawer:
 
 ---
 
-## 11. Tech stack (to be decided in T0.1)
+## 11. Tech stack (decided 2026-10-24)
 
-The legacy stack is intentionally **not** assumed. Choose per layer against these requirements and record each choice with its reason.
+The legacy stack was intentionally **not** assumed. Each layer was chosen against these requirements, with small size and speed (principle 10) as the tie-breaker.
 
 | Layer | Must provide |
 |---|---|
@@ -571,24 +653,29 @@ The legacy stack is intentionally **not** assumed. Choose per layer against thes
 | UI | Accessible primitives (or the ability to build them), charts, list virtualisation, theming via tokens |
 | Desktop shell | Tray with dynamic text and menu; global shortcuts; autostart that starts hidden; idle, lock and sleep events; native notifications with click handling; single instance; OS secure storage; signed auto-update; small resident footprint (it runs all day) |
 | Mobile shell | Android foreground service / ongoing notification with actions; secure storage; reliable background resume |
-| Tooling | One language version, one formatter/linter, reproducible lockfile, CI building every target |
+| Activity tracking (desktop) | Foreground-window change events with the executable path; idle, lock and sleep events; a bridge from a browser extension |
+| Activity tracking (Android) | Usage events with app categories; an optional accessibility service; a long-running foreground service |
+| Tooling | One language version per language, one formatter/linter per language, reproducible lockfiles, CI building every target |
 
-Decision record (fill in during T0.1):
+Decision record:
 
 | Layer | Choice | Why | Alternatives rejected |
 |---|---|---|---|
-| Server runtime | TBD | | |
-| Database | TBD | | |
-| Realtime transport | TBD | | |
-| Contract / schema | TBD | | |
-| Client core language | TBD | | |
-| UI framework | TBD | | |
-| Desktop shell | TBD | | |
-| Mobile | TBD | | |
-| Local persistence | TBD | | |
-| Charts | TBD | | |
-| Testing / E2E | TBD | | |
-| CI / release | TBD | | |
+| Server runtime | **NestJS** (TypeScript, Node.js LTS) | Owner's decision; structured modules, shares the TypeScript contract package | - |
+| Database | **PostgreSQL** - *proposed, confirm in T0.1* | Exclusion constraint on time ranges enforces "no overlapping sessions" (R-05) in the database; partial unique index for one running session; strong range and aggregation queries | SQLite (simpler self-hosting but no exclusion constraints), MongoDB (legacy; weak for these invariants) |
+| Data access | TBD in T0.1 | Must allow raw SQL migrations (for the exclusion constraint) | |
+| Realtime transport | **Plain WebSocket** (NestJS `ws` adapter) | Lower per-message overhead; easy to use from Rust | Socket.IO (extra protocol, weak Rust clients) |
+| Contract / schema | **One TypeScript schema package** (zod proposed) emitting OpenAPI + JSON Schema; NestJS validates from it; Rust types generated with `typify` / `progenitor` | One source for server, desktop and Android | Hand-written types per client |
+| Client core | **Rust** shared by both apps: `tokio`, `reqwest` + `tokio-tungstenite` (both with `rustls`), `rusqlite` (bundled SQLite), `jiff` (embedded timezone database), `uuid` v7, `serde`; tests with `proptest` | Written once; runs without any UI; small native binary | TypeScript core (would have to be rewritten in Kotlin for the Android background service) |
+| Desktop shell | **Tauri 2** with official plugins: tray, global-shortcut, autostart, notification, single-instance, updater, window-state; `windows` crate for foreground, idle and session events; `keyring` for credentials | Small installer and memory footprint; direct Windows API access from Rust; window can be destroyed in tray | Electron (80-150 MB installer, high resident memory, native add-ons needed anyway) |
+| Desktop UI | **Svelte 5** + TypeScript + Vite; **Bits UI** primitives; **Tailwind CSS v4** over CSS-variable tokens; **TanStack Virtual**; `Intl` for formatting | No runtime virtual DOM, smallest output, only the clock text updates each second | React + React Aria (acceptable, slightly heavier) |
+| Mobile | **Native Kotlin + Jetpack Compose** (foundation + selective Material 3), Navigation Compose, Coroutines/Flow, no DI framework; Rust core through **UniFFI** + `cargo-ndk`; Android Keystore for credentials; Baseline Profiles + R8 full mode; 64-bit ARM APK; **sideloaded** with an in-app updater (`PackageInstaller`) | Smallest APK, fastest start, most reliable long-running background service; Kotlin is required for usage access and the accessibility service anyway | React Native / Flutter (extra runtime size; JS/Dart engine tied to the UI, so background work needs a separate path), Tauri on Android (unproven that the core keeps running in a foreground service with no window; revisit if maintaining two UIs becomes costly) |
+| Local persistence | SQLite inside the Rust core (cache, outbox, segments) on both platforms | One implementation, transactional, survives crashes | Room / IndexedDB (per-platform duplicates) |
+| Charts | **uPlot** (desktop), **Vico** (Android) | Small and fast; each paired with a data-table view for accessibility | Heavier chart suites |
+| Browser extension | **WXT** (one TypeScript codebase for Chromium MV3 and Firefox); **native messaging** to a small host shipped with the desktop app | Reliable domain detection; native messaging keeps the extension's service worker alive while connected and cannot be spoofed by other local processes the way a local HTTP port can | Reading the address bar through UI Automation (fragile), local HTTP server |
+| Testing / E2E | Rust: `cargo test` + `proptest`; desktop UI: Vitest; desktop E2E: WebdriverIO + `tauri-driver`; Android: Compose UI tests + **Maestro**; server: integration tests against a real database | | |
+| Repo / tooling | **pnpm workspace** (server, contract, desktop UI, extension) + **Cargo workspace** (core, desktop shell, native host) + Gradle Android project building the core through `cargo-ndk` | | |
+| CI / release | TBD in T0.3 (GitHub Actions proposed) | Must build Windows, Android and the server image | |
 
 ---
 
@@ -611,6 +698,7 @@ Decision record (fill in during T0.1):
 | WS10 | Mobile | Android shell and screens | MOB-* |
 | WS11 | Ops & release | Image, compose, CI/CD, signing, updates, backups | OPS-*, DESK-06 |
 | WS12 | Quality | Test suites, security, accessibility and performance passes | X-01, X-03 |
+| WS13 | Activity & credit | Trackers, browser extension, classification, credit ledger | ACT-*, CRED-* |
 
 **Parallel lanes.** Once the contract (T0.4) and time math (T0.5) exist:
 
@@ -624,18 +712,20 @@ Lanes meet at the end of each milestone for integration. WS12 runs alongside all
 M0 Foundations --> M1 Walking skeleton --> M2 Core MVP --> M3 Desktop MVP release (Windows)
                                                        \--> M4 Android
                                          M3 + M4 --> M5 v1.0 --> Backlog (P2)
+                                         M3 + M4 --> M6 Activity & credit (part of v1.0, can run alongside M5)
 ```
 
 ### 12.2 M0 - Decisions & foundations
 
 | ID | Task | WS | Deps | Features / rules | Done when |
 |---|---|---|---|---|---|
-| T0.1 | Resolve the open decisions (section 13) and choose the stack (section 11); record each decision | WS0 | - | all | Decision record complete; this spec updated |
+| T0.1 | Resolve the open decisions (section 13) and choose the stack (section 11); record each decision. *Stack chosen 2026-10-24; still open: database confirmation, data access library, D-02..D-08, D-11..D-18* | WS0 | - | all | Decision record complete; this spec updated |
 | T0.2 | Repo scaffold organised by module boundaries (server, contract, client core, UI kit, app, desktop, mobile); formatter, linter, type checks; one language version; config templates | WS0 | T0.1 | - | A fresh clone installs and passes all checks with one command |
 | T0.3 | CI: reproducible install, lint, type check, tests, build of every target; required on the main branch | WS0/WS11 | T0.2 | - | Pull requests blocked on red CI |
 | T0.4 | Contract: operations, events and error model of section 7, generating server validators, a typed client and a mock server | WS0 | T0.2 | §7 | Server stub and client both compile against it; mock server runs |
 | T0.5 | Time-math module: day keys, period ranges with week start, clipping across midnight, period IDs; injected clock; timezone test matrix | WS6 | T0.2 | R-10..R-14, R-16..R-18 | Tests green for UTC, America/Los_Angeles, Asia/Dhaka, Pacific/Auckland, Asia/Kathmandu, and 23 h / 25 h DST days |
 | T0.6 | Local development environment: database, server and seed data with one command | WS11 | T0.2 | - | New contributor running in < 10 min |
+| T0.7 | Size spike: hello-world Tauri 2 + Svelte installer, and Kotlin + Compose APK loading the Rust core through UniFFI, plus a foreground service that keeps the core running with no activity | WS0 | T0.2 | §9.3 | Measured sizes, memory and cold start recorded in section 9.3; budgets confirmed or adjusted |
 
 ### 12.3 M1 - Walking skeleton (register, start, stop, see today's total)
 
@@ -646,10 +736,10 @@ M0 Foundations --> M1 Walking skeleton --> M2 Core MVP --> M3 Desktop MVP releas
 | T1.3 | Auth core: register, login, refresh with rotation and reuse detection, logout this device, rate limits | WS2 | T1.1, T1.2 | AUTH-01, AUTH-02 | Security tests: reusing a token revokes the family; login errors are uniform |
 | T1.4 | Timer commands: start, stop, discard, update running; idempotency store; per-user serialisation; revision bump; server timestamps | WS3 | T1.1 | TIM-01/02/03/06, R-01..R-05, R-34 | Property tests: any command sequence leaves ≤ 1 running session and no overlaps; replaying an ID returns the same result |
 | T1.5 | Today snapshot and period totals | WS4 | T1.4, T0.5 | TIM-04, R-11, R-17 | Totals match hand-computed fixtures, including sessions crossing midnight |
-| T1.6 | Client core v0: transport with timeouts and normalised errors; single-flight credential refresh; secure-storage interface; clock-offset estimator; timer projection; 1 Hz second-aligned ticker | WS6 | T0.4, T0.5 | AUTH-03, SYNC-05, TIM-10 | Unit tests with fake clock and simulated skew |
+| T1.6 | Rust client core v0: transport with timeouts and normalised errors; single-flight credential refresh; secure-storage interface; clock-offset estimator; timer projection; 1 Hz second-aligned ticker | WS6 | T0.4, T0.5 | AUTH-03, SYNC-05, TIM-10 | Unit tests with fake clock and simulated skew |
 | T1.7 | Design tokens and base primitives (Button, IconButton, Input, Dialog, Popover, Toast, Skeleton); theme before first paint | WS7 | T0.2 | SET-01, X-01 | Light/dark render without flash; primitives pass keyboard and screen-reader checks |
 | T1.8 | App shell, auth screens, persistent timer bar and Today hero, wired to the real server | WS8 | T1.3, T1.5, T1.6, T1.7 | AUTH-01/02, TIM-01..04, TIM-09 | Demo: register, start, stop; today's total and current elapsed are correct |
-| T1.9 | Desktop shell v0: window with minimum size and remembered position, single instance, production hardening (no developer tools or menus, CSP, navigation guards), secure storage | WS9 | T0.2 | DESK-07, DESK-08 | Installer runs the skeleton on Windows |
+| T1.9 | Desktop shell v0 (Tauri 2): window with minimum size and remembered position, single instance, production hardening (no developer tools or menus, CSP, navigation guards), secure storage; client core hosted in the native process, window destroyed when closed to tray | WS9 | T0.2 | DESK-07, DESK-08 | Installer runs the skeleton on Windows within the size budget |
 | T1.10 | Server image and compose file with the database (non-root, health checks) | WS11 | T1.2 | OPS-01 | Fresh compose up yields a working server; smoke test in CI |
 
 ### 12.4 M2 - Core MVP
@@ -714,10 +804,10 @@ M0 Foundations --> M1 Walking skeleton --> M2 Core MVP --> M3 Desktop MVP releas
 | ID | Task | WS | Deps | Features / rules | Done when |
 |---|---|---|---|---|---|
 | T4.0 | Investigate legacy mobile-only behaviour (foreground service, battery-optimisation prompts, build/signing); the legacy spec did not cover mobile | WS10 | - | MOB-* | Short findings note added to this spec |
-| T4.1 | Mobile shell using the shared client core; secure storage; navigation | WS10 | T2.10, T4.0 | MOB-01 | Sign in, start and stop on a device |
-| T4.2 | Screens adapted for touch: Today, Log, Insights, Goals, Settings | WS10 | T4.1 | MOB-01 | Feature parity with desktop P0 |
-| T4.3 | Ongoing notification with live elapsed time and Stop; battery-optimisation guidance | WS10 | T4.1 | MOB-02 | Timer visible and stoppable with the app closed |
-| T4.4 | Android build, signing and release pipeline | WS11 | T4.1 | - | Signed release built by CI |
+| T4.1 | Native Kotlin + Compose app using the Rust core through UniFFI; Keystore-backed credentials; navigation | WS10 | T2.10, T4.0, T0.7 | MOB-01 | Sign in, start and stop on a device |
+| T4.2 | Screens in Compose: Today, Log, Insights, Goals, Settings | WS10 | T4.1 | MOB-01 | Feature parity with desktop P0 |
+| T4.3 | Foreground service hosting the core: ongoing notification with live elapsed time and Stop, realtime connection, battery-optimisation guidance | WS10 | T4.1 | MOB-02 | Timer visible and stoppable with the app closed; a start on the PC appears on the phone within the propagation budget |
+| T4.4 | Android build, signing and release pipeline; sideload distribution with in-app updater | WS11 | T4.1 | MOB-05 | Signed release built by CI; the app updates itself from N to N+1 |
 | T4.5 | End-to-end mobile flows, including offline and cross-device with desktop | WS12 | T4.2 | - | |
 
 ### 12.7 M5 - v1.0
@@ -737,15 +827,31 @@ M0 Foundations --> M1 Walking skeleton --> M2 Core MVP --> M3 Desktop MVP releas
 | T5.11 | About: update status, client log export | WS8/WS9 | T3.7 | SET-05 |
 | T5.12 | Backup/restore tested; operations docs | WS11 | T1.10 | OPS-02 |
 
-### 12.8 Backlog (P2)
+### 12.8 M6 - Activity tracking & leisure credit
 
-AUTH-10 email verification · TIM-13 Pomodoro / breaks · LOG-09 bulk edit · LOG-10 split / merge · TAG-05 archive / merge · GOAL-06 per-weekday targets · INS-08 heatmap · MOB-03 widget / tile · MOB-04 iOS · DESK-09 macOS / Linux · SET-06 languages · OPS-04 metrics · web client · calendar integration · deep links.
+| ID | Task | WS | Deps | Features / rules | Done when |
+|---|---|---|---|---|---|
+| T6.1 | Contract, schema and migrations for ActivitySegment, ClassificationRule, CreditSetting; operations and events of section 7 | WS13 | T2.7 | §6, §7 | Contract compiles for server and Rust core; migrations apply and roll back |
+| T6.2 | Server: batched segment upsert (idempotent, end only grows, no overlap per device), category resolution, user rules with apply-to-past | WS13 | T6.1 | ACT-07, R-38..R-41 | Rule precedence fixtures pass; resent batches create no duplicates |
+| T6.3 | Server: credit balance and history (earn rate, allowance, carry-over cap, effective-dated settings); rebuildable per-day cache; `credits.changed` | WS13 | T6.1, T2.4 | CRED-01, CRED-04, CRED-05, R-42..R-44 | Fixture suite covers settings changes, carry-over cap, negative balances, sessions crossing midnight |
+| T6.4 | Rust core: local segment builder (R-39), batched upsert through the outbox, live balance (R-45), local notification triggers (R-46, R-47) | WS13/WS6 | T6.1, T2.9 | CRED-02, CRED-03, CRED-06 | Fake-clock tests: each notification fires once per crossing, offline included |
+| T6.5 | Desktop tracker: foreground events, idle/lock/sleep integration, game-library detection, window-title fallback | WS13/WS9 | T6.4, T3.3 | ACT-01, ACT-03 | Switching apps produces correct segments; no measurable CPU at rest |
+| T6.6 | Browser extension (WXT) + native messaging host + pairing and status in Settings | WS13 | T6.5 | ACT-02 | Domain changes in Chrome, Edge and Firefox reach the core; only domains are sent |
+| T6.7 | Android tracker in the foreground service: usage events, category hints, screen-off handling | WS13/WS10 | T6.4, T4.3 | ACT-04 | Segments match actual usage; no wake-ups with the screen off |
+| T6.8 | Android accessibility-service domain detection (opt-in) with guided permission setup | WS13/WS10 | T6.7 | ACT-05 | Works in Chrome after the guided setup on Android 13+ |
+| T6.9 | Seed catalog of games and social apps/domains, and how it is updated | WS13 | T6.2 | ACT-07 | Top social apps and sites, and common store-installed games, are classified out of the box |
+| T6.10 | UI on both platforms: balance in Today, timer bar, tray and ongoing notification; Activity tab with reclassify; credit history; Activity & credit settings; privacy controls | WS8/WS10 | T6.3, T6.4 | ACT-06, ACT-08, CRED-02, CRED-04, CRED-05 | A reclassified subject updates the balance on both devices |
+| T6.11 | Quality: simulator with sessions and segments across two devices; privacy test (no URLs or titles in any request); CPU and battery measurement | WS12 | T6.5, T6.7 | Principle 11, §9.3 | Budgets met; privacy test green |
 
-### 12.9 Testing strategy (owned by WS12, written by every workstream)
+### 12.9 Backlog (P2)
+
+AUTH-10 email verification · TIM-13 Pomodoro / breaks · LOG-09 bulk edit · LOG-10 split / merge · TAG-05 archive / merge · GOAL-06 per-weekday targets · INS-08 heatmap · MOB-03 widget / tile · MOB-04 iOS · DESK-09 macOS / Linux · SET-06 languages · OPS-04 metrics · CRED-07 manual credit adjustment · web client · calendar integration · deep links.
+
+### 12.10 Testing strategy (owned by WS12, written by every workstream)
 
 | Level | What |
 |---|---|
-| Unit | Time math across the timezone matrix and DST days; goal, streak and achievement math; formatters; tag-name normalisation |
+| Unit | Time math across the timezone matrix and DST days; goal, streak and achievement math; credit balance math; segment building and merging; formatters; tag-name normalisation |
 | Property | Timer command reducer (any order and timing gives at most one running session and no overlaps); outbox replay is idempotent |
 | Simulation | Multiple clients with skewed clocks, disconnects and offline periods converge (T2.20) |
 | Contract | Server and client conform to the shared contract; generated mocks match the real server |
@@ -759,7 +865,7 @@ AUTH-10 email verification · TIM-13 Pomodoro / breaks · LOG-09 bulk edit · LO
 
 | ID | Question | Recommendation | Affects |
 |---|---|---|---|
-| D-01 | Tech stack per layer | Choose against section 11 | Everything |
+| D-01 | Tech stack per layer | **Decided 2026-10-24** (section 11); the database is still a proposal | Everything |
 | D-02 | Hero clock: today's total or current session first? | Today's total large, current session secondary (keeps Pulse's identity) | TIM-04 |
 | D-03 | Sessions across midnight: clip at read time, or split into two records? | Clip at read time (no rollover logic, one record, history stable) | R-11, LOG-07 |
 | D-04 | Streak definition | R-22/R-23 (goal-based, working days skipped, unfinished today never breaks the streak) | INS-06 |
@@ -767,12 +873,18 @@ AUTH-10 email verification · TIM-13 Pomodoro / breaks · LOG-09 bulk edit · LO
 | D-06 | Forgotten-timer thresholds | Remind at 8 h, auto-stop at 16 h, both configurable / off | R-33 |
 | D-07 | Away prompt default when ignored | Keep all time (non-destructive) | R-32 |
 | D-08 | Migrate data from the legacy deployment? | Yes, if there is history worth keeping | OPS-05, T5.5 |
-| D-09 | Platforms for v1 | Windows + Android (legacy parity); others P2 | DESK-09, MOB-04 |
-| D-10 | iOS in scope? | Later | MOB-04 |
+| D-09 | Platforms for v1 | **Decided:** Windows + Android (sideloaded APK, not Google Play); others P2 | DESK-09, MOB-04, MOB-05 |
+| D-10 | iOS in scope? | Later. iOS's Screen Time API never tells an app which app is in use, so activity tracking (ACT-*) cannot exist on iOS | MOB-04 |
 | D-11 | Hosting model: personal self-host only, or a public hosted instance with open registration? | Self-host first; registration lock available | AUTH-09, rate limits |
 | D-12 | Celebrate goals reached for past periods via edits/manual entries? | No (only current periods celebrate) | R-27 |
 | D-13 | Refresh-credential lifetime | 30 days, rotating, extended with use, so a desktop left offline for a week stays signed in | AUTH-03 |
 | D-14 | Minimum session duration / accidental clicks | 1 s minimum; rely on Undo rather than auto-deleting short sessions | R-04 |
+| D-15 | Earn rate: leisure seconds per worked second | 0.25 (15 min of leisure per hour worked), configurable | R-42, CRED-01 |
+| D-16 | Daily free leisure allowance | 0 by default, configurable | R-42, CRED-01 |
+| D-17 | Does unused credit carry over? | Carries over; optional cap (default: no cap) | R-44, CRED-05 |
+| D-18 | Which categories count as leisure? | `game` and `social` (decided); open: should video sites and apps (YouTube, Netflix) be a third leisure category or stay under `social` / `neutral` by catalog entry? | R-40, ACT-07 |
+
+Decided 2026-10-24 alongside the stack: activity tracking is **track-and-notify only** (no blocking); credit is earned **only from the manual timer**; a user uses one device at a time, and everything syncs live.
 
 ---
 
@@ -796,6 +908,13 @@ AUTH-10 email verification · TIM-13 Pomodoro / breaks · LOG-09 bulk edit · LO
 | Cross-device propagation target | p95 < 1.5 s |
 | Toast duration (goal reached) | 6 s |
 | Brand colour | `#7C3AED` |
+| Earn rate / daily free allowance | 0.25 / 0 (D-15, D-16) |
+| Credit warning threshold / reminder interval while over | 5 min left / every 15 min |
+| Leisure during a running timer before notifying | 5 min (R-47) |
+| Activity segment minimum / merge gap | 5 s / 5 s (R-39) |
+| Open-segment flush interval | 60 s |
+| Android usage-event check interval (screen on) | ≤ 5 s |
+| Size budgets | Installer < 15 MB · APK < 15 MB · tray memory < 50 MB (section 9.3) |
 
 ## Appendix B. Copy deck (kept from legacy, plurals fixed)
 
@@ -808,6 +927,10 @@ AUTH-10 email verification · TIM-13 Pomodoro / breaks · LOG-09 bulk edit · LO
 | Title placeholder | | What are you working on? |
 | Note placeholder | | What did you accomplish? |
 | Streak | | {n} day / {n} days |
+| Credit warning | Leisure credit running low | {duration} of leisure credit left. |
+| Out of credit | Out of leisure credit | You've used all your leisure credit. |
+| Over reminder | Still over your leisure credit | You're {duration} over. |
+| Timer while on leisure | Timer still running | Your timer is running while you're on {subject}. |
 
 ## Appendix C. Legacy carry-over actions
 
