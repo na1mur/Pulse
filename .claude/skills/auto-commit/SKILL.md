@@ -18,7 +18,8 @@ Skip (and say why) when:
 
 Run in parallel: `git status`, `git diff`, `git diff --staged`, `git log -5 --oneline`.
 
-- Identify the task and the spec IDs it implements (`T-x.y`, feature IDs, `R-xx` rules) from `docs/REBUILD_SPEC.md`.
+- Identify the task and its IDs: spec IDs (`T-x.y`, feature IDs, `R-xx` rules) from `docs/REBUILD_SPEC.md`, or checklist items (`A-x.y`) from `docs/AGENTIC_SETUP.md`.
+- List the files that belong to this task; they are what gets reviewed and committed.
 - If the task has a "Done when" in spec section 12, that is the acceptance bar. Check it explicitly.
 - Note any changed files that are unrelated to this task. They are left out of the commit.
 
@@ -56,6 +57,13 @@ Never make it pass by skipping, deleting or weakening tests or assertions, loose
 
 ## 5. Review the diff before staging
 
+Run the `change-review` skill, passing the task IDs and the file list from step 1. Run it for every change; skip it only for trivial docs edits (typos, ticking a checklist item). Its verdict applies:
+- **block** → fix, rerun from step 2, review again. Debug rounds (step 4) and review rounds share **one budget of 3 rounds**; when it runs out, stop, do not commit, and report.
+- **pass with notes** → fix the cheap notes, mention the rest in the report.
+- **ask the user** → present the disputed finding and wait.
+
+Then check:
+
 - No secrets, `.env` files, credentials, keystores or signing keys. If you find any, stop and warn the user.
 - No leftover debug output, commented-out code or stray TODOs created by this task.
 - Generated files are committed only if the repo already commits them.
@@ -89,4 +97,4 @@ Then run `git status` to confirm the commit landed.
 
 ## 7. Report
 
-Tell the user in a few lines: what was committed (short hash and subject), what was verified and run, and anything that was skipped or could not be run.
+Tell the user in a few lines: what was committed (short hash and subject), what was verified and run, the review verdict and any notes left open, and anything that was skipped or could not be run.

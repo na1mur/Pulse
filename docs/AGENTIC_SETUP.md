@@ -32,7 +32,7 @@ Rule: install an existing, well-made skill/agent when one fits; adapt it when it
 | A1.5 `qa-engineer` | wshobson ship-mate `qa` agent (acceptance criteria → test cases, severity, never edits product code) | adapt |
 | A1.6 `devops-engineer` | wshobson `deployment-engineer` is GitOps/K8s | custom agent on `ci-cd-and-automation` |
 | A1.7 delivery pipeline | nothing fits as-is | custom; borrow superpowers' reviewer prompt, ledger and fix loop, and writing-plans' Interfaces / Review Focus |
-| A1.8 review before commit | mattpocock `code-review` (parallel standards + spec reviewers) | adapt as `spec-review` (diff vs `HEAD`, our spec and rules), called by `auto-commit` |
+| A1.8 review before commit | mattpocock `code-review` (parallel standards + spec reviewers) | adapted as `change-review`, called by `auto-commit` |
 | A2.3 design decisions | Emil Kowalski `prototype` (3–5 live variants, owner picks) | adapt for visual options; custom `design-decision` skill owns the ask → apply → record loop |
 | A2 design quality | Vercel `web-design-guidelines` (pin its remote rules locally), Emil `break-ui` (edge-case data) | adapt / install |
 | A2.4 tokens, Compose UI rule | nothing fits | custom |
@@ -80,7 +80,8 @@ Subagents live in `.claude/agents/`; each has a focused system prompt, a restric
 - [ ] **A1.6 `devops-engineer`.** CI, release builds, signing, server image, update channels. Details in A6.
 - [ ] **A1.7 Delivery pipeline skill (`/task T1.4`).** Runs one spec task end to end: brief (spec rows + knowledge) → design (A1.1, asks you when needed) → plan → build (A1.2–A1.4) → verify (`auto-commit` gate) → QA review (A1.5) → fix loop → commit.
   - Decision: a sequential skill that delegates to subagents (cheaper, recommended) or a multi-agent Workflow for large tasks (on request only).
-- [ ] **A1.8 Senior code review in the gate.** Run the `code-review-and-quality` skill (or built-in `/code-review`) on non-trivial diffs before `auto-commit` commits. Decision: always, or only above a diff-size threshold.
+- [x] **A1.8 Senior code review in the gate.** `change-review` skill (adapted from mattpocock `code-review`), run by `auto-commit` step 5 on every change except trivial docs edits. Decided: by change type, not diff size, since small diffs can break the spec.
+  - Verified: dry-run on its own change; the two reviewers found 2 hard violations and 6 logic bugs (folder-only untracked listing, empty-diff check, review scope ≠ commit scope, unfixable "missing hash" block, unclear round budget, unnamed second axis), all fixed before commit.
 
 ## A2. Frontend guide and the design-decision loop
 
