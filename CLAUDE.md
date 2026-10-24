@@ -17,6 +17,8 @@ None yet (no code). Fill this in during T0.2: install, dev, format check, lint, 
 
 ## Workflow
 
+The agentic setup (role agents, rules, hooks, FE guide, memory) is being built item by item from `docs/AGENTIC_SETUP.md`; tick items there as they land.
+
 After finishing each task that changed files, run the `auto-commit` skill (`.claude/skills/auto-commit/SKILL.md`). It verifies, runs and debugs the change, then commits only if everything passes.
 
 `.claude/skills/` also holds 13 third-party skills from [addyosmani/agent-skills](https://github.com/addyosmani/agent-skills) (MIT, commit `aeac41d`, installed 2026-10-24): TDD, debugging, incremental implementation, API design, frontend UI, security, performance, code review, planning, ADRs, CI/CD, observability, source-driven development. Where they conflict with this repo:
