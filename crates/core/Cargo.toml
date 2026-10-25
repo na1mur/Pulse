@@ -10,6 +10,11 @@ publish.workspace = true
 # reaches the core only through the traits in `ports`. Each dependency arrives with the task that
 # needs it, with its size cost stated (spec 9.3).
 [dependencies]
+# The wire types generated from the contract (ARCHITECTURE section 2), without the HTTP client:
+# the transport adapter turns on `pulse-contract-types/client` behind its own feature (section 3).
+# Size (T0.4, release profile, Windows x64, stripped): about 1.05 MB over a serde_json-only
+# binary, of which regress (contract patterns) is about 0.58 MB and jiff about 0.17 MB.
+pulse-contract-types = { path = "../contract-types", default-features = false }
 
 [lints]
 workspace = true

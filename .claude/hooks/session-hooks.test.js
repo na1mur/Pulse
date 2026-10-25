@@ -25,7 +25,9 @@ test('session brief summarises the repo in a few lines and exits 0', () => {
   assert.match(r.stdout, /Milestone: M\d+ - /);
   assert.match(r.stdout, /Next spec task not started: T\d+\.\d+/);
   assert.match(r.stdout, /Open spec decisions: D-\d+/);
-  assert.doesNotMatch(r.stdout, /D-19|D-20/, 'decided decisions are not listed as open');
+  // Only the open-decisions line: task titles elsewhere in the brief may cite decided IDs.
+  const openLine = r.stdout.split('\n').find((line) => line.startsWith('Open spec decisions:'));
+  assert.doesNotMatch(openLine, /D-19|D-20/, 'decided decisions are not listed as open');
   assert.match(r.stdout, /Agentic setup: \d+ done/);
   assert.ok(r.stdout.split('\n').length <= 20, 'brief stays short');
 });

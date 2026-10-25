@@ -14,7 +14,8 @@ apps/
 crates/
   core/            pulse-core: domain, sync, outbox, local store, tracking pipeline (Rust library)
   core-ffi/        UniFFI bindings of pulse-core for Android
-  contract-types/  Rust types generated from the contract (generated/ only)
+  contract-types/  Rust types and client generated from the contract (src/generated/; codegen/ is the
+                   generator, tests/ the cross-language conformance tests)
 packages/
   contract/        zod schemas -> OpenAPI + JSON Schema -> generated TS client, mocks;
                    fixtures/ (shared time, streak and credit cases, D-19);
@@ -94,7 +95,7 @@ src/
     *.service.ts                     use case, transaction boundary, emits events
     *.repository.ts                  SQL only
   domain/           pure functions (no Nest, no database): time math, streaks, credit math and ledger
-  platform/         config, database, logging, errors, idempotency, revisions
+  platform/         config, database, logging, errors, http (contract validation), idempotency, revisions
 ```
 
 Controllers never touch the database; repositories never contain business rules; `domain` imports nothing from Nest.
@@ -133,4 +134,4 @@ There is deliberately no Kotlin data layer (no Room, Retrofit or repositories): 
 ## 6. Decisions
 
 - Spec-level (decided 2026-10-24): D-19 (one shared fixture suite keeps time and credit math identical in the TypeScript server and the Rust core) and D-20 (Kysely for server data access); from the PRD: D-03 (a midnight-crossing session stays one record), D-22 (UI Automation instead of a browser extension), D-23 (FCM push, optional at runtime); spec section 13.
-- Structure-level ADRs (accepted 2026-10-24): `docs/decisions/0001-no-monorepo-task-runner.md`, `docs/decisions/0002-ui-primitives-inside-desktop-app.md`.
+- Structure-level ADRs (accepted 2026-10-24): `docs/decisions/0001-no-monorepo-task-runner.md`, `docs/decisions/0002-ui-primitives-inside-desktop-app.md`. Contract toolchain and wire format (accepted 2026-10-25): `docs/decisions/0003-contract-wire-format.md`.

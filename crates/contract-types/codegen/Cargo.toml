@@ -1,0 +1,20 @@
+[package]
+name = "pulse-contract-codegen"
+version = "0.0.0"
+description = "Writes crates/contract-types/src/generated/ from packages/contract/generated/openapi.json (progenitor + typify)."
+edition.workspace = true
+rust-version.workspace = true
+publish.workspace = true
+
+# A developer tool, never linked into an app: these dependencies stay out of pulse-core and the
+# installers. Pinned exactly so the generated code only changes when someone bumps them on purpose.
+[dependencies]
+openapiv3 = "=2.2.0"
+prettyplease = "=0.3.0"
+progenitor-impl = "=0.15.1"
+schemars = "=0.8.22"
+serde_json = "1.0.154"
+syn = { version = "3.0.9", default-features = false, features = ["full", "parsing", "printing"] }
+
+[lints]
+workspace = true

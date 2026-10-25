@@ -57,6 +57,7 @@ export function planSteps({ groups, platform, tsRoots }) {
         '--test',
         '.claude/hooks/*.test.js',
         'scripts/check.test.mjs',
+        'scripts/contract-mock-smoke.test.mjs',
       ]),
     );
   }
@@ -79,9 +80,24 @@ export function planSteps({ groups, platform, tsRoots }) {
         'scripts/dependency-cruiser.test.mjs',
       ]),
     );
+    // Regenerates in memory and fails on any difference from the committed generated/ files.
+    steps.push(
+      pnpm('ts', 'contract up to date', [
+        '--filter',
+        '@pulse/contract',
+        'run',
+        'generate',
+        '--',
+        '--check',
+      ]),
+    );
     steps.push(pnpm('ts', 'type check', ['-r', 'run', 'typecheck']));
     steps.push(pnpm('ts', 'tests', ['-r', 'run', 'test']));
     steps.push(pnpm('ts', 'build', ['-r', 'run', 'build']));
+    // Starts `pnpm --filter @pulse/contract mock`, checks /health and the realtime auth, stops it.
+    steps.push(
+      step('ts', 'contract mock smoke', process.execPath, ['scripts/contract-mock-smoke.mjs']),
+    );
   }
   if (groups.has('rust')) {
     // The Tauri crate embeds apps/desktop/dist at compile time; the ts group builds it otherwise.
@@ -89,6 +105,17 @@ export function planSteps({ groups, platform, tsRoots }) {
       steps.push(pnpm('rust', 'desktop UI build', ['--filter', '@pulse/desktop', 'run', 'build']));
     }
     steps.push(cargo('rustfmt', ['fmt', '--all', '--check']));
+    // crates/contract-types/src/generated/ against packages/contract/generated/openapi.json.
+    steps.push(
+      cargo('contract types up to date', [
+        'run',
+        '-p',
+        'pulse-contract-codegen',
+        '--locked',
+        '--',
+        '--check',
+      ]),
+    );
     steps.push(
       cargo('clippy', [
         'clippy',

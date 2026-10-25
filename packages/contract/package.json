@@ -1,0 +1,39 @@
+{
+  "name": "@pulse/contract",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Pulse wire contract: zod schemas for every operation, event and error (spec section 7), the OpenAPI and JSON Schema generated from them, a typed client and a mock server.",
+  "type": "module",
+  "engines": {
+    "node": "^24.15.0"
+  },
+  "exports": {
+    ".": {
+      "types": "./src/index.ts",
+      "@pulse/source": "./src/index.ts",
+      "default": "./dist/index.js"
+    },
+    "./client": {
+      "types": "./src/client.ts",
+      "@pulse/source": "./src/client.ts",
+      "default": "./dist/client.js"
+    }
+  },
+  "scripts": {
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "vitest run",
+    "build": "tsc -p tsconfig.build.json",
+    "generate": "tsc -p tsconfig.build.json && node dist/generator/main.js",
+    "mock": "tsc -p tsconfig.build.json && node dist/mock/main.js"
+  },
+  "dependencies": {
+    "zod": "4.6.7"
+  },
+  "devDependencies": {
+    "@types/node": "24.19.2",
+    "@types/ws": "8.18.2",
+    "typescript": "catalog:",
+    "vitest": "5.0.5",
+    "ws": "8.22.0"
+  }
+}
