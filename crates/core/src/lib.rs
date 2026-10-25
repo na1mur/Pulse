@@ -4,13 +4,17 @@
 //! sections 2-3).
 //!
 //! Layering, inner to outer: `domain` <- `app` <- `sync` / `tracking` <- `api`, with `ports`
-//! used by `app` and up and implemented by `adapters`. Only `api` is public.
+//! used by `app` and up and implemented by `adapters`. `api` is the facade the shells call;
+//! `domain`, `ports` and `adapters` are public too, so integration tests (the shared fixtures,
+//! D-19) and other crates' tests can reach time math, the `Clock` port and its implementations.
 
+pub mod adapters;
 pub mod api;
+pub mod domain;
+pub mod ports;
+#[cfg(any(test, feature = "test-support"))]
+pub mod test_support;
 
-mod adapters;
 mod app;
-mod domain;
-mod ports;
 mod sync;
 mod tracking;

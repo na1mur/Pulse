@@ -17,6 +17,11 @@
       "types": "./src/client.ts",
       "@pulse/source": "./src/client.ts",
       "default": "./dist/client.js"
+    },
+    "./fixtures/time": {
+      "types": "./src/fixtures/time.ts",
+      "@pulse/source": "./src/fixtures/time.ts",
+      "default": "./dist/fixtures/time.js"
     }
   },
   "scripts": {

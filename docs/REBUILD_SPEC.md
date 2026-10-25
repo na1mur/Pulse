@@ -92,7 +92,7 @@ Every rule has an ID so features, tasks and tests can reference it. Where a rule
 
 | ID | Rule |
 |---|---|
-| R-10 | A **day** is a calendar date in a timezone, identified as `YYYY-MM-DD`. All day math uses one well-tested timezone library with the IANA database. Never use device-locale date strings. |
+| R-10 | A **day** is a calendar date in a timezone, identified as `YYYY-MM-DD`. All day math uses one well-tested timezone library with the IANA database (one per implementation, kept identical by the shared fixtures, D-19). Never use device-locale date strings. |
 | R-11 | **Day attribution:** a session's seconds count toward the local days it covers, *clipped at local midnight* in the session's own timezone (R-09). A session that crosses midnight stays **one record** (D-03). History shows it as **one row per local day** with the same title, tag and summary: the first row ends at 23:59:59, the next starts at 00:00:00; editing either row edits the session. The current session timer keeps counting across midnight; only the day total resets. Devices that were offline at midnight need no special handling (US-5.4). |
 | R-12 | **"Today", "this week", etc.** are evaluated in the user's **current timezone setting**, not the device's timezone. A period is a set of day keys; its total is the sum of the seconds attributed to those keys. |
 | R-13 | **Week** = 7 consecutive days starting on the user's *week start* setting (default Monday). **Month** = calendar month in the user's timezone. **Year** = calendar year. Rolling windows exist only when labelled explicitly ("Last 7 days") (US-10.1). |
@@ -717,7 +717,7 @@ Decision record:
 
 | Layer | Choice | Why | Alternatives rejected |
 |---|---|---|---|
-| Server runtime | **NestJS** (TypeScript, Node.js LTS) | Owner's decision; structured modules, shares the TypeScript contract package | - |
+| Server runtime | **NestJS** (TypeScript, Node.js LTS); time math on the TC39 Temporal API (`temporal-polyfill` until Node ships it, ADR-0004) | Owner's decision; structured modules, shares the TypeScript contract package; Temporal shares jiff's semantics | - |
 | Database | **PostgreSQL** (decided 2026-10-24) | Exclusion constraint on time ranges enforces "no overlapping sessions" (R-05) in the database; partial unique index for one running session; strong range and aggregation queries; the official image fits the PRD's bundled container and any managed external database | SQLite (no exclusion constraints, no external option), MongoDB (legacy; weak for these invariants) |
 | Data access | **Kysely** (D-20, decided 2026-10-24) | Typed SQL; allows the raw SQL migrations the exclusion constraint needs | Prisma (no exclusion constraints in its schema), TypeORM |
 | Realtime transport | **Plain WebSocket** (NestJS `ws` adapter), one room per user | Lower per-message overhead; easy to use from Rust | Socket.IO (extra protocol, weak Rust clients) |

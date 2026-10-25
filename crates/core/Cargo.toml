@@ -15,6 +15,25 @@ publish.workspace = true
 # Size (T0.4, release profile, Windows x64, stripped): about 1.05 MB over a serde_json-only
 # binary, of which regress (contract patterns) is about 0.58 MB and jiff about 0.17 MB.
 pulse-contract-types = { path = "../contract-types", default-features = false }
+# Time math (ADR-0004, spec section 11): the one date and time-zone library. `tzdb-bundle-always`
+# embeds the IANA database (jiff-tzdb) on every target, so Windows and Android answer from the same
+# data; the default `tzdb-zoneinfo`/`tzdb-concatenated` (OS database) and `tz-system` (device
+# zone, R-12 forbids using it) stay off, and the domain reads `TimeZoneDatabase::bundled()`
+# explicitly so a feature turned on elsewhere in the graph cannot switch it to the OS copy.
+# Size (T0.5, release profile, Windows x64, stripped): the bundled tzdb (2026e) adds about 0.27 MB
+# (287 KB: same program with and without `tzdb-bundle-always`); all of time math together, tzdb
+# included, about 0.46 MB over a binary using only `api::version` and serde_json.
+jiff = { version = "0.2.38", default-features = false, features = ["std", "tzdb-bundle-always"] }
+thiserror = "2.0.21"
+
+[features]
+# `test_support::FakeClock` (a settable, advanceable `ports::Clock`) for other crates' tests.
+test-support = []
+
+[dev-dependencies]
+proptest = { version = "1", default-features = false, features = ["std"] }
+serde = { version = "1.0.226", features = ["derive"] }
+serde_json = "1.0.154"
 
 [lints]
 workspace = true

@@ -1,0 +1,240 @@
+{
+  "description": "formatClock and summaryParts: a clock shows H:MM:SS with unbounded hours; a summary is whole hours and minutes rounded down. Negative input is clamped to 0.",
+  "rules": ["R-18"],
+  "cases": [
+    {
+      "name": "zero",
+      "input": {
+        "seconds": 0
+      },
+      "expected": {
+        "clock": "0:00:00",
+        "summary": {
+          "hours": 0,
+          "minutes": 0
+        }
+      }
+    },
+    {
+      "name": "59 s is a 0 m summary (rounded down)",
+      "input": {
+        "seconds": 59
+      },
+      "expected": {
+        "clock": "0:00:59",
+        "summary": {
+          "hours": 0,
+          "minutes": 0
+        }
+      }
+    },
+    {
+      "name": "one minute",
+      "input": {
+        "seconds": 60
+      },
+      "expected": {
+        "clock": "0:01:00",
+        "summary": {
+          "hours": 0,
+          "minutes": 1
+        }
+      }
+    },
+    {
+      "name": "one second short of an hour is 59 m, not 1 h",
+      "input": {
+        "seconds": 3599
+      },
+      "expected": {
+        "clock": "0:59:59",
+        "summary": {
+          "hours": 0,
+          "minutes": 59
+        }
+      }
+    },
+    {
+      "name": "one hour",
+      "input": {
+        "seconds": 3600
+      },
+      "expected": {
+        "clock": "1:00:00",
+        "summary": {
+          "hours": 1,
+          "minutes": 0
+        }
+      }
+    },
+    {
+      "name": "hours, minutes and seconds are padded after the hour",
+      "input": {
+        "seconds": 3661
+      },
+      "expected": {
+        "clock": "1:01:01",
+        "summary": {
+          "hours": 1,
+          "minutes": 1
+        }
+      }
+    },
+    {
+      "name": "1:39:59 summarises as 1 h 39 m",
+      "input": {
+        "seconds": 5999
+      },
+      "expected": {
+        "clock": "1:39:59",
+        "summary": {
+          "hours": 1,
+          "minutes": 39
+        }
+      }
+    },
+    {
+      "name": "last second of a day",
+      "input": {
+        "seconds": 86399
+      },
+      "expected": {
+        "clock": "23:59:59",
+        "summary": {
+          "hours": 23,
+          "minutes": 59
+        }
+      }
+    },
+    {
+      "name": "a 25 h day shows 25 hours, never days",
+      "input": {
+        "seconds": 90000
+      },
+      "expected": {
+        "clock": "25:00:00",
+        "summary": {
+          "hours": 25,
+          "minutes": 0
+        }
+      }
+    },
+    {
+      "name": "three-digit hours",
+      "input": {
+        "seconds": 360000
+      },
+      "expected": {
+        "clock": "100:00:00",
+        "summary": {
+          "hours": 100,
+          "minutes": 0
+        }
+      }
+    },
+    {
+      "name": "a week holding a 25 h day",
+      "input": {
+        "seconds": 608400
+      },
+      "expected": {
+        "clock": "169:00:00",
+        "summary": {
+          "hours": 169,
+          "minutes": 0
+        }
+      }
+    },
+    {
+      "name": "minus one second is clamped to 0",
+      "input": {
+        "seconds": -1
+      },
+      "expected": {
+        "clock": "0:00:00",
+        "summary": {
+          "hours": 0,
+          "minutes": 0
+        }
+      }
+    },
+    {
+      "name": "a large negative value is clamped to 0",
+      "input": {
+        "seconds": -3661
+      },
+      "expected": {
+        "clock": "0:00:00",
+        "summary": {
+          "hours": 0,
+          "minutes": 0
+        }
+      }
+    },
+    {
+      "name": "the largest safe integer (2^53 - 1) formats exactly",
+      "input": {
+        "seconds": 9007199254740991
+      },
+      "expected": {
+        "clock": "2501999792983:36:31",
+        "summary": {
+          "hours": 2501999792983,
+          "minutes": 36
+        }
+      }
+    },
+    {
+      "name": "the smallest safe integer is clamped to 0",
+      "input": {
+        "seconds": -9007199254740991
+      },
+      "expected": {
+        "clock": "0:00:00",
+        "summary": {
+          "hours": 0,
+          "minutes": 0
+        }
+      }
+    },
+    {
+      "name": "one second short of ten hours",
+      "input": {
+        "seconds": 35999
+      },
+      "expected": {
+        "clock": "9:59:59",
+        "summary": {
+          "hours": 9,
+          "minutes": 59
+        }
+      }
+    },
+    {
+      "name": "ten hours gains a digit",
+      "input": {
+        "seconds": 36000
+      },
+      "expected": {
+        "clock": "10:00:00",
+        "summary": {
+          "hours": 10,
+          "minutes": 0
+        }
+      }
+    },
+    {
+      "name": "a 365-day year in hours",
+      "input": {
+        "seconds": 31536000
+      },
+      "expected": {
+        "clock": "8760:00:00",
+        "summary": {
+          "hours": 8760,
+          "minutes": 0
+        }
+      }
+    }
+  ]
+}

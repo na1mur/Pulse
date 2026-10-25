@@ -2,6 +2,7 @@ import {
   Catch,
   HttpException,
   HttpStatus,
+  Inject,
   Logger,
   type ArgumentsHost,
   type ExceptionFilter,
@@ -9,6 +10,7 @@ import {
 import { ERROR_HTTP_STATUS, type ErrorBody, type ErrorCode } from '@pulse/contract';
 import { HttpAdapterHost } from '@nestjs/core';
 import type { ServerResponse } from 'node:http';
+import { CLOCK, type Clock } from '../clock/clock.js';
 import { ensureRequestContext, removeFrameworkHeader } from '../http/request-context.middleware.js';
 import { AppError } from './app-error.js';
 
@@ -57,13 +59,16 @@ function clientErrorStatus(exception: unknown): number | undefined {
 export class ContractExceptionFilter implements ExceptionFilter {
   private readonly logger = new Logger(ContractExceptionFilter.name);
 
-  constructor(private readonly adapterHost: HttpAdapterHost) {}
+  constructor(
+    private readonly adapterHost: HttpAdapterHost,
+    @Inject(CLOCK) private readonly clock: Clock,
+  ) {}
 
   catch(exception: unknown, host: ArgumentsHost): void {
     const response = host.switchToHttp().getResponse<ServerResponse>();
     // Body-parser errors arrive before the request-context middleware has run.
     removeFrameworkHeader(response);
-    const requestId = ensureRequestContext(response);
+    const requestId = ensureRequestContext(response, this.clock);
     const body = this.toBody(exception, requestId);
     if (body.code === 'INTERNAL') {
       // Spec 9.5: the request ID ties the log line to the answer; the cause stays in the log.
