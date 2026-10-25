@@ -1,0 +1,446 @@
+{
+  "description": "dayKey: the local calendar date (YYYY-MM-DD) of an instant in an IANA timezone, after flooring the instant to whole seconds.",
+  "rules": ["R-10", "R-16"],
+  "cases": [
+    {
+      "name": "UTC last second of a day",
+      "input": {
+        "instant": "2026-10-24T23:59:59Z",
+        "timeZone": "UTC"
+      },
+      "expected": {
+        "day": "2026-10-24"
+      }
+    },
+    {
+      "name": "UTC midnight starts the next day",
+      "input": {
+        "instant": "2026-10-25T00:00:00Z",
+        "timeZone": "UTC"
+      },
+      "expected": {
+        "day": "2026-10-25"
+      }
+    },
+    {
+      "name": "UTC fraction before midnight is floored and stays on the earlier day",
+      "input": {
+        "instant": "2026-10-24T23:59:59.999Z",
+        "timeZone": "UTC"
+      },
+      "expected": {
+        "day": "2026-10-24"
+      }
+    },
+    {
+      "name": "Los Angeles 23:59:59 PDT is a day behind the UTC date",
+      "input": {
+        "instant": "2026-10-25T06:59:59Z",
+        "timeZone": "America/Los_Angeles"
+      },
+      "expected": {
+        "day": "2026-10-24"
+      }
+    },
+    {
+      "name": "Los Angeles midnight PDT",
+      "input": {
+        "instant": "2026-10-25T07:00:00Z",
+        "timeZone": "America/Los_Angeles"
+      },
+      "expected": {
+        "day": "2026-10-25"
+      }
+    },
+    {
+      "name": "Los Angeles last second before the 23 h day",
+      "input": {
+        "instant": "2026-03-08T07:59:59Z",
+        "timeZone": "America/Los_Angeles"
+      },
+      "expected": {
+        "day": "2026-03-07"
+      }
+    },
+    {
+      "name": "Los Angeles first second of the 23 h day",
+      "input": {
+        "instant": "2026-03-08T08:00:00Z",
+        "timeZone": "America/Los_Angeles"
+      },
+      "expected": {
+        "day": "2026-03-08"
+      }
+    },
+    {
+      "name": "Los Angeles 03:00 PDT right after the skipped hour",
+      "input": {
+        "instant": "2026-03-08T10:00:00Z",
+        "timeZone": "America/Los_Angeles"
+      },
+      "expected": {
+        "day": "2026-03-08"
+      }
+    },
+    {
+      "name": "Los Angeles repeated hour, first pass 01:30 PDT",
+      "input": {
+        "instant": "2026-11-01T08:30:00Z",
+        "timeZone": "America/Los_Angeles"
+      },
+      "expected": {
+        "day": "2026-11-01"
+      }
+    },
+    {
+      "name": "Los Angeles repeated hour, second pass 01:30 PST",
+      "input": {
+        "instant": "2026-11-01T09:30:00Z",
+        "timeZone": "America/Los_Angeles"
+      },
+      "expected": {
+        "day": "2026-11-01"
+      }
+    },
+    {
+      "name": "Los Angeles last second of the 25 h day is 23:59:59 PST",
+      "input": {
+        "instant": "2026-11-02T07:59:59Z",
+        "timeZone": "America/Los_Angeles"
+      },
+      "expected": {
+        "day": "2026-11-01"
+      }
+    },
+    {
+      "name": "Los Angeles midnight after the 25 h day",
+      "input": {
+        "instant": "2026-11-02T08:00:00Z",
+        "timeZone": "America/Los_Angeles"
+      },
+      "expected": {
+        "day": "2026-11-02"
+      }
+    },
+    {
+      "name": "Los Angeles is still on New Year's Eve when UTC is in the new year",
+      "input": {
+        "instant": "2027-01-01T07:59:59Z",
+        "timeZone": "America/Los_Angeles"
+      },
+      "expected": {
+        "day": "2026-12-31"
+      }
+    },
+    {
+      "name": "Dhaka 23:59:59 (+06)",
+      "input": {
+        "instant": "2026-10-24T17:59:59Z",
+        "timeZone": "Asia/Dhaka"
+      },
+      "expected": {
+        "day": "2026-10-24"
+      }
+    },
+    {
+      "name": "Dhaka midnight is 18:00 UTC the day before",
+      "input": {
+        "instant": "2026-10-24T18:00:00Z",
+        "timeZone": "Asia/Dhaka"
+      },
+      "expected": {
+        "day": "2026-10-25"
+      }
+    },
+    {
+      "name": "Dhaka fraction before midnight is floored and stays on the earlier day",
+      "input": {
+        "instant": "2026-10-24T17:59:59.999Z",
+        "timeZone": "Asia/Dhaka"
+      },
+      "expected": {
+        "day": "2026-10-24"
+      }
+    },
+    {
+      "name": "Kathmandu 23:59:59 (+05:45)",
+      "input": {
+        "instant": "2026-10-24T18:14:59Z",
+        "timeZone": "Asia/Kathmandu"
+      },
+      "expected": {
+        "day": "2026-10-24"
+      }
+    },
+    {
+      "name": "Kathmandu midnight is 18:15 UTC the day before",
+      "input": {
+        "instant": "2026-10-24T18:15:00Z",
+        "timeZone": "Asia/Kathmandu"
+      },
+      "expected": {
+        "day": "2026-10-25"
+      }
+    },
+    {
+      "name": "Kathmandu leap day starts at 18:15 UTC on 2028-02-28",
+      "input": {
+        "instant": "2028-02-28T18:15:00Z",
+        "timeZone": "Asia/Kathmandu"
+      },
+      "expected": {
+        "day": "2028-02-29"
+      }
+    },
+    {
+      "name": "Auckland 23:59:59 NZDT",
+      "input": {
+        "instant": "2026-10-24T10:59:59Z",
+        "timeZone": "Pacific/Auckland"
+      },
+      "expected": {
+        "day": "2026-10-24"
+      }
+    },
+    {
+      "name": "Auckland is a day ahead of the UTC date from 11:00 UTC (NZDT)",
+      "input": {
+        "instant": "2026-10-24T11:00:00Z",
+        "timeZone": "Pacific/Auckland"
+      },
+      "expected": {
+        "day": "2026-10-25"
+      }
+    },
+    {
+      "name": "Auckland reaches the new year while UTC is still on Dec 31",
+      "input": {
+        "instant": "2026-12-31T11:00:00Z",
+        "timeZone": "Pacific/Auckland"
+      },
+      "expected": {
+        "day": "2027-01-01"
+      }
+    },
+    {
+      "name": "Auckland last second before the 23 h day (NZST)",
+      "input": {
+        "instant": "2026-09-26T11:59:59Z",
+        "timeZone": "Pacific/Auckland"
+      },
+      "expected": {
+        "day": "2026-09-26"
+      }
+    },
+    {
+      "name": "Auckland first second of the 23 h day (NZST)",
+      "input": {
+        "instant": "2026-09-26T12:00:00Z",
+        "timeZone": "Pacific/Auckland"
+      },
+      "expected": {
+        "day": "2026-09-27"
+      }
+    },
+    {
+      "name": "Auckland repeated hour, first pass 02:30 NZDT",
+      "input": {
+        "instant": "2026-04-04T13:30:00Z",
+        "timeZone": "Pacific/Auckland"
+      },
+      "expected": {
+        "day": "2026-04-05"
+      }
+    },
+    {
+      "name": "Auckland repeated hour, second pass 02:30 NZST",
+      "input": {
+        "instant": "2026-04-04T14:30:00Z",
+        "timeZone": "Pacific/Auckland"
+      },
+      "expected": {
+        "day": "2026-04-05"
+      }
+    },
+    {
+      "name": "Auckland last second of the 25 h day (NZST)",
+      "input": {
+        "instant": "2026-04-05T11:59:59Z",
+        "timeZone": "Pacific/Auckland"
+      },
+      "expected": {
+        "day": "2026-04-05"
+      }
+    },
+    {
+      "name": "Santiago last second before the skipped midnight (-04)",
+      "input": {
+        "instant": "2026-09-06T03:59:59Z",
+        "timeZone": "America/Santiago"
+      },
+      "expected": {
+        "day": "2026-09-05"
+      }
+    },
+    {
+      "name": "Santiago skipped midnight: the next second is 01:00 (-03) on the new day",
+      "input": {
+        "instant": "2026-09-06T04:00:00Z",
+        "timeZone": "America/Santiago"
+      },
+      "expected": {
+        "day": "2026-09-06"
+      }
+    },
+    {
+      "name": "Santiago repeated 23:00 hour at the end of 2026-04-04, first pass (-03)",
+      "input": {
+        "instant": "2026-04-05T02:30:00Z",
+        "timeZone": "America/Santiago"
+      },
+      "expected": {
+        "day": "2026-04-04"
+      }
+    },
+    {
+      "name": "Santiago repeated 23:00 hour at the end of 2026-04-04, second pass (-04)",
+      "input": {
+        "instant": "2026-04-05T03:30:00Z",
+        "timeZone": "America/Santiago"
+      },
+      "expected": {
+        "day": "2026-04-04"
+      }
+    },
+    {
+      "name": "Santiago midnight after the repeated hour (-04)",
+      "input": {
+        "instant": "2026-04-05T04:00:00Z",
+        "timeZone": "America/Santiago"
+      },
+      "expected": {
+        "day": "2026-04-05"
+      }
+    },
+    {
+      "name": "Apia last second before the skipped day 2011-12-30 is 2011-12-29 23:59:59 (-10)",
+      "input": {
+        "instant": "2011-12-30T09:59:59Z",
+        "timeZone": "Pacific/Apia"
+      },
+      "expected": {
+        "day": "2011-12-29"
+      }
+    },
+    {
+      "name": "Apia skipped 2011-12-30: the next second is 2011-12-31 00:00 (+14)",
+      "input": {
+        "instant": "2011-12-30T10:00:00Z",
+        "timeZone": "Pacific/Apia"
+      },
+      "expected": {
+        "day": "2011-12-31"
+      }
+    },
+    {
+      "name": "Azores last second before the repeated midnight hour (+00)",
+      "input": {
+        "instant": "2026-10-24T23:59:59Z",
+        "timeZone": "Atlantic/Azores"
+      },
+      "expected": {
+        "day": "2026-10-24"
+      }
+    },
+    {
+      "name": "Azores repeated midnight hour, first pass 00:30 (+00)",
+      "input": {
+        "instant": "2026-10-25T00:30:00Z",
+        "timeZone": "Atlantic/Azores"
+      },
+      "expected": {
+        "day": "2026-10-25"
+      }
+    },
+    {
+      "name": "Azores repeated midnight hour, second pass 00:30 (-01)",
+      "input": {
+        "instant": "2026-10-25T01:30:00Z",
+        "timeZone": "Atlantic/Azores"
+      },
+      "expected": {
+        "day": "2026-10-25"
+      }
+    },
+    {
+      "name": "Kathmandu 1985-12-31 23:59:59 (+05:30) before the 15-minute skip",
+      "input": {
+        "instant": "1985-12-31T18:29:59Z",
+        "timeZone": "Asia/Kathmandu"
+      },
+      "expected": {
+        "day": "1985-12-31"
+      }
+    },
+    {
+      "name": "Kathmandu next second is 1986-01-01 00:15 (+05:45)",
+      "input": {
+        "instant": "1985-12-31T18:30:00Z",
+        "timeZone": "Asia/Kathmandu"
+      },
+      "expected": {
+        "day": "1986-01-01"
+      }
+    },
+    {
+      "name": "UTC fraction before 1970 is floored and stays on 1969-12-31",
+      "input": {
+        "instant": "1969-12-31T23:59:59.999Z",
+        "timeZone": "UTC"
+      },
+      "expected": {
+        "day": "1969-12-31"
+      }
+    },
+    {
+      "name": "Etc/GMT+5 is five hours behind UTC (POSIX sign)",
+      "input": {
+        "instant": "2026-10-25T04:59:59Z",
+        "timeZone": "Etc/GMT+5"
+      },
+      "expected": {
+        "day": "2026-10-24"
+      }
+    },
+    {
+      "name": "legacy link Asia/Katmandu behaves as Asia/Kathmandu",
+      "input": {
+        "instant": "2026-10-24T18:15:00Z",
+        "timeZone": "Asia/Katmandu"
+      },
+      "expected": {
+        "day": "2026-10-25"
+      }
+    },
+    {
+      "name": "Kiritimati (+14) is a day ahead from 10:00 UTC",
+      "input": {
+        "instant": "2026-10-24T10:00:00Z",
+        "timeZone": "Pacific/Kiritimati"
+      },
+      "expected": {
+        "day": "2026-10-25"
+      }
+    },
+    {
+      "name": "Los Angeles far future: last second before the 2100-03-14 spring forward day",
+      "input": {
+        "instant": "2100-03-14T07:59:59Z",
+        "timeZone": "America/Los_Angeles"
+      },
+      "expected": {
+        "day": "2100-03-13"
+      }
+    }
+  ]
+}

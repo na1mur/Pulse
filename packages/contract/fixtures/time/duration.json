@@ -1,0 +1,136 @@
+{
+  "description": "durationSeconds: end - start in whole seconds, each instant floored first, clamped at 0 (ADR-0004 whole seconds). Durations are absolute: DST never changes them.",
+  "rules": ["R-16", "R-18"],
+  "cases": [
+    {
+      "name": "one hour",
+      "input": {
+        "start": "2026-10-25T08:00:00Z",
+        "end": "2026-10-25T09:00:00Z"
+      },
+      "expected": {
+        "seconds": 3600
+      }
+    },
+    {
+      "name": "same instant is 0",
+      "input": {
+        "start": "2026-10-25T08:00:00Z",
+        "end": "2026-10-25T08:00:00Z"
+      },
+      "expected": {
+        "seconds": 0
+      }
+    },
+    {
+      "name": "end before start is clamped at 0",
+      "input": {
+        "start": "2026-10-25T09:00:00Z",
+        "end": "2026-10-25T08:00:00Z"
+      },
+      "expected": {
+        "seconds": 0
+      }
+    },
+    {
+      "name": "each instant is floored before subtracting: .900 to 1.100 is 1 s, not 0",
+      "input": {
+        "start": "2026-10-25T08:00:00.900Z",
+        "end": "2026-10-25T08:00:01.100Z"
+      },
+      "expected": {
+        "seconds": 1
+      }
+    },
+    {
+      "name": "both instants inside one second give 0",
+      "input": {
+        "start": "2026-10-25T08:00:00.100Z",
+        "end": "2026-10-25T08:00:00.950Z"
+      },
+      "expected": {
+        "seconds": 0
+      }
+    },
+    {
+      "name": "1.8 s starting at .100 is 1 s",
+      "input": {
+        "start": "2026-10-25T08:00:00.100Z",
+        "end": "2026-10-25T08:00:01.900Z"
+      },
+      "expected": {
+        "seconds": 1
+      }
+    },
+    {
+      "name": "fractional end just before a whole start clamps at 0",
+      "input": {
+        "start": "2026-10-25T08:00:01Z",
+        "end": "2026-10-25T08:00:00.999Z"
+      },
+      "expected": {
+        "seconds": 0
+      }
+    },
+    {
+      "name": "Los Angeles spring forward: 01:30 PST to 03:30 PDT is 1 h",
+      "input": {
+        "start": "2026-03-08T09:30:00Z",
+        "end": "2026-03-08T10:30:00Z"
+      },
+      "expected": {
+        "seconds": 3600
+      }
+    },
+    {
+      "name": "Los Angeles fall back: 01:30 PDT to 01:30 PST is 1 h",
+      "input": {
+        "start": "2026-11-01T08:30:00Z",
+        "end": "2026-11-01T09:30:00Z"
+      },
+      "expected": {
+        "seconds": 3600
+      }
+    },
+    {
+      "name": "three whole days",
+      "input": {
+        "start": "2026-10-23T00:00:00Z",
+        "end": "2026-10-26T00:00:00Z"
+      },
+      "expected": {
+        "seconds": 259200
+      }
+    },
+    {
+      "name": "fractions across the epoch: -0.1 s to +0.1 s is 1 s (floor -1 to 0)",
+      "input": {
+        "start": "1969-12-31T23:59:59.900Z",
+        "end": "1970-01-01T00:00:00.100Z"
+      },
+      "expected": {
+        "seconds": 1
+      }
+    },
+    {
+      "name": "both instants before 1970 with fractions: 58.1 to 59.9 is 1 s",
+      "input": {
+        "start": "1969-12-31T23:59:58.100Z",
+        "end": "1969-12-31T23:59:59.900Z"
+      },
+      "expected": {
+        "seconds": 1
+      }
+    },
+    {
+      "name": "a century (2000 to 2100, 24 leap days) in integer seconds",
+      "input": {
+        "start": "2000-01-01T00:00:00Z",
+        "end": "2100-01-01T00:00:00Z"
+      },
+      "expected": {
+        "seconds": 3155760000
+      }
+    }
+  ]
+}

@@ -1,0 +1,675 @@
+{
+  "description": "periodTotal: worked seconds of the period containing day in the user's timezone = sum of the day-row seconds (dayRows, keyed in each session's own timezone, running sessions clipped at now) whose day key is one of the period's day keys.",
+  "rules": ["R-09", "R-11", "R-12", "R-13", "R-16", "R-17"],
+  "cases": [
+    {
+      "name": "no sessions total 0",
+      "input": {
+        "sessions": [],
+        "kind": "day",
+        "day": "2026-10-25",
+        "weekStart": "monday",
+        "timeZone": "UTC",
+        "now": "2026-10-25T12:00:00Z"
+      },
+      "expected": {
+        "seconds": 0
+      }
+    },
+    {
+      "name": "closed session inside the day counts in full",
+      "input": {
+        "sessions": [
+          {
+            "startedAt": "2026-10-25T09:00:00Z",
+            "endedAt": "2026-10-25T10:30:00Z",
+            "timeZone": "UTC"
+          }
+        ],
+        "kind": "day",
+        "day": "2026-10-25",
+        "weekStart": "monday",
+        "timeZone": "UTC",
+        "now": "2026-10-25T12:00:00Z"
+      },
+      "expected": {
+        "seconds": 5400
+      }
+    },
+    {
+      "name": "day after midnight counts only the part of a cross-midnight session on that day",
+      "input": {
+        "sessions": [
+          {
+            "startedAt": "2026-10-24T22:00:00Z",
+            "endedAt": "2026-10-25T01:30:00Z",
+            "timeZone": "UTC"
+          }
+        ],
+        "kind": "day",
+        "day": "2026-10-25",
+        "weekStart": "monday",
+        "timeZone": "UTC",
+        "now": "2026-10-25T12:00:00Z"
+      },
+      "expected": {
+        "seconds": 5400
+      }
+    },
+    {
+      "name": "day before midnight counts only the part of a cross-midnight session on that day",
+      "input": {
+        "sessions": [
+          {
+            "startedAt": "2026-10-24T22:00:00Z",
+            "endedAt": "2026-10-25T01:30:00Z",
+            "timeZone": "UTC"
+          }
+        ],
+        "kind": "day",
+        "day": "2026-10-24",
+        "weekStart": "monday",
+        "timeZone": "UTC",
+        "now": "2026-10-25T12:00:00Z"
+      },
+      "expected": {
+        "seconds": 7200
+      }
+    },
+    {
+      "name": "week holding both days counts the whole cross-midnight session",
+      "input": {
+        "sessions": [
+          {
+            "startedAt": "2026-10-24T22:00:00Z",
+            "endedAt": "2026-10-25T01:30:00Z",
+            "timeZone": "UTC"
+          }
+        ],
+        "kind": "week",
+        "day": "2026-10-25",
+        "weekStart": "monday",
+        "timeZone": "UTC",
+        "now": "2026-10-25T12:00:00Z"
+      },
+      "expected": {
+        "seconds": 12600
+      }
+    },
+    {
+      "name": "session crossing into the next week counts only its part in this week",
+      "input": {
+        "sessions": [
+          {
+            "startedAt": "2026-10-25T22:00:00Z",
+            "endedAt": "2026-10-26T01:30:00Z",
+            "timeZone": "UTC"
+          }
+        ],
+        "kind": "week",
+        "day": "2026-10-25",
+        "weekStart": "monday",
+        "timeZone": "UTC",
+        "now": "2026-10-26T12:00:00Z"
+      },
+      "expected": {
+        "seconds": 7200
+      }
+    },
+    {
+      "name": "running session counts up to a floored now",
+      "input": {
+        "sessions": [
+          {
+            "startedAt": "2026-10-25T09:00:00Z",
+            "endedAt": null,
+            "timeZone": "UTC"
+          }
+        ],
+        "kind": "day",
+        "day": "2026-10-25",
+        "weekStart": "monday",
+        "timeZone": "UTC",
+        "now": "2026-10-25T11:15:42.900Z"
+      },
+      "expected": {
+        "seconds": 8142
+      }
+    },
+    {
+      "name": "today's total of a running session that crossed midnight counts only since midnight",
+      "input": {
+        "sessions": [
+          {
+            "startedAt": "2026-10-24T23:00:00Z",
+            "endedAt": null,
+            "timeZone": "UTC"
+          }
+        ],
+        "kind": "day",
+        "day": "2026-10-25",
+        "weekStart": "monday",
+        "timeZone": "UTC",
+        "now": "2026-10-25T00:30:00Z"
+      },
+      "expected": {
+        "seconds": 1800
+      }
+    },
+    {
+      "name": "running session whose start is after now adds nothing",
+      "input": {
+        "sessions": [
+          {
+            "startedAt": "2026-10-25T09:00:00Z",
+            "endedAt": "2026-10-25T10:00:00Z",
+            "timeZone": "UTC"
+          },
+          {
+            "startedAt": "2026-10-25T12:00:00Z",
+            "endedAt": null,
+            "timeZone": "UTC"
+          }
+        ],
+        "kind": "day",
+        "day": "2026-10-25",
+        "weekStart": "monday",
+        "timeZone": "UTC",
+        "now": "2026-10-25T11:00:00Z"
+      },
+      "expected": {
+        "seconds": 3600
+      }
+    },
+    {
+      "name": "fractional session instants are floored before summing",
+      "input": {
+        "sessions": [
+          {
+            "startedAt": "2026-10-25T09:00:00.900Z",
+            "endedAt": "2026-10-25T09:00:10.100Z",
+            "timeZone": "UTC"
+          },
+          {
+            "startedAt": "2026-10-25T10:00:00.100Z",
+            "endedAt": "2026-10-25T10:00:00.900Z",
+            "timeZone": "UTC"
+          }
+        ],
+        "kind": "day",
+        "day": "2026-10-25",
+        "weekStart": "monday",
+        "timeZone": "UTC",
+        "now": "2026-10-25T12:00:00Z"
+      },
+      "expected": {
+        "seconds": 10
+      }
+    },
+    {
+      "name": "Dhaka session is keyed in Dhaka: it counts on Dhaka's 2026-10-25 for a UTC user",
+      "input": {
+        "sessions": [
+          {
+            "startedAt": "2026-10-24T19:00:00Z",
+            "endedAt": "2026-10-24T21:00:00Z",
+            "timeZone": "Asia/Dhaka"
+          }
+        ],
+        "kind": "day",
+        "day": "2026-10-25",
+        "weekStart": "monday",
+        "timeZone": "UTC",
+        "now": "2026-10-25T12:00:00Z"
+      },
+      "expected": {
+        "seconds": 7200
+      }
+    },
+    {
+      "name": "Dhaka session is keyed in Dhaka: nothing counts on UTC's 2026-10-24 although it ran then in UTC",
+      "input": {
+        "sessions": [
+          {
+            "startedAt": "2026-10-24T19:00:00Z",
+            "endedAt": "2026-10-24T21:00:00Z",
+            "timeZone": "Asia/Dhaka"
+          }
+        ],
+        "kind": "day",
+        "day": "2026-10-24",
+        "weekStart": "monday",
+        "timeZone": "UTC",
+        "now": "2026-10-25T12:00:00Z"
+      },
+      "expected": {
+        "seconds": 0
+      }
+    },
+    {
+      "name": "Los Angeles session across its midnight keeps its LA split for a Dhaka user (first day)",
+      "input": {
+        "sessions": [
+          {
+            "startedAt": "2026-10-25T06:00:00Z",
+            "endedAt": "2026-10-25T08:00:00Z",
+            "timeZone": "America/Los_Angeles"
+          }
+        ],
+        "kind": "day",
+        "day": "2026-10-24",
+        "weekStart": "monday",
+        "timeZone": "Asia/Dhaka",
+        "now": "2026-10-26T00:00:00Z"
+      },
+      "expected": {
+        "seconds": 3600
+      }
+    },
+    {
+      "name": "Los Angeles session across its midnight keeps its LA split for a Dhaka user (second day)",
+      "input": {
+        "sessions": [
+          {
+            "startedAt": "2026-10-25T06:00:00Z",
+            "endedAt": "2026-10-25T08:00:00Z",
+            "timeZone": "America/Los_Angeles"
+          }
+        ],
+        "kind": "day",
+        "day": "2026-10-25",
+        "weekStart": "monday",
+        "timeZone": "Asia/Dhaka",
+        "now": "2026-10-26T00:00:00Z"
+      },
+      "expected": {
+        "seconds": 3600
+      }
+    },
+    {
+      "name": "Los Angeles week with the 25 h day mixes zones and a running session",
+      "input": {
+        "sessions": [
+          {
+            "startedAt": "2026-11-01T08:30:00Z",
+            "endedAt": "2026-11-01T09:30:00Z",
+            "timeZone": "America/Los_Angeles"
+          },
+          {
+            "startedAt": "2026-10-25T18:30:00Z",
+            "endedAt": "2026-10-25T19:30:00Z",
+            "timeZone": "Asia/Dhaka"
+          },
+          {
+            "startedAt": "2026-11-02T07:30:00Z",
+            "endedAt": null,
+            "timeZone": "America/Los_Angeles"
+          }
+        ],
+        "kind": "week",
+        "day": "2026-11-01",
+        "weekStart": "monday",
+        "timeZone": "America/Los_Angeles",
+        "now": "2026-11-02T08:45:00Z"
+      },
+      "expected": {
+        "seconds": 9000
+      }
+    },
+    {
+      "name": "Kathmandu week starting sunday excludes the Saturday before and the Sunday after",
+      "input": {
+        "sessions": [
+          {
+            "startedAt": "2026-10-24T04:15:00Z",
+            "endedAt": "2026-10-24T05:15:00Z",
+            "timeZone": "Asia/Kathmandu"
+          },
+          {
+            "startedAt": "2026-10-25T04:15:00Z",
+            "endedAt": "2026-10-25T06:15:00Z",
+            "timeZone": "Asia/Kathmandu"
+          },
+          {
+            "startedAt": "2026-10-31T17:15:00Z",
+            "endedAt": "2026-10-31T19:15:00Z",
+            "timeZone": "Asia/Kathmandu"
+          }
+        ],
+        "kind": "week",
+        "day": "2026-10-28",
+        "weekStart": "sunday",
+        "timeZone": "Asia/Kathmandu",
+        "now": "2026-11-02T00:00:00Z"
+      },
+      "expected": {
+        "seconds": 10800
+      }
+    },
+    {
+      "name": "Los Angeles March total over the 23 h day clips sessions at both month ends",
+      "input": {
+        "sessions": [
+          {
+            "startedAt": "2026-03-01T07:00:00Z",
+            "endedAt": "2026-03-01T09:00:00Z",
+            "timeZone": "America/Los_Angeles"
+          },
+          {
+            "startedAt": "2026-03-08T09:00:00Z",
+            "endedAt": "2026-03-08T11:00:00Z",
+            "timeZone": "America/Los_Angeles"
+          },
+          {
+            "startedAt": "2026-04-01T06:30:00Z",
+            "endedAt": "2026-04-01T07:30:00Z",
+            "timeZone": "America/Los_Angeles"
+          }
+        ],
+        "kind": "month",
+        "day": "2026-03-15",
+        "weekStart": "monday",
+        "timeZone": "America/Los_Angeles",
+        "now": "2026-04-02T00:00:00Z"
+      },
+      "expected": {
+        "seconds": 12600
+      }
+    },
+    {
+      "name": "Auckland year 2027 counts New Year's first hours that are still Dec 31 in UTC",
+      "input": {
+        "sessions": [
+          {
+            "startedAt": "2026-12-31T10:00:00Z",
+            "endedAt": "2026-12-31T11:00:00Z",
+            "timeZone": "Pacific/Auckland"
+          },
+          {
+            "startedAt": "2026-12-31T11:00:00Z",
+            "endedAt": "2026-12-31T13:00:00Z",
+            "timeZone": "Pacific/Auckland"
+          }
+        ],
+        "kind": "year",
+        "day": "2027-06-01",
+        "weekStart": "monday",
+        "timeZone": "Pacific/Auckland",
+        "now": "2027-06-01T00:00:00Z"
+      },
+      "expected": {
+        "seconds": 7200
+      }
+    },
+    {
+      "name": "Santiago day with a skipped midnight counts from 01:00",
+      "input": {
+        "sessions": [
+          {
+            "startedAt": "2026-09-06T03:00:00Z",
+            "endedAt": "2026-09-06T05:00:00Z",
+            "timeZone": "America/Santiago"
+          }
+        ],
+        "kind": "day",
+        "day": "2026-09-06",
+        "weekStart": "monday",
+        "timeZone": "America/Santiago",
+        "now": "2026-09-07T00:00:00Z"
+      },
+      "expected": {
+        "seconds": 3600
+      }
+    },
+    {
+      "name": "Dhaka week holding leap day 2028-02-29 ends on Sunday 2028-03-05",
+      "input": {
+        "sessions": [
+          {
+            "startedAt": "2028-02-27T03:00:00Z",
+            "endedAt": "2028-02-27T04:00:00Z",
+            "timeZone": "Asia/Dhaka"
+          },
+          {
+            "startedAt": "2028-02-29T03:00:00Z",
+            "endedAt": "2028-02-29T04:00:00Z",
+            "timeZone": "Asia/Dhaka"
+          },
+          {
+            "startedAt": "2028-03-05T17:00:00Z",
+            "endedAt": "2028-03-05T19:00:00Z",
+            "timeZone": "Asia/Dhaka"
+          }
+        ],
+        "kind": "week",
+        "day": "2028-02-29",
+        "weekStart": "monday",
+        "timeZone": "Asia/Dhaka",
+        "now": "2028-03-07T00:00:00Z"
+      },
+      "expected": {
+        "seconds": 7200
+      }
+    },
+    {
+      "name": "Apia day total of the skipped 2011-12-30 is 0 even for a session across it",
+      "input": {
+        "sessions": [
+          {
+            "startedAt": "2011-12-30T08:00:00Z",
+            "endedAt": "2011-12-30T12:00:00Z",
+            "timeZone": "Pacific/Apia"
+          }
+        ],
+        "kind": "day",
+        "day": "2011-12-30",
+        "weekStart": "monday",
+        "timeZone": "Pacific/Apia",
+        "now": "2012-01-01T00:00:00Z"
+      },
+      "expected": {
+        "seconds": 0
+      }
+    },
+    {
+      "name": "Apia week total holds both sides of the skipped day",
+      "input": {
+        "sessions": [
+          {
+            "startedAt": "2011-12-30T08:00:00Z",
+            "endedAt": "2011-12-30T12:00:00Z",
+            "timeZone": "Pacific/Apia"
+          }
+        ],
+        "kind": "week",
+        "day": "2011-12-30",
+        "weekStart": "monday",
+        "timeZone": "Pacific/Apia",
+        "now": "2012-01-01T00:00:00Z"
+      },
+      "expected": {
+        "seconds": 14400
+      }
+    },
+    {
+      "name": "Azores day total counts both passes of the repeated midnight hour",
+      "input": {
+        "sessions": [
+          {
+            "startedAt": "2026-10-25T00:00:00Z",
+            "endedAt": "2026-10-25T02:00:00Z",
+            "timeZone": "Atlantic/Azores"
+          }
+        ],
+        "kind": "day",
+        "day": "2026-10-25",
+        "weekStart": "monday",
+        "timeZone": "Atlantic/Azores",
+        "now": "2026-10-26T00:00:00Z"
+      },
+      "expected": {
+        "seconds": 7200
+      }
+    },
+    {
+      "name": "Los Angeles October total takes only the Oct 31 part of a 40 h session",
+      "input": {
+        "sessions": [
+          {
+            "startedAt": "2026-10-31T20:00:00Z",
+            "endedAt": "2026-11-02T12:00:00Z",
+            "timeZone": "America/Los_Angeles"
+          }
+        ],
+        "kind": "month",
+        "day": "2026-10-15",
+        "weekStart": "monday",
+        "timeZone": "America/Los_Angeles",
+        "now": "2026-11-03T00:00:00Z"
+      },
+      "expected": {
+        "seconds": 39600
+      }
+    },
+    {
+      "name": "Los Angeles November total takes the 25 h day and Nov 2 of a 40 h session",
+      "input": {
+        "sessions": [
+          {
+            "startedAt": "2026-10-31T20:00:00Z",
+            "endedAt": "2026-11-02T12:00:00Z",
+            "timeZone": "America/Los_Angeles"
+          }
+        ],
+        "kind": "month",
+        "day": "2026-11-20",
+        "weekStart": "monday",
+        "timeZone": "America/Los_Angeles",
+        "now": "2026-11-03T00:00:00Z"
+      },
+      "expected": {
+        "seconds": 104400
+      }
+    },
+    {
+      "name": "Los Angeles monday week ending on the 25 h day holds Oct 31 and Nov 1 of a 40 h session",
+      "input": {
+        "sessions": [
+          {
+            "startedAt": "2026-10-31T20:00:00Z",
+            "endedAt": "2026-11-02T12:00:00Z",
+            "timeZone": "America/Los_Angeles"
+          }
+        ],
+        "kind": "week",
+        "day": "2026-11-01",
+        "weekStart": "monday",
+        "timeZone": "America/Los_Angeles",
+        "now": "2026-11-03T00:00:00Z"
+      },
+      "expected": {
+        "seconds": 129600
+      }
+    },
+    {
+      "name": "Auckland session keyed on its own Nov 1 is outside a Los Angeles user's sunday week ending Oct 31",
+      "input": {
+        "sessions": [
+          {
+            "startedAt": "2026-10-31T20:00:00Z",
+            "endedAt": "2026-10-31T23:00:00Z",
+            "timeZone": "Pacific/Auckland"
+          }
+        ],
+        "kind": "week",
+        "day": "2026-10-31",
+        "weekStart": "sunday",
+        "timeZone": "America/Los_Angeles",
+        "now": "2026-11-02T00:00:00Z"
+      },
+      "expected": {
+        "seconds": 0
+      }
+    },
+    {
+      "name": "Auckland session keyed on its own Nov 1 is inside a Los Angeles user's sunday week from Nov 1",
+      "input": {
+        "sessions": [
+          {
+            "startedAt": "2026-10-31T20:00:00Z",
+            "endedAt": "2026-10-31T23:00:00Z",
+            "timeZone": "Pacific/Auckland"
+          }
+        ],
+        "kind": "week",
+        "day": "2026-11-01",
+        "weekStart": "sunday",
+        "timeZone": "America/Los_Angeles",
+        "now": "2026-11-02T00:00:00Z"
+      },
+      "expected": {
+        "seconds": 10800
+      }
+    },
+    {
+      "name": "closed session ending exactly at now counts in full",
+      "input": {
+        "sessions": [
+          {
+            "startedAt": "2026-10-25T09:00:00Z",
+            "endedAt": "2026-10-25T10:00:00Z",
+            "timeZone": "UTC"
+          }
+        ],
+        "kind": "day",
+        "day": "2026-10-25",
+        "weekStart": "monday",
+        "timeZone": "UTC",
+        "now": "2026-10-25T10:00:00Z"
+      },
+      "expected": {
+        "seconds": 3600
+      }
+    },
+    {
+      "name": "running session over two wednesday weeks: the earlier week counts 7 full days",
+      "input": {
+        "sessions": [
+          {
+            "startedAt": "2026-10-20T12:00:00Z",
+            "endedAt": null,
+            "timeZone": "UTC"
+          }
+        ],
+        "kind": "week",
+        "day": "2026-10-25",
+        "weekStart": "wednesday",
+        "timeZone": "UTC",
+        "now": "2026-10-29T06:00:00Z"
+      },
+      "expected": {
+        "seconds": 604800
+      }
+    },
+    {
+      "name": "running session over two wednesday weeks: the current week counts up to now",
+      "input": {
+        "sessions": [
+          {
+            "startedAt": "2026-10-20T12:00:00Z",
+            "endedAt": null,
+            "timeZone": "UTC"
+          }
+        ],
+        "kind": "week",
+        "day": "2026-10-29",
+        "weekStart": "wednesday",
+        "timeZone": "UTC",
+        "now": "2026-10-29T06:00:00Z"
+      },
+      "expected": {
+        "seconds": 108000
+      }
+    }
+  ]
+}

@@ -1,0 +1,342 @@
+{
+  "description": "dayBounds: the half-open interval [start, end) of a local day, where a day starts at its first instant with that local date (01:00 when midnight is skipped) and ends where the next day starts. seconds = end - start (23 h and 25 h on DST days).",
+  "rules": ["R-10", "R-11"],
+  "cases": [
+    {
+      "name": "UTC ordinary day",
+      "input": {
+        "day": "2026-10-25",
+        "timeZone": "UTC"
+      },
+      "expected": {
+        "start": "2026-10-25T00:00:00Z",
+        "end": "2026-10-26T00:00:00Z",
+        "seconds": 86400
+      }
+    },
+    {
+      "name": "UTC leap day 2028-02-29 ends at March 1",
+      "input": {
+        "day": "2028-02-29",
+        "timeZone": "UTC"
+      },
+      "expected": {
+        "start": "2028-02-29T00:00:00Z",
+        "end": "2028-03-01T00:00:00Z",
+        "seconds": 86400
+      }
+    },
+    {
+      "name": "Los Angeles ordinary day in PDT",
+      "input": {
+        "day": "2026-10-25",
+        "timeZone": "America/Los_Angeles"
+      },
+      "expected": {
+        "start": "2026-10-25T07:00:00Z",
+        "end": "2026-10-26T07:00:00Z",
+        "seconds": 86400
+      }
+    },
+    {
+      "name": "Los Angeles 23 h day (spring forward 2026-03-08)",
+      "input": {
+        "day": "2026-03-08",
+        "timeZone": "America/Los_Angeles"
+      },
+      "expected": {
+        "start": "2026-03-08T08:00:00Z",
+        "end": "2026-03-09T07:00:00Z",
+        "seconds": 82800
+      }
+    },
+    {
+      "name": "Los Angeles 25 h day (fall back 2026-11-01)",
+      "input": {
+        "day": "2026-11-01",
+        "timeZone": "America/Los_Angeles"
+      },
+      "expected": {
+        "start": "2026-11-01T07:00:00Z",
+        "end": "2026-11-02T08:00:00Z",
+        "seconds": 90000
+      }
+    },
+    {
+      "name": "Los Angeles New Year's Eve ends in the next UTC year",
+      "input": {
+        "day": "2026-12-31",
+        "timeZone": "America/Los_Angeles"
+      },
+      "expected": {
+        "start": "2026-12-31T08:00:00Z",
+        "end": "2027-01-01T08:00:00Z",
+        "seconds": 86400
+      }
+    },
+    {
+      "name": "Dhaka day starts at 18:00 UTC the day before",
+      "input": {
+        "day": "2026-10-25",
+        "timeZone": "Asia/Dhaka"
+      },
+      "expected": {
+        "start": "2026-10-24T18:00:00Z",
+        "end": "2026-10-25T18:00:00Z",
+        "seconds": 86400
+      }
+    },
+    {
+      "name": "Kathmandu day starts at 18:15 UTC the day before (+05:45)",
+      "input": {
+        "day": "2026-10-25",
+        "timeZone": "Asia/Kathmandu"
+      },
+      "expected": {
+        "start": "2026-10-24T18:15:00Z",
+        "end": "2026-10-25T18:15:00Z",
+        "seconds": 86400
+      }
+    },
+    {
+      "name": "Kathmandu leap day 2028-02-29",
+      "input": {
+        "day": "2028-02-29",
+        "timeZone": "Asia/Kathmandu"
+      },
+      "expected": {
+        "start": "2028-02-28T18:15:00Z",
+        "end": "2028-02-29T18:15:00Z",
+        "seconds": 86400
+      }
+    },
+    {
+      "name": "Auckland ordinary day in NZDT starts at 11:00 UTC the day before",
+      "input": {
+        "day": "2026-10-25",
+        "timeZone": "Pacific/Auckland"
+      },
+      "expected": {
+        "start": "2026-10-24T11:00:00Z",
+        "end": "2026-10-25T11:00:00Z",
+        "seconds": 86400
+      }
+    },
+    {
+      "name": "Auckland 23 h day (spring forward 2026-09-27)",
+      "input": {
+        "day": "2026-09-27",
+        "timeZone": "Pacific/Auckland"
+      },
+      "expected": {
+        "start": "2026-09-26T12:00:00Z",
+        "end": "2026-09-27T11:00:00Z",
+        "seconds": 82800
+      }
+    },
+    {
+      "name": "Auckland 25 h day (fall back 2026-04-05)",
+      "input": {
+        "day": "2026-04-05",
+        "timeZone": "Pacific/Auckland"
+      },
+      "expected": {
+        "start": "2026-04-04T11:00:00Z",
+        "end": "2026-04-05T12:00:00Z",
+        "seconds": 90000
+      }
+    },
+    {
+      "name": "Auckland New Year's Day starts on Dec 31 in UTC",
+      "input": {
+        "day": "2027-01-01",
+        "timeZone": "Pacific/Auckland"
+      },
+      "expected": {
+        "start": "2026-12-31T11:00:00Z",
+        "end": "2027-01-01T11:00:00Z",
+        "seconds": 86400
+      }
+    },
+    {
+      "name": "Santiago day before the skipped midnight is a full 24 h",
+      "input": {
+        "day": "2026-09-05",
+        "timeZone": "America/Santiago"
+      },
+      "expected": {
+        "start": "2026-09-05T04:00:00Z",
+        "end": "2026-09-06T04:00:00Z",
+        "seconds": 86400
+      }
+    },
+    {
+      "name": "Santiago skipped midnight: 2026-09-06 starts at 01:00 (-03) and lasts 23 h",
+      "input": {
+        "day": "2026-09-06",
+        "timeZone": "America/Santiago"
+      },
+      "expected": {
+        "start": "2026-09-06T04:00:00Z",
+        "end": "2026-09-07T03:00:00Z",
+        "seconds": 82800
+      }
+    },
+    {
+      "name": "Santiago 25 h day whose repeated hour is 23:00 (2026-04-04)",
+      "input": {
+        "day": "2026-04-04",
+        "timeZone": "America/Santiago"
+      },
+      "expected": {
+        "start": "2026-04-04T03:00:00Z",
+        "end": "2026-04-05T04:00:00Z",
+        "seconds": 90000
+      }
+    },
+    {
+      "name": "Apia day before the skipped day is 24 h (-10) and ends at the date-line jump",
+      "input": {
+        "day": "2011-12-29",
+        "timeZone": "Pacific/Apia"
+      },
+      "expected": {
+        "start": "2011-12-29T10:00:00Z",
+        "end": "2011-12-30T10:00:00Z",
+        "seconds": 86400
+      }
+    },
+    {
+      "name": "Apia skipped day 2011-12-30 has no length: start and end are the jump",
+      "input": {
+        "day": "2011-12-30",
+        "timeZone": "Pacific/Apia"
+      },
+      "expected": {
+        "start": "2011-12-30T10:00:00Z",
+        "end": "2011-12-30T10:00:00Z",
+        "seconds": 0
+      }
+    },
+    {
+      "name": "Apia day after the skipped day starts at the jump (+14)",
+      "input": {
+        "day": "2011-12-31",
+        "timeZone": "Pacific/Apia"
+      },
+      "expected": {
+        "start": "2011-12-30T10:00:00Z",
+        "end": "2011-12-31T10:00:00Z",
+        "seconds": 86400
+      }
+    },
+    {
+      "name": "Kathmandu 1986-01-01 skipped 00:00-00:15: the day starts at 00:15 (+05:45) and lasts 23 h 45 m",
+      "input": {
+        "day": "1986-01-01",
+        "timeZone": "Asia/Kathmandu"
+      },
+      "expected": {
+        "start": "1985-12-31T18:30:00Z",
+        "end": "1986-01-01T18:15:00Z",
+        "seconds": 85500
+      }
+    },
+    {
+      "name": "Azores day before the repeated midnight hour is 24 h",
+      "input": {
+        "day": "2026-10-24",
+        "timeZone": "Atlantic/Azores"
+      },
+      "expected": {
+        "start": "2026-10-24T00:00:00Z",
+        "end": "2026-10-25T00:00:00Z",
+        "seconds": 86400
+      }
+    },
+    {
+      "name": "Azores repeated midnight (fold at 00:00): the day starts at the first midnight and lasts 25 h",
+      "input": {
+        "day": "2026-10-25",
+        "timeZone": "Atlantic/Azores"
+      },
+      "expected": {
+        "start": "2026-10-25T00:00:00Z",
+        "end": "2026-10-26T01:00:00Z",
+        "seconds": 90000
+      }
+    },
+    {
+      "name": "Havana repeated midnight (01:00 CDT back to 00:00 CST): 25 h from the first midnight",
+      "input": {
+        "day": "2026-11-01",
+        "timeZone": "America/Havana"
+      },
+      "expected": {
+        "start": "2026-11-01T04:00:00Z",
+        "end": "2026-11-02T05:00:00Z",
+        "seconds": 90000
+      }
+    },
+    {
+      "name": "Los Angeles far future: 2100-03-14 is a 23 h day",
+      "input": {
+        "day": "2100-03-14",
+        "timeZone": "America/Los_Angeles"
+      },
+      "expected": {
+        "start": "2100-03-14T08:00:00Z",
+        "end": "2100-03-15T07:00:00Z",
+        "seconds": 82800
+      }
+    },
+    {
+      "name": "Los Angeles far future: 2500-11-07 is a 25 h day",
+      "input": {
+        "day": "2500-11-07",
+        "timeZone": "America/Los_Angeles"
+      },
+      "expected": {
+        "start": "2500-11-07T07:00:00Z",
+        "end": "2500-11-08T08:00:00Z",
+        "seconds": 90000
+      }
+    },
+    {
+      "name": "Los Angeles 1883-11-18: local mean time (-07:52:58) to PST makes an 86 822 s day",
+      "input": {
+        "day": "1883-11-18",
+        "timeZone": "America/Los_Angeles"
+      },
+      "expected": {
+        "start": "1883-11-18T07:52:58Z",
+        "end": "1883-11-19T08:00:00Z",
+        "seconds": 86822
+      }
+    },
+    {
+      "name": "UTC 1969-12-31 has negative epoch bounds",
+      "input": {
+        "day": "1969-12-31",
+        "timeZone": "UTC"
+      },
+      "expected": {
+        "start": "1969-12-31T00:00:00Z",
+        "end": "1970-01-01T00:00:00Z",
+        "seconds": 86400
+      }
+    },
+    {
+      "name": "Kiritimati (+14) day starts at 10:00 UTC the day before",
+      "input": {
+        "day": "2026-10-25",
+        "timeZone": "Pacific/Kiritimati"
+      },
+      "expected": {
+        "start": "2026-10-24T10:00:00Z",
+        "end": "2026-10-25T10:00:00Z",
+        "seconds": 86400
+      }
+    }
+  ]
+}

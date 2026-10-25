@@ -1,0 +1,141 @@
+{
+  "description": "parseInstant: an ISO-8601 UTC instant becomes whole seconds since the Unix epoch, floored toward the past (ADR-0004 whole seconds).",
+  "rules": ["R-16"],
+  "cases": [
+    {
+      "name": "whole-second instant converts exactly",
+      "input": {
+        "instant": "2026-10-25T08:30:00Z"
+      },
+      "expected": {
+        "epochSeconds": 1792917000
+      }
+    },
+    {
+      "name": "milliseconds are truncated, not rounded up",
+      "input": {
+        "instant": "2026-10-25T08:30:00.999Z"
+      },
+      "expected": {
+        "epochSeconds": 1792917000
+      }
+    },
+    {
+      "name": "microseconds as PostgreSQL timestamptz returns them are truncated",
+      "input": {
+        "instant": "2026-10-25T08:30:59.999999Z"
+      },
+      "expected": {
+        "epochSeconds": 1792917059
+      }
+    },
+    {
+      "name": "nanoseconds are truncated",
+      "input": {
+        "instant": "2026-10-25T08:30:00.123456789Z"
+      },
+      "expected": {
+        "epochSeconds": 1792917000
+      }
+    },
+    {
+      "name": "ten fractional digits (beyond nanoseconds) are accepted, as the contract does, and truncated",
+      "input": {
+        "instant": "2026-10-25T08:30:00.1234567891Z"
+      },
+      "expected": {
+        "epochSeconds": 1792917000
+      }
+    },
+    {
+      "name": "thirteen fractional digits are accepted and truncated",
+      "input": {
+        "instant": "2026-10-25T08:30:00.1234567890123Z"
+      },
+      "expected": {
+        "epochSeconds": 1792917000
+      }
+    },
+    {
+      "name": "the Unix epoch is 0",
+      "input": {
+        "instant": "1970-01-01T00:00:00Z"
+      },
+      "expected": {
+        "epochSeconds": 0
+      }
+    },
+    {
+      "name": "half a second before the epoch floors to -1, not toward zero",
+      "input": {
+        "instant": "1969-12-31T23:59:59.500Z"
+      },
+      "expected": {
+        "epochSeconds": -1
+      }
+    },
+    {
+      "name": "leap day 2028-02-29 counts February's 29th day",
+      "input": {
+        "instant": "2028-02-29T12:00:00Z"
+      },
+      "expected": {
+        "epochSeconds": 1835438400
+      }
+    },
+    {
+      "name": "instants past 2038-01-19 do not overflow 32 bits",
+      "input": {
+        "instant": "2038-01-19T03:14:08Z"
+      },
+      "expected": {
+        "epochSeconds": 2147483648
+      }
+    },
+    {
+      "name": "a nanosecond before the epoch floors to -1",
+      "input": {
+        "instant": "1969-12-31T23:59:59.999999999Z"
+      },
+      "expected": {
+        "epochSeconds": -1
+      }
+    },
+    {
+      "name": "a nanosecond after a pre-1970 second still floors to that second (-1)",
+      "input": {
+        "instant": "1969-12-31T23:59:59.000000001Z"
+      },
+      "expected": {
+        "epochSeconds": -1
+      }
+    },
+    {
+      "name": "far past: 1900-01-01",
+      "input": {
+        "instant": "1900-01-01T00:00:00Z"
+      },
+      "expected": {
+        "epochSeconds": -2208988800
+      }
+    },
+    {
+      "name": "far past: year 1 starts at -62135596800",
+      "input": {
+        "instant": "0001-01-01T00:00:00Z"
+      },
+      "expected": {
+        "epochSeconds": -62135596800
+      }
+    },
+    {
+      "name": "far future: past the 64-bit nanosecond limit (2262-04-11T23:47:16.854775807Z)",
+      "input": {
+        "instant": "2262-04-11T23:47:17Z"
+      },
+      "expected": {
+        "epochSeconds": 9223372037
+      }
+    }
+  ]
+}

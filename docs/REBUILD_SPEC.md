@@ -92,7 +92,7 @@ Every rule has an ID so features, tasks and tests can reference it. Where a rule
 
 | ID | Rule |
 |---|---|
-| R-10 | A **day** is a calendar date in a timezone, identified as `YYYY-MM-DD`. All day math uses one well-tested timezone library with the IANA database. Never use device-locale date strings. |
+| R-10 | A **day** is a calendar date in a timezone, identified as `YYYY-MM-DD`. All day math uses one well-tested timezone library with the IANA database (one per implementation, kept identical by the shared fixtures, D-19). Never use device-locale date strings. |
 | R-11 | **Day attribution:** a session's seconds count toward the local days it covers, *clipped at local midnight* in the session's own timezone (R-09). A session that crosses midnight stays **one record** (D-03). History shows it as **one row per local day** with the same title, tag and summary: the first row ends at 23:59:59, the next starts at 00:00:00; editing either row edits the session. The current session timer keeps counting across midnight; only the day total resets. Devices that were offline at midnight need no special handling (US-5.4). |
 | R-12 | **"Today", "this week", etc.** are evaluated in the user's **current timezone setting**, not the device's timezone. A period is a set of day keys; its total is the sum of the seconds attributed to those keys. |
 | R-13 | **Week** = 7 consecutive days starting on the user's *week start* setting (default Monday). **Month** = calendar month in the user's timezone. **Year** = calendar year. Rolling windows exist only when labelled explicitly ("Last 7 days") (US-10.1). |
@@ -144,7 +144,7 @@ Every rule has an ID so features, tasks and tests can reference it. Where a rule
 
 | ID | Rule |
 |---|---|
-| R-34 | Every write carries a **client-generated ID** (idempotency key). The server keeps the result for at least 30 days, and a replay returns the original result. |
+| R-34 | Every write carries a **client-generated ID** (idempotency key). The server keeps the result for at least 30 days, and a replay returns the original result. Online-only credential operations are not commands and carry none (D-30). |
 | R-35 | Each user has a **revision counter** that increases on every change. Events and change-feed entries carry the revision. Clients apply only newer revisions; a gap triggers a change-feed fetch. |
 | R-36 | The server **never silently drops** a client change. A rejected queued change becomes a **sync issue** that the user can fix or discard. |
 | R-49 | **Latest action wins** for concurrent changes to the same field of the same object (for example a title edited on two devices): the change with the later occurred-at time, corrected by its device's clock offset (R-03), wins, and an older change that arrives later does not overwrite a newer value. Timer commands follow R-02 and section 8.5 (the first start wins). A change that would break an invariant (an overlap, R-05) is never merged silently; it becomes a sync issue (R-36) (US-9.2). |
@@ -253,11 +253,11 @@ Columns: **ID** · **Feature** · **Pri** · **Origin** · Notes / acceptance. R
 | AUTH-03 | Stay signed in across restarts and while offline; credentials in OS secure storage; the UI never blocks on access-token freshness | P0 | Changed | US-4.3; offline cold start opens the app with cached data |
 | AUTH-04 | Session-expired flow: clear message, sign in again, queued offline work is kept and replayed | P1 | New | |
 | AUTH-05 | Signed-in devices list (name, platform, last seen) with Sign out per device | P0 | New | US-4.3; revocation disconnects that device's live channel |
-| AUTH-06 | Change password (revokes other devices) and email (new email must be verified before it replaces the old one) | P0 | New | US-4.5 |
+| AUTH-06 | Change password (revokes other devices) and email (new email must be verified before it replaces the old one) | P0 | New | US-4.5; D-31 |
 | AUTH-07 | Password reset by email: link valid 1 h, single use; using it signs out all other devices; the response never reveals whether the email exists | P0 | New | US-4.4 |
-| AUTH-08 | Delete account: type DELETE plus password (or Google re-auth); hard-delete every session, tag, credit, usage total, device and setting; confirmation email | P0 | New | US-4.6; export offered first |
+| AUTH-08 | Delete account: type DELETE plus password (or Google re-auth); hard-delete every session, tag, credit, usage total, device and setting; confirmation email | P0 | New | US-4.6; export offered first; D-31 |
 | AUTH-09 | Registration lock for self-hosted servers (invite-only or closed) | P2 | New | D-11 |
-| AUTH-10 | Email verification: link valid 24 h; unverified users cannot sign in and can resend (at most once a minute) | P0 | New | US-4.1 |
+| AUTH-10 | Email verification: link valid 24 h; unverified users cannot sign in and can resend (at most once a minute) | P0 | New | US-4.1; D-31 |
 | AUTH-11 | Sign in with Google on Windows (system browser + loopback redirect) and Android; an existing account with the same email is linked, not duplicated; Google accounts count as verified | P0 | New | US-4.2 |
 | AUTH-12 | First sign-in setup: confirm the timezone, receive the starter tags (TAG-07) | P0 | New | US-4.1, US-6.1 |
 | AUTH-13 | Export all my data as JSON | P0 | New | US-4.7 |
@@ -354,7 +354,7 @@ Columns: **ID** · **Feature** · **Pri** · **Origin** · Notes / acceptance. R
 |---|---|---|---|---|
 | NOTIF-01 | Goal-reached notifications (daily, weekly, monthly): native notification, in-app toast when open; clicking focuses the app; deduplicated by the server | P0 | Kept | US-10.3; R-27; copy in Appendix B |
 | NOTIF-02 | *Removed 2026-10-24:* forgotten-timer reminder (R-33) | - | - | |
-| NOTIF-03 | One toggle per notification type (credit low, zero, below zero, daily goal, weekly and monthly goal, game suggestion), synced | P0 | New | US-10.3 |
+| NOTIF-03 | One toggle per notification type (credit low, zero, below zero, daily goal, weekly and monthly goal, game suggestion), synced | P0 | New | US-10.3; D-32 |
 | NOTIF-04 | Android push through FCM for notifications that must reach a phone whose app is not running (goal reached); Pulse works fully without it when FCM is not configured or Google Play services are missing | P0 | New | US-10.3; D-23 |
 
 ### 5.9 Desktop shell (DESK)
@@ -388,7 +388,7 @@ Columns: **ID** · **Feature** · **Pri** · **Origin** · Notes / acceptance. R
 |---|---|---|---|---|
 | SET-01 | Theme light / dark / system (synced), applied before first paint (no flash) | P0 | Changed | US-12.1 |
 | SET-02 | Timezone shown and editable; offer to switch when the device timezone differs | P0 | Changed | US-12.1; R-15 |
-| SET-03 | Week start (P0, US-10.1); 12/24-hour time (P1) | P0/P1 | New | R-13 |
+| SET-03 | Week start (P0, US-10.1); 12/24-hour time (P1) | P0/P1 | New | R-13; D-32 |
 | SET-04 | Server URL configurable in the app ("Advanced" on the sign-in screen) | P1 | New | Self-hosting without rebuilding |
 | SET-05 | About: version from build info, update status, export client logs | P1 | Changed | |
 | SET-06 | Translatable strings (no inline copy); additional languages | P2 | New | Externalising strings is cheap early |
@@ -717,11 +717,11 @@ Decision record:
 
 | Layer | Choice | Why | Alternatives rejected |
 |---|---|---|---|
-| Server runtime | **NestJS** (TypeScript, Node.js LTS) | Owner's decision; structured modules, shares the TypeScript contract package | - |
+| Server runtime | **NestJS** (TypeScript, Node.js LTS); time math on the TC39 Temporal API (`temporal-polyfill` until Node ships it, ADR-0004) | Owner's decision; structured modules, shares the TypeScript contract package; Temporal shares jiff's semantics | - |
 | Database | **PostgreSQL** (decided 2026-10-24) | Exclusion constraint on time ranges enforces "no overlapping sessions" (R-05) in the database; partial unique index for one running session; strong range and aggregation queries; the official image fits the PRD's bundled container and any managed external database | SQLite (no exclusion constraints, no external option), MongoDB (legacy; weak for these invariants) |
 | Data access | **Kysely** (D-20, decided 2026-10-24) | Typed SQL; allows the raw SQL migrations the exclusion constraint needs | Prisma (no exclusion constraints in its schema), TypeORM |
 | Realtime transport | **Plain WebSocket** (NestJS `ws` adapter), one room per user | Lower per-message overhead; easy to use from Rust | Socket.IO (extra protocol, weak Rust clients) |
-| Contract / schema | **One TypeScript schema package** (zod proposed) emitting OpenAPI + JSON Schema; NestJS validates from it; Rust types generated with `typify` / `progenitor` | One source for server, desktop and Android | Hand-written types per client |
+| Contract / schema | **One TypeScript schema package** (`packages/contract`, zod; ADR-0003, accepted 2026-10-25) emitting OpenAPI 3.0 + JSON Schema; NestJS validates from it; Rust types and client generated with `progenitor` / `typify` (`crates/contract-types`) | One source for server, desktop and Android | Hand-written types per client |
 | Email | **Nodemailer** over SMTP (Gmail with an app password by default; host and port configurable) | Owner's choice (PRD); no extra service to run | Hosted email APIs (another account for self-hosters) |
 | Google sign-in | Server verifies Google ID tokens and links accounts by email; Windows: system browser, authorization code + PKCE, loopback redirect; Android: Credential Manager. Exact OAuth client setup in an ADR during T1.6 | Works for a sideloaded app and a desktop app without embedding a browser | Embedded web views (blocked by Google) |
 | Push | **FCM HTTP v1** from the server; `firebase-messaging` on Android; optional (D-23) | Owner's choice (PRD); reaches the phone when the service is not running | A self-hosted push service (no reliable delivery on Android without Google Play services' channel) |
@@ -783,7 +783,7 @@ M0 Foundations --> M1 Accounts & deployment --> M2 Core timer --> M3 Sync & offl
 | T0.1 | Resolve the open decisions (section 13) and choose the stack (section 11); record each decision. *Stack chosen 2026-10-24; D-19, D-20 decided 2026-10-24; the owner's PRD (2026-10-24) settled D-03..D-07, D-10, D-11, D-15..D-18, D-21..D-23; the owner accepted the recommendations for PostgreSQL, D-08, D-12..D-14, D-24 and D-25 on 2026-10-24. D-02 is a design decision taken at T2.6, not here* | WS0 | - | all | Decision record complete; this spec updated |
 | T0.2 | Repo scaffold organised by module boundaries (`docs/ARCHITECTURE.md`); formatter, linter, type checks; one language version; config templates including `infra/.env.example` | WS0 | T0.1 | - | A fresh clone installs and passes all checks with one command |
 | T0.3 | CI: reproducible install, lint, type check, tests, build of every target; required on the main branch | WS0/WS11 | T0.2 | - | Pull requests blocked on red CI |
-| T0.4 | Contract: operations, events and error model of section 7, generating server validators, a typed client and a mock server | WS0 | T0.2 | §7 | Server stub and client both compile against it; mock server runs; every generated file lives under a `generated/` folder or starts with an `@generated` comment line (so agent guards refuse hand edits) |
+| T0.4 | Contract: operations, events and error model of section 7, generating server validators, a typed client and a mock server; full schemas for the operations whose shapes the spec already fixes, the rest named only (D-29) | WS0 | T0.2 | §7, D-29 | Server stub and client both compile against it; mock server runs; every generated file lives under a `generated/` folder or starts with an `@generated` comment line (so agent guards refuse hand edits) |
 | T0.5 | Time-math module (server and core) with the shared fixture suite (D-19): day keys, period ranges with week start, clipping across midnight and per-day history rows, period IDs; injected clock | WS6 | T0.2 | R-10..R-14, R-16..R-18 | Fixtures green in both implementations for UTC, America/Los_Angeles, Asia/Dhaka, Pacific/Auckland, Asia/Kathmandu, and 23 h / 25 h DST days |
 | T0.6 | Local development environment: database, server, a mail catcher for verification emails and seed data with one command | WS11 | T0.2 | - | New contributor running in < 10 min |
 | T0.7 | Size spike: hello-world Tauri 2 + Svelte installer, and Kotlin + Compose APK (with the FCM client) loading the Rust core through UniFFI, plus a foreground service that keeps the core running with no activity | WS0 | T0.2 | §9.3 | Measured sizes, memory and cold start recorded in section 9.3; budgets confirmed or adjusted |
@@ -936,6 +936,10 @@ AUTH-09 registration lock · TIM-05 switch · TIM-06 discard · TIM-07 adjust st
 | D-26 | App identifiers and the oldest supported Android version (both fixed once released: changing them breaks updates and app data) | **Decided 2026-10-24 (owner, recommendation):** Android `applicationId` `com.naimur_rahman.pulse` (the legacy package; the new APK installs over the legacy app only if signed with the same key); Windows Tauri identifier `com.naimur-rahman.pulse` (Tauri allows only letters, digits, hyphens and periods); minSdk 26 (Android 8.0) | Section 11, T0.2 |
 | D-27 | Android backup and device-to-device transfer of app data | **Proposed 2026-10-25 (lead, during T0.2), for the owner to confirm:** off (`allowBackup="false"`, extraction rules exclude everything). The server is the source of truth; restoring a local cache, outbox or credentials onto another device is unsafe, and a fresh sign-in restores everything | T0.2, MOB-01 |
 | D-28 | Which CI service, and how strictly is CI required on `main`? | **Decided 2026-10-25 (owner, recommendation):** GitHub Actions (the repository is on GitHub); a repository ruleset on `main` requires a pull request with the `ci` check green and forbids force-push and deletion; the repository admin (the owner) may bypass it, so local commits made through the `auto-commit` gate can still be pushed straight to `main`, where CI runs again (the bypass covers every rule, force-push included, so the guard hooks remain the protection against it). Branches need not be up to date before merging: the pull request run already tests the merge result and the push to `main` runs CI again | T0.3 |
+| D-29 | How much of section 7 does T0.4 define before the features exist? | **Decided 2026-10-25 (owner, recommendation):** T0.4 builds the whole toolchain, the conventions, the error model, all section 7.3 events, the section 6 entity schemas and full request and response schemas for Auth, Timer, Sessions, Tags, Goals, Preferences, Push, Sync, App updates and Health. Stats, Credits, Usage, Achievements and Data operations are named in the contract without shapes; the feature task that implements each one defines its shapes then (as T6.1 does for usage increments) | T0.4, section 7 |
+| D-30 | Do credential operations carry a command ID (R-34)? | **Decided 2026-10-25 (owner, recommendation):** no. Command IDs go on data writes and on completing first sign-in; register, login, Google sign-in, refresh, logout, password and email changes, resets, device revocation and account deletion are online-only and are not replayed, so the idempotency store never holds raw tokens (only hashes are stored, section 6) | R-34, section 7.1, T0.4 |
+| D-31 | Re-authentication and unverified sign-in | **Decided 2026-10-25 (owner, recommendation):** changing the email and deleting the account require the password or a fresh Google sign-in; changing the password requires the current one, so a Google-only account cannot set a password that way. Signing in with the right password but an unverified email answers `FORBIDDEN` (the app offers to resend the link), distinct from the uniform `UNAUTHENTICATED` for wrong credentials; it reveals only that the password was right | AUTH-06, AUTH-08, AUTH-10, T0.4 |
+| D-32 | Preference values | **Decided 2026-10-25 (owner, recommendation):** week start is any of the seven days (default Monday); time format is system, 12-hour or 24-hour; the timezone is empty until the user confirms it at first sign-in (R-15); one toggle per NOTIF-03 type (six, weekly and monthly goal sharing one); onboarding completion is the instant it happened | R-13, R-15, SET-03, NOTIF-03, T0.4 |
 
 Decided 2026-10-24 alongside the stack, and confirmed by the PRD: activity tracking is **track-and-notify only** (no blocking); credit is earned only from timer sessions (Productive ones, R-42); a user uses one device at a time, and everything syncs live.
 
@@ -949,6 +953,7 @@ Decided 2026-10-24 alongside the stack, and confirmed by the PRD: activity track
 | Week start / count weekends | Monday / on |
 | Title / summary / tag name | ≤ 200 / ≤ 2000 / 1-40 characters |
 | Password | 8-128 characters |
+| Other field limits (D-30..D-32, T0.4) | Email ≤ 254 · email and refresh tokens ≤ 512 · push token ≤ 4096 · device name 1-100 · app version 1-32 · search text ≤ 200 characters · goal 1-44 640 minutes (31 days) |
 | Access / refresh credential lifetime | 15 min / 30 days rotating (D-13) |
 | Verification link / reset link / resend limit | 24 h / 1 h, single use / once a minute |
 | Idempotency retention | ≥ 30 days |

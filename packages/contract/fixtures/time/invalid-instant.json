@@ -1,0 +1,177 @@
+{
+  "description": "parseInstant rejects every string that is not a contract Instant (ISO-8601 UTC ending in Z, spec 7.1), with the malformed-instant error, including forms lenient ISO parsers accept. Never a silent default.",
+  "rules": ["R-10", "R-16"],
+  "cases": [
+    {
+      "name": "UTC offset instead of Z",
+      "input": {
+        "instant": "2026-10-25T10:30:00+02:00"
+      },
+      "expected": {
+        "error": "malformed-instant"
+      }
+    },
+    {
+      "name": "no zone designator",
+      "input": {
+        "instant": "2026-10-25T08:30:00"
+      },
+      "expected": {
+        "error": "malformed-instant"
+      }
+    },
+    {
+      "name": "no seconds",
+      "input": {
+        "instant": "2026-10-25T08:30Z"
+      },
+      "expected": {
+        "error": "malformed-instant"
+      }
+    },
+    {
+      "name": "hours only",
+      "input": {
+        "instant": "2026-10-25T08Z"
+      },
+      "expected": {
+        "error": "malformed-instant"
+      }
+    },
+    {
+      "name": "date only",
+      "input": {
+        "instant": "2026-10-25"
+      },
+      "expected": {
+        "error": "malformed-instant"
+      }
+    },
+    {
+      "name": "impossible date 2026-02-30",
+      "input": {
+        "instant": "2026-02-30T00:00:00Z"
+      },
+      "expected": {
+        "error": "malformed-instant"
+      }
+    },
+    {
+      "name": "hour 24",
+      "input": {
+        "instant": "2026-10-25T24:00:00Z"
+      },
+      "expected": {
+        "error": "malformed-instant"
+      }
+    },
+    {
+      "name": "leap second 23:59:60 (must not silently become :59)",
+      "input": {
+        "instant": "2026-10-25T23:59:60Z"
+      },
+      "expected": {
+        "error": "malformed-instant"
+      }
+    },
+    {
+      "name": "decimal point without digits",
+      "input": {
+        "instant": "2026-10-25T08:30:00.Z"
+      },
+      "expected": {
+        "error": "malformed-instant"
+      }
+    },
+    {
+      "name": "decimal comma",
+      "input": {
+        "instant": "2026-10-25T08:30:00,5Z"
+      },
+      "expected": {
+        "error": "malformed-instant"
+      }
+    },
+    {
+      "name": "lower-case t and z",
+      "input": {
+        "instant": "2026-10-25t08:30:00z"
+      },
+      "expected": {
+        "error": "malformed-instant"
+      }
+    },
+    {
+      "name": "lower-case t",
+      "input": {
+        "instant": "2026-10-25t08:30:00Z"
+      },
+      "expected": {
+        "error": "malformed-instant"
+      }
+    },
+    {
+      "name": "space instead of T",
+      "input": {
+        "instant": "2026-10-25 08:30:00Z"
+      },
+      "expected": {
+        "error": "malformed-instant"
+      }
+    },
+    {
+      "name": "basic format without separators",
+      "input": {
+        "instant": "20261025T083000Z"
+      },
+      "expected": {
+        "error": "malformed-instant"
+      }
+    },
+    {
+      "name": "expanded six-digit year",
+      "input": {
+        "instant": "+002026-10-25T08:30:00Z"
+      },
+      "expected": {
+        "error": "malformed-instant"
+      }
+    },
+    {
+      "name": "negative expanded year",
+      "input": {
+        "instant": "-000001-01-01T00:00:00Z"
+      },
+      "expected": {
+        "error": "malformed-instant"
+      }
+    },
+    {
+      "name": "leading space",
+      "input": {
+        "instant": " 2026-10-25T08:30:00Z"
+      },
+      "expected": {
+        "error": "malformed-instant"
+      }
+    },
+    {
+      "name": "empty string",
+      "input": {
+        "instant": ""
+      },
+      "expected": {
+        "error": "malformed-instant"
+      }
+    },
+    {
+      "name": "not a date at all",
+      "input": {
+        "instant": "yesterday"
+      },
+      "expected": {
+        "error": "malformed-instant"
+      }
+    }
+  ]
+}

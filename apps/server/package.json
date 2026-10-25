@@ -11,15 +11,17 @@
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "test": "vitest run",
     "build": "tsc -p tsconfig.build.json",
-    "dev": "nest start --watch",
+    "dev": "pnpm --filter @pulse/contract build && nest start --watch",
     "start": "node dist/main.js"
   },
   "dependencies": {
     "@nestjs/common": "12.2.0",
     "@nestjs/core": "12.2.0",
     "@nestjs/platform-express": "12.2.0",
+    "@pulse/contract": "workspace:*",
     "reflect-metadata": "0.2.2",
-    "rxjs": "7.8.2"
+    "rxjs": "7.8.2",
+    "temporal-polyfill": "1.0.5"
   },
   "devDependencies": {
     "@nestjs/cli": "12.0.10",

@@ -41,10 +41,13 @@ describe('planSteps', () => {
       'ts:ESLint',
       'ts:dependency-cruiser',
       'ts:boundary rule tests',
+      'ts:contract up to date',
       'ts:type check',
       'ts:tests',
       'ts:build',
+      'ts:contract mock smoke',
       'rust:rustfmt',
+      'rust:contract types up to date',
       'rust:clippy',
       'rust:tests',
       'android:Gradle checks',
@@ -71,8 +74,55 @@ describe('planSteps', () => {
       '--test',
       '.claude/hooks/*.test.js',
       'scripts/check.test.mjs',
+      'scripts/contract-mock-smoke.test.mjs',
     ]);
     assert.deepEqual(ruleTests.args, ['--test', 'scripts/dependency-cruiser.test.mjs']);
+  });
+
+  it('fails on a stale generated contract before anything compiles against it', () => {
+    const ts = plan(['ts']);
+    const [contract] = ts.filter((step) => step.name === 'contract up to date');
+    assert.equal(contract.command, 'pnpm');
+    assert.deepEqual(contract.args, [
+      '--filter',
+      '@pulse/contract',
+      'run',
+      'generate',
+      '--',
+      '--check',
+    ]);
+    const order = names(ts);
+    assert.ok(order.indexOf('ts:contract up to date') < order.indexOf('ts:type check'));
+
+    const rust = plan(['rust']);
+    const [codegen] = rust.filter((step) => step.name === 'contract types up to date');
+    assert.equal(codegen.command, 'cargo');
+    assert.deepEqual(codegen.args, [
+      'run',
+      '-p',
+      'pulse-contract-codegen',
+      '--locked',
+      '--',
+      '--check',
+    ]);
+    const rustOrder = names(rust);
+    assert.ok(
+      rustOrder.indexOf('rust:contract types up to date') < rustOrder.indexOf('rust:clippy'),
+    );
+  });
+
+  it('smoke-starts the mock server through its own script, after the build', () => {
+    const [smoke] = plan(['ts']).filter((step) => step.name === 'contract mock smoke');
+    assert.equal(smoke.command, process.execPath);
+    assert.deepEqual(smoke.args, ['scripts/contract-mock-smoke.mjs']);
+    assert.equal(smoke.shell, false);
+  });
+
+  it('runs pnpm through a shell on Windows only', () => {
+    const contract = (platform) =>
+      plan(['ts'], platform).find((step) => step.name === 'contract up to date');
+    assert.equal(contract('win32').shell, true);
+    assert.equal(contract('linux').shell, false);
   });
 
   it('passes only existing roots to dependency-cruiser', () => {
