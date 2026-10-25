@@ -1,0 +1,15 @@
+[package]
+name = "pulse-core"
+version = "0.0.0"
+description = "Pulse client core: domain, sync, outbox, local store and tracking, shared by desktop and Android."
+edition.workspace = true
+rust-version.workspace = true
+publish.workspace = true
+
+# docs/ARCHITECTURE.md section 2: no UI, Tauri, Android or OS crates here, ever. Platform code
+# reaches the core only through the traits in `ports`. Each dependency arrives with the task that
+# needs it, with its size cost stated (spec 9.3).
+[dependencies]
+
+[lints]
+workspace = true

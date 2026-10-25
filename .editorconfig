@@ -1,0 +1,36 @@
+# Editor defaults for every file. ktlint reads its configuration from the [*.{kt,kts}] section.
+root = true
+
+[*]
+charset = utf-8
+end_of_line = lf
+indent_style = space
+indent_size = 2
+insert_final_newline = true
+trim_trailing_whitespace = true
+
+[*.md]
+# Two trailing spaces are a Markdown line break.
+trim_trailing_whitespace = false
+
+[*.{bat,cmd,ps1}]
+end_of_line = crlf
+
+[*.rs]
+indent_size = 4
+max_line_length = 100
+
+[*.{kt,kts}]
+indent_size = 4
+max_line_length = 100
+# Android Kotlin style, matching Android Studio's formatter.
+ktlint_code_style = android_studio
+# Composables are PascalCase by convention.
+ktlint_function_naming_ignore_when_annotated_with = Composable
+# Trailing commas on multi-line declarations and calls keep Compose diffs small.
+ij_kotlin_allow_trailing_comma = true
+ij_kotlin_allow_trailing_comma_on_call_site = true
+
+[*.xml]
+# Android resources and manifests: Android Studio's default.
+indent_size = 4

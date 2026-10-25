@@ -1,15 +1,28 @@
 # Dependencies and build output
 node_modules/
+.pnpm-store/
 dist/
 build/
 coverage/
 target/
-.gradle/
 .svelte-kit/
+.vite/
 *.tsbuildinfo
+.eslintcache
+*.log
 
-# Android / IDE
+# Tauri: capability schemas regenerated on every build
+apps/desktop/src-tauri/gen/schemas/
+
+# Android / Gradle / IDE
+.gradle/
+.kotlin/
+.cxx/
+.externalNativeBuild/
+captures/
 local.properties
+*.apk
+*.aab
 .idea/
 *.iml
 .vscode/*
@@ -39,10 +52,12 @@ id_ecdsa
 id_ed25519
 secrets/
 
-# Claude Code: personal overrides and worktrees stay local
+# Claude Code: personal overrides and worktrees stay local; playwright-cli session output
 .claude/settings.local.json
 .claude/worktrees/
+.playwright-cli/
 
 # OS
 .DS_Store
 Thumbs.db
+desktop.ini

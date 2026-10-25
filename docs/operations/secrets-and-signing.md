@@ -2,7 +2,7 @@
 
 Where every secret and signing key for Pulse lives, who may touch it, and what to do if one is lost or leaked. Nothing listed here is ever committed, and agents never create, rotate or upload keys (owner only). Agent-side protection: `guard-edit.js` blocks writes to these files and the settings deny rules block reading them with the file tools; reading them through shell commands (`cat .env`) is not checked, so agents must not do it.
 
-Status: plan, 2026-10-24 (A6.3); server secrets from the PRD's `.env` list added 2026-10-24. Fill in the concrete locations when T0.3 (CI), T1.3 (deployment) and T7.6/T7.7 (releases) set them up.
+Status: plan, 2026-10-24 (A6.3); server secrets from the PRD's `.env` list added 2026-10-24. T0.3 (CI, 2026-10-25) uses no secrets. Fill in the concrete locations when T1.3 (deployment) and T7.6/T7.7 (releases) set them up.
 
 ## Inventory
 
@@ -24,7 +24,7 @@ Not secret, but tied to the Android signing key: the Google sign-in OAuth client
 ## Rules
 
 - **Repo:** never. `.gitignore` (for humans), `guard-edit.js` and the settings Read deny rules (for agents) cover the set defined once in `.claude/hooks/lib/secrets.js` (the Read deny rules are slightly stricter: they also block reading `.env` templates): `.env*` (except templates), keystores, certificates, private keys, SSH/GPG keys, signing properties and `secrets/`. Templates (`.env.example`) document variable names with fake values.
-- **CI:** secrets only as GitHub Actions secrets, exposed only to the release jobs that need them, never echoed; pull requests from forks get none, and no workflow uses `pull_request_target` together with a checkout of the pull request's code.
+- **CI:** secrets only as GitHub Actions secrets, exposed only to the release jobs that need them, never echoed; pull requests from forks get none, and no workflow uses `pull_request_target` together with a checkout of the pull request's code. The check workflow (`.github/workflows/ci.yml`, T0.3) uses no secrets: its `GITHUB_TOKEN` is read-only (`permissions: contents: read`) and checkouts do not persist it.
 - **Agents:** may reference secret names (e.g. `ANDROID_KEYSTORE_BASE64`) in workflows, never values; anything needing a real secret is handed to the owner with exact steps (see `devops-engineer`).
 - **Backups:** the Android keystore and the updater key are irreplaceable for existing installs: keep at least two offline encrypted copies in different places, and test restoring them once a year.
 - **Rotation:** server secrets yearly or on any suspicion; signing keys only when compromised (rotation is disruptive for users).

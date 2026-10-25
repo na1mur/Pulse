@@ -1,0 +1,6 @@
+# Clippy settings for every crate. The lint levels are in Cargo.toml [workspace.lints].
+# Tests may unwrap, expect, panic and print (.claude/rules/rust.md); production code may not.
+allow-unwrap-in-tests = true
+allow-expect-in-tests = true
+allow-panic-in-tests = true
+allow-print-in-tests = true

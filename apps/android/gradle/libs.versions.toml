@@ -1,0 +1,31 @@
+# The one place Android tool and library versions are pinned (exact versions, no ranges).
+# The Gradle version is pinned in gradle/wrapper/gradle-wrapper.properties (with its checksum),
+# the foojay toolchain resolver in settings.gradle.kts (settings plugins cannot read this file).
+
+[versions]
+# AGP 9.4 needs Gradle 9.6+ and supports compile/target SDK up to API 37.
+agp = "9.4.1"
+# AGP 9 compiles Kotlin itself (built-in Kotlin); this version is put on the build classpath in
+# the root build file so AGP uses it instead of its bundled minimum. The Compose compiler
+# plugin is versioned with Kotlin.
+kotlin = "2.4.21"
+compose-bom = "2026.09.00"
+activity-compose = "1.13.0"
+junit = "4.13.2"
+ktlint-gradle = "14.2.0"
+# The ktlint engine the Gradle plugin runs.
+ktlint-engine = "1.8.0"
+detekt = "1.23.8"
+
+[libraries]
+kotlin-gradle-plugin = { module = "org.jetbrains.kotlin:kotlin-gradle-plugin", version.ref = "kotlin" }
+compose-bom = { module = "androidx.compose:compose-bom", version.ref = "compose-bom" }
+compose-foundation = { module = "androidx.compose.foundation:foundation" }
+activity-compose = { module = "androidx.activity:activity-compose", version.ref = "activity-compose" }
+junit = { module = "junit:junit", version.ref = "junit" }
+
+[plugins]
+android-application = { id = "com.android.application", version.ref = "agp" }
+compose-compiler = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "kotlin" }
+ktlint = { id = "org.jlleitschuh.gradle.ktlint", version.ref = "ktlint-gradle" }
+detekt = { id = "io.gitlab.arturbosch.detekt", version.ref = "detekt" }

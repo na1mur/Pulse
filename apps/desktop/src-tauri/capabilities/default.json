@@ -1,0 +1,7 @@
+{
+  "$schema": "../gen/schemas/desktop-schema.json",
+  "identifier": "default",
+  "description": "What the main window may call. Each feature task adds only the permissions it uses.",
+  "windows": ["main"],
+  "permissions": ["core:default"]
+}

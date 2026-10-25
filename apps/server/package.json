@@ -1,0 +1,31 @@
+{
+  "name": "@pulse/server",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Pulse API, realtime gateway, mail and push (NestJS).",
+  "type": "module",
+  "engines": {
+    "node": "^24.15.0"
+  },
+  "scripts": {
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "vitest run",
+    "build": "tsc -p tsconfig.build.json",
+    "dev": "nest start --watch",
+    "start": "node dist/main.js"
+  },
+  "dependencies": {
+    "@nestjs/common": "12.2.0",
+    "@nestjs/core": "12.2.0",
+    "@nestjs/platform-express": "12.2.0",
+    "reflect-metadata": "0.2.2",
+    "rxjs": "7.8.2"
+  },
+  "devDependencies": {
+    "@nestjs/cli": "12.0.10",
+    "@nestjs/testing": "12.2.0",
+    "@types/node": "24.19.2",
+    "typescript": "catalog:",
+    "vitest": "5.0.5"
+  }
+}

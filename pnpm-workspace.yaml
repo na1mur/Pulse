@@ -1,0 +1,31 @@
+# pnpm workspaces (docs/ARCHITECTURE.md section 1). Cargo and Gradle have their own workspaces.
+packages:
+  - apps/server
+  - apps/desktop
+  - packages/*
+
+# One version of the packages that several workspace packages (and the root linters) share;
+# package.json files refer to them as "catalog:".
+catalog:
+  svelte: 5.57.2
+  typescript: 6.0.3
+
+# pnpm 11 reads its settings from this file (not from package.json "pnpm" or .npmrc).
+
+# Fail the install when Node does not match package.json "engines" (pnpm only warns otherwise).
+engineStrict: true
+
+# Fail the install when a package version has weaker publish trust (for example lost provenance)
+# than earlier versions of the same package. If a legitimate package trips it, add it to
+# trustPolicyExclude with a comment saying why.
+trustPolicy: no-downgrade
+trustPolicyExclude:
+  # svelte-check (apps/desktop) needs chokidar ^4.0.1. 4.0.2 and 4.0.3 (Dec 2024) were published
+  # by the same maintainer (paulmillr) as 4.0.0/4.0.1, only without a provenance attestation.
+  - chokidar@4.0.3
+
+# Dependency build scripts are blocked by default and pnpm 11 fails the install on an unapproved one
+# (strictDepBuilds). Approve one only when it is needed, with a comment saying why, e.g.
+#   allowBuilds:
+#     esbuild: true   # native binary for Vite
+# Other pnpm 11 defaults kept on purpose: minimumReleaseAge 1 day, blockExoticSubdeps.

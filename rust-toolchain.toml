@@ -1,0 +1,6 @@
+# One Rust version for every crate, locally and in CI. Android targets are added in T0.7.
+[toolchain]
+channel = "1.97.0"
+profile = "minimal"
+components = ["rustfmt", "clippy"]
+targets = ["x86_64-pc-windows-msvc"]

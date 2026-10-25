@@ -1,0 +1,41 @@
+# Cargo workspace (docs/ARCHITECTURE.md section 1). Members opt in to the shared settings with
+# `edition.workspace = true`, `rust-version.workspace = true`, `publish.workspace = true` and
+# `[lints] workspace = true`.
+[workspace]
+resolver = "3"
+members = ["crates/core", "apps/desktop/src-tauri"]
+
+[workspace.package]
+edition = "2024"
+rust-version = "1.97"
+publish = false
+
+[workspace.lints.rust]
+# Unsafe needs a local `#[allow(unsafe_code, reason = "...")]` (Win32 calls in the shell, FFI).
+unsafe_code = "deny"
+rust_2018_idioms = { level = "warn", priority = -1 }
+
+# The check runs clippy with `-D warnings`, so every `warn` here fails CI.
+[workspace.lints.clippy]
+# .claude/rules/rust.md: no unwrap/expect/panic outside tests and provably infallible spots.
+unwrap_used = "warn"
+expect_used = "warn"
+panic = "warn"
+todo = "warn"
+unimplemented = "warn"
+dbg_macro = "warn"
+# Output goes through the logger, never straight to the console.
+print_stdout = "warn"
+print_stderr = "warn"
+# "Never silence a lint without a comment saying why": `#[allow(..., reason = "...")]`.
+allow_attributes_without_reason = "warn"
+undocumented_unsafe_blocks = "warn"
+
+# Size first (spec 9.3 installer and APK budgets); T0.7 measures it.
+# panic stays "unwind": UniFFI turns a panic into a Kotlin exception and Tauri keeps the app alive
+# instead of aborting the whole process (rule: nothing panics across a Tauri command or UniFFI boundary).
+[profile.release]
+opt-level = "s"
+lto = "fat"
+codegen-units = 1
+strip = "symbols"
