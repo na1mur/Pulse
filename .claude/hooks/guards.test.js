@@ -128,19 +128,12 @@ test('blocks recursive deletes outside the repo and temp dir', () => {
     'rm -rf ../other-project',
     'rm -rf "$HOME/x"',
     'rm -r -f /c/Users',
-    'rm -rf "C:/Users/Some Person"',
     '(rm -rf /)',
     '\\rm -rf /',
     '"rm" -rf ~',
     'ls | xargs rm -rf',
     'find / -name x -exec rm -rf {} +',
     'find /c/Users -delete',
-    // Quoted: unquoted in Bash, C:\Users becomes the drive-relative C:Users, which is inside
-    // the repo when the repo lives on C:.
-    'cmd //c rd /s /q "C:\\Users"',
-    'cmd //c rd //s //q "C:\\Users"',
-    'cmd /c "rd /s /q C:\\Users"',
-    'powershell -c "Remove-Item -Recurse C:\\Users"',
     'cd /c/Users && rm -rf x',
     'cd .. && rm -rf Pulse-old',
     'pushd /c && rm -rf Windows',
@@ -154,11 +147,25 @@ test('blocks recursive deletes outside the repo and temp dir', () => {
     'rm -rf {/,x}',
     `find / -exec sh -c 'rm -rf "$1"' _ {} \\;`,
     "ls / | xargs -I{} sh -c 'rm -rf {}'",
-    "cmd //c del //s //q 'C:\\Users\\*'",
   ]) {
     assert.ok(bash(cmd).blocked, cmd);
   }
   assert.ok(bash(`rm -rf "${repoRoot}"`).blocked, 'the repo root itself');
+  // Drive-letter paths are absolute only on Windows; elsewhere (CI on Linux) they are relative
+  // paths inside the repo, which the guard rightly allows.
+  if (process.platform !== 'win32') return;
+  for (const cmd of [
+    'rm -rf "C:/Users/Some Person"',
+    // Quoted: unquoted in Bash, C:\Users becomes the drive-relative C:Users, which is inside
+    // the repo when the repo lives on C:.
+    'cmd //c rd /s /q "C:\\Users"',
+    'cmd //c rd //s //q "C:\\Users"',
+    'cmd /c "rd /s /q C:\\Users"',
+    'powershell -c "Remove-Item -Recurse C:\\Users"',
+    "cmd //c del //s //q 'C:\\Users\\*'",
+  ]) {
+    assert.ok(bash(cmd).blocked, cmd);
+  }
 });
 
 test('PowerShell: allows normal commands, blocks recursive deletes outside', () => {
@@ -166,16 +173,21 @@ test('PowerShell: allows normal commands, blocks recursive deletes outside', () 
     assertAllowed(ps(cmd), cmd);
   }
   for (const cmd of [
+    'rm -r ..\\other',
+    'Remove-Item -Recurse $env:USERPROFILE\\x',
+    'Remove-Item -Recurse HKCU:\\Software\\X',
+  ]) {
+    assert.ok(ps(cmd).blocked, cmd);
+  }
+  if (process.platform !== 'win32') return; // drive-letter paths, as in the Bash test above
+  for (const cmd of [
     'Remove-Item -Recurse -Force C:\\Users',
     'Remove-Item -LiteralPath "C:\\Users\\Some Person" -Recurse',
     'Remove-Item C:\\Users -Recurse:$true',
-    'rm -r ..\\other',
-    'Remove-Item -Recurse $env:USERPROFILE\\x',
     'Get-ChildItem C:\\x | Remove-Item -Recurse',
     'Remove-Item C:\\Users -Re`curse',
     'Remove-Item -Recurse -Force .\\target,C:\\Users',
     'Get-ChildItem C:\\Users | % { rm $_.FullName -r -fo }',
-    'Remove-Item -Recurse HKCU:\\Software\\X',
     'cmd /c rd /s /q C:\\Users',
     'cmd /c "rd /s /q C:\\Users"',
     'cmd.exe /c rmdir /s /q C:\\Users',

@@ -1,0 +1,163 @@
+# CI (T0.3, D-28): every job runs one `scripts/check.mjs` group, the same steps `pnpm verify`
+# runs locally (only actionlint is CI-only). Only the aggregate `ci` job is the required check in
+# the `main` ruleset (.github/rulesets/main.json). No secrets; the token is read-only.
+# Actions are pinned by commit SHA (looked up from each release tag); bump SHA and comment together.
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  # Supersede stale pull request runs; every push to main is checked to the end.
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+defaults:
+  run:
+    # Git Bash on Windows, so every step reads the same.
+    shell: bash
+
+env:
+  # Corepack installs pnpm from package.json `packageManager`; never prompt in CI.
+  COREPACK_ENABLE_DOWNLOAD_PROMPT: '0'
+  CARGO_TERM_COLOR: always
+
+jobs:
+  docs:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          # scripts/check-docs.sh checks that commits cited in the docs exist.
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: .node-version
+      - name: Check (docs)
+        run: node scripts/check.mjs --only docs
+      - name: actionlint
+        env:
+          ACTIONLINT_VERSION: 1.7.12
+          # sha256 of actionlint_1.7.12_linux_amd64.tar.gz from the release's checksums file.
+          ACTIONLINT_SHA256: 8aca8db96f1b94770f1b0d72b6dddcb1ebb8123cb3712530b08cc387b349a3d8
+        run: |
+          archive="actionlint_${ACTIONLINT_VERSION}_linux_amd64.tar.gz"
+          curl -fsSL --retry 3 -o "$RUNNER_TEMP/$archive" \
+            "https://github.com/rhysd/actionlint/releases/download/v${ACTIONLINT_VERSION}/$archive"
+          echo "$ACTIONLINT_SHA256  $RUNNER_TEMP/$archive" | sha256sum --check --strict
+          tar -xzf "$RUNNER_TEMP/$archive" -C "$RUNNER_TEMP" actionlint
+          # Uses the runner's shellcheck for `run:` scripts.
+          "$RUNNER_TEMP/actionlint" -color
+
+  ts:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: .node-version
+      # setup-node's own pnpm cache needs pnpm on PATH before it runs, so cache the store here.
+      - name: Enable pnpm through Corepack
+        run: corepack enable
+      - name: Locate the pnpm store
+        id: pnpm-store
+        run: echo "path=$(pnpm store path --silent)" >> "$GITHUB_OUTPUT"
+      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ${{ steps.pnpm-store.outputs.path }}
+          key: pnpm-store-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}
+          restore-keys: pnpm-store-${{ runner.os }}-
+      - name: Install
+        run: pnpm install --frozen-lockfile
+      - name: Check (ts)
+        run: node scripts/check.mjs --only ts
+
+  rust:
+    # The Tauri crate builds for Windows only (rust-toolchain.toml targets).
+    runs-on: windows-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: .node-version
+      # The rust group builds apps/desktop/dist with pnpm first (the Tauri crate embeds it).
+      - name: Enable pnpm through Corepack
+        run: corepack enable
+      - name: Locate the pnpm store
+        id: pnpm-store
+        run: echo "path=$(pnpm store path --silent)" >> "$GITHUB_OUTPUT"
+      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ${{ steps.pnpm-store.outputs.path }}
+          key: pnpm-store-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}
+          restore-keys: pnpm-store-${{ runner.os }}-
+      - name: Install
+        run: pnpm install --frozen-lockfile
+      # With no argument rustup installs the toolchain, components and targets that
+      # rust-toolchain.toml pins; it must exist before rust-cache reads `rustc -vV` for its key.
+      - name: Install the pinned Rust toolchain
+        run: |
+          rustup toolchain install --no-self-update
+          rustc --version
+      - uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2.9.3
+        with:
+          # Pull requests reuse main's cache without writing their own.
+          save-if: ${{ github.ref == 'refs/heads/main' }}
+      - name: Check (rust)
+        run: node scripts/check.mjs --only rust
+
+  android:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: .node-version
+      - uses: actions/setup-java@b843ebf9b913146b38da2eaa7aeddf76074ae1ad # v6.1.0
+        with:
+          distribution: temurin
+          java-version: '17'
+      # Validates gradle-wrapper.jar against Gradle's checksums (on by default) and caches
+      # Gradle User Home. `basic` is the MIT-licensed cache provider; the default one is proprietary.
+      - uses: gradle/actions/setup-gradle@3f5f9adaf7d9fecd50b5935e54106014257a94e6 # v6.4.0
+        with:
+          validate-wrappers: true
+          cache-provider: basic
+      # The runner's preinstalled Android SDK is found through ANDROID_HOME.
+      - name: Check (android)
+        run: node scripts/check.mjs --only android
+
+  ci:
+    # The one required check. Runs even when a job above failed, was cancelled or was skipped,
+    # and passes only when every one of them succeeded.
+    if: ${{ always() }}
+    needs: [docs, ts, rust, android]
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: All jobs succeeded
+        env:
+          NEEDS: ${{ toJSON(needs) }}
+        run: |
+          echo "$NEEDS" | jq -r 'to_entries[] | "\(.key): \(.value.result)"'
+          if ! echo "$NEEDS" | jq -e 'length > 0 and all(.[]; .result == "success")' > /dev/null; then
+            echo "::error::A CI job failed, was cancelled or was skipped"
+            exit 1
+          fi

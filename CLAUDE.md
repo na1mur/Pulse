@@ -16,6 +16,7 @@ Stack: NestJS server with PostgreSQL, shipped with Docker Compose (bundled or ex
 Prerequisites (not installed by `pnpm verify`): Node 24 with Corepack, rustup, Git Bash, a JDK 17 (Gradle downloads one if missing), the Android SDK with `ANDROID_HOME` set and, on Windows, the MSVC Build Tools with the Windows SDK ("Desktop development with C++") and WebView2. Toolchains are pinned: Node `.node-version` with pnpm from `packageManager`, Rust `rust-toolchain.toml`, JDK 17 and Gradle through the wrapper. On Windows use `apps\android\gradlew.bat`.
 
 - **Everything, as CI and the `auto-commit` gate run it:** `pnpm verify` (frozen install + `node scripts/check.mjs`). One group: `pnpm check --only docs|ts|rust|android` (repeatable).
+- **CI:** `.github/workflows/ci.yml` runs the same `check.mjs` groups, one job each, plus actionlint on the workflows; `ci` is the required check on `main` (D-28).
 - **Install:** `pnpm install --frozen-lockfile`. Cargo and Gradle fetch their own dependencies.
 - **Dev:** server `pnpm --filter @pulse/server dev`; desktop UI in a browser `pnpm --filter @pulse/desktop dev` (port 1420), in Tauri `pnpm --filter @pulse/desktop tauri dev`; Android `apps/android/gradlew -p apps/android installDebug`.
 - **Format:** `pnpm format` (Prettier: TS, Svelte, JSON, YAML, CSS, Markdown outside `docs/` and `.claude/`), `cargo fmt --all`, `apps/android/gradlew -p apps/android ktlintFormat`.
