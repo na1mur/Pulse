@@ -16,7 +16,7 @@ Start here to find a fact without reading whole files. Each line says where a ki
 | How is the agent setup built, and why? | `docs/AGENTIC_SETUP.md` |
 | Where did a skill, agent or hook come from? | `.claude/THIRD_PARTY.md` |
 | Where do secrets and signing keys live, and what if one is lost? | `docs/operations/secrets-and-signing.md` |
-| What does CI run, and what protects `main`? | `.github/workflows/ci.yml` (one job per `scripts/check.mjs` group, aggregate `ci` check); `.github/rulesets/main.json` (bypass actor 5 = repository admin role, integration 15368 = GitHub Actions; create with `gh api -X POST repos/na1mur/Pulse/rulesets --input .github/rulesets/main.json`, update with `-X PUT .../rulesets/<id>`); D-28 |
+| What does CI run, and what protects `main`? | `.github/workflows/ci.yml` (one job per `scripts/check.mjs` group, aggregate `ci` check); `.github/rulesets/main.json` (bypass actor 5 = repository admin role, integration 15368 = GitHub Actions; create with `gh api -X POST repos/na1mur/Pulse/rulesets --input .github/rulesets/main.json`, update the live one (id 25812351) with `gh api -X PUT repos/na1mur/Pulse/rulesets/25812351 --input .github/rulesets/main.json`); D-28 |
 | How to work in this repo | `CLAUDE.md`, path-scoped `.claude/rules/` |
 | Code structure and call paths | graphify (after T0.2, A0.4) |
 
