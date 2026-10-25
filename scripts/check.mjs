@@ -58,6 +58,7 @@ export function planSteps({ groups, platform, tsRoots }) {
         '.claude/hooks/*.test.js',
         'scripts/check.test.mjs',
         'scripts/contract-mock-smoke.test.mjs',
+        'scripts/dev.test.mjs',
       ]),
     );
   }

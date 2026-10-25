@@ -1,0 +1,44 @@
+# Development services only (T0.6): PostgreSQL and the Mailpit mail catcher. The server itself runs
+# on the host (`pnpm --filter @pulse/server dev`). Start and stop through the root scripts:
+#   pnpm dev:up | dev:down | dev:reset      (scripts/dev.mjs)
+#
+# Not the deployment file: that is docker-compose.yml (T1.3). Nothing here may be reused for
+# production: the credentials are public and every port is published on the loopback interface only.
+# Host ports are overridable (PULSE_DEV_DB_PORT, PULSE_DEV_SMTP_PORT, PULSE_DEV_MAIL_UI_PORT) for
+# machines that already run a PostgreSQL on 5432; the container ports stay fixed.
+name: pulse-dev
+
+services:
+  db:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_USER: pulse
+      POSTGRES_PASSWORD: pulse
+      POSTGRES_DB: pulse
+    ports:
+      - '127.0.0.1:${PULSE_DEV_DB_PORT:-5432}:5432'
+    volumes:
+      - db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -h 127.0.0.1 -U pulse -d pulse']
+      interval: 2s
+      timeout: 3s
+      retries: 30
+      start_period: 5s
+
+  # Catches every email the server sends (verification, reset, ...): SMTP on 1025 without auth or
+  # TLS, inbox in the browser on 8025. Messages are kept in memory and vanish on `dev:down`.
+  mailpit:
+    image: axllent/mailpit:v1.32.0
+    ports:
+      - '127.0.0.1:${PULSE_DEV_SMTP_PORT:-1025}:1025'
+      - '127.0.0.1:${PULSE_DEV_MAIL_UI_PORT:-8025}:8025'
+    healthcheck:
+      test: ['CMD', '/mailpit', 'readyz']
+      interval: 2s
+      timeout: 3s
+      retries: 30
+      start_period: 2s
+
+volumes:
+  db-data:

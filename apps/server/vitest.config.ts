@@ -8,7 +8,7 @@ export default defineConfig({
     resolve: { conditions: ['@pulse/source', 'module', 'node', 'development|production'] },
   },
   test: {
-    include: ['src/**/*.spec.ts'],
+    include: ['src/**/*.spec.ts', 'scripts/**/*.spec.ts'],
     environment: 'node',
     // Vitest's on-disk module cache is not invalidated by tsconfig changes (verified with the
     // decorator flags Nest depends on), so a local run could test stale transforms.

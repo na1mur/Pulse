@@ -21,10 +21,14 @@ packages/
                    fixtures/ (shared time, streak and credit cases, D-19);
                    data/ (default usage rules, read by the core at build time)
   tokens/          design tokens source (incl. category colours) -> generated CSS variables and Compose theme
-infra/             docker-compose.yml (server, `db` profile, `proxy` profile with Caddy), .env.example, Caddyfile
+infra/             docker-compose.yml (server, `db` profile, `proxy` profile with Caddy), .env.example, Caddyfile;
+                   docker-compose.dev.yml (dev-only PostgreSQL + Mailpit, T0.6)
 docs/              spec, PRD, architecture, FE guide, design briefs, QA reports, ADRs, knowledge
-scripts/           repo tooling (docs checks, spec lookup)
+scripts/           repo tooling: docs checks, spec lookup, the one-command check (check.mjs) and the
+                   local dev environment (dev.mjs behind `pnpm dev`, `dev:up`, `dev:down`, `dev:reset`)
 ```
+
+Inside `apps/server`, `scripts/seed/` is the dev seed runner and `seed/` holds the seed files (section 3). The runner sits outside `src/` so it stays out of `dist` and the production image.
 
 Workspaces: pnpm (`apps/server`, `apps/desktop`, `packages/*`), Cargo (`crates/*`, `apps/desktop/src-tauri`), Gradle (`apps/android`, building `crates/core-ffi` through `cargo-ndk`). The browser extension and its native host (ACT-09) are P2; they would return as `apps/extension` and `crates/native-host`.
 
@@ -99,6 +103,10 @@ src/
     *.repository.ts                  SQL only
   domain/           pure functions (no Nest, no database): time math, streaks, credit math and ledger
   platform/         config, database, logging, errors, http (contract validation), idempotency, revisions
+scripts/seed/       dev seed runner behind `pnpm dev:seed` (T0.6): applies seed/ files in name order,
+                    records them in `dev_seeds`, refuses non-local databases; outside src/ so it is
+                    never built into dist or the image; own tsconfig, run by Node with type stripping
+seed/               seed files `NNN-name.sql` / `.ts` (demo data for the dev database, see its README)
 ```
 
 Controllers never touch the database; repositories never contain business rules; `domain` imports nothing from Nest.

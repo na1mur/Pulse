@@ -10,6 +10,11 @@
   "scripts": {
     "verify": "pnpm install --frozen-lockfile && node scripts/check.mjs",
     "check": "node scripts/check.mjs",
+    "dev": "node scripts/dev.mjs start",
+    "dev:up": "node scripts/dev.mjs up",
+    "dev:down": "node scripts/dev.mjs down",
+    "dev:reset": "node scripts/dev.mjs reset",
+    "dev:seed": "pnpm --filter @pulse/server seed",
     "format": "prettier --write .",
     "lint": "eslint --max-warnings 0 ."
   },

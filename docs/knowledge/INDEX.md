@@ -18,6 +18,7 @@ Start here to find a fact without reading whole files. Each line says where a ki
 | Where do secrets and signing keys live, and what if one is lost? | `docs/operations/secrets-and-signing.md` |
 | What does CI run, and what protects `main`? | `.github/workflows/ci.yml` (one job per `scripts/check.mjs` group, aggregate `ci` check); `.github/rulesets/main.json` (bypass actor 5 = repository admin role, integration 15368 = GitHub Actions; create with `gh api -X POST repos/na1mur/Pulse/rulesets --input .github/rulesets/main.json`, update the live one (id 25812351) with `gh api -X PUT repos/na1mur/Pulse/rulesets/25812351 --input .github/rulesets/main.json`); D-28 |
 | Shared time/streak/credit fixtures (D-19): format, conventions, how values were verified | `packages/contract/fixtures/README.md`; TS loader `@pulse/contract/fixtures/time`; time-math decisions in ADR-0004 |
+| How do I run the server locally (database, mail catcher, seed data)? | `docs/DEVELOPMENT.md`: `pnpm dev` does all of it (`dev:up`, seeds, server); `infra/docker-compose.dev.yml` (dev-only, loopback-only, public credentials, not the deployment file), `scripts/dev.mjs` behind `pnpm dev` / `dev:up` / `dev:down` / `dev:reset`, seed files in `apps/server/seed/` |
 | How to work in this repo | `CLAUDE.md`, path-scoped `.claude/rules/` |
 | Code structure and call paths | graphify (after T0.2, A0.4) |
 
