@@ -1,8 +1,9 @@
 // Tests for the one-command check's argument parsing and step plan (scripts/check.mjs).
 import assert from 'node:assert/strict';
+import { sep } from 'node:path';
 import { describe, it } from 'node:test';
 
-import { parseArgs, planSteps } from './check.mjs';
+import { androidPrerequisiteProblems, parseArgs, planSteps } from './check.mjs';
 
 const names = (steps) => steps.map((step) => `${step.group}:${step.name}`);
 const all = new Set(['docs', 'ts', 'rust', 'android']);
@@ -148,5 +149,57 @@ describe('planSteps', () => {
       'testDebugUnitTest',
       'assembleDebug',
     ]);
+  });
+});
+
+describe('androidPrerequisiteProblems', () => {
+  const ndk = '27.1.12297006';
+  // A machine where every tool answers; tests override one thing at a time.
+  const problems = ({ env = { ANDROID_HOME: '/sdk' }, run, exists } = {}) =>
+    androidPrerequisiteProblems({
+      env,
+      ndkVersion: ndk,
+      probe: {
+        run:
+          run ??
+          ((command) =>
+            command === 'rustup' ? 'x86_64-unknown-linux-gnu\naarch64-linux-android\n' : 'ok'),
+        exists: exists ?? (() => true),
+      },
+    });
+
+  it('reports nothing on a complete machine', () => {
+    assert.deepEqual(problems(), []);
+  });
+
+  it('names the install command when cargo-ndk is missing', () => {
+    const missing = problems({
+      run: (command) => (command === 'cargo' ? null : 'aarch64-linux-android'),
+    });
+    assert.equal(missing.length, 1);
+    assert.match(
+      missing[0],
+      /cargo-ndk is missing: cargo install cargo-ndk --locked --version 4\.1\.2/,
+    );
+  });
+
+  it('reports a missing Rust target but not an unavailable rustup', () => {
+    const noTarget = problems({
+      run: (command) => (command === 'rustup' ? 'x86_64-pc-windows-msvc\n' : 'ok'),
+    });
+    assert.match(noTarget.join(), /rustup target add aarch64-linux-android/);
+    assert.deepEqual(problems({ run: (command) => (command === 'rustup' ? null : 'ok') }), []);
+  });
+
+  it('looks for the pinned NDK under ANDROID_HOME, falling back to ANDROID_SDK_ROOT', () => {
+    const seen = [];
+    problems({ env: { ANDROID_SDK_ROOT: '/legacy' }, exists: (path) => seen.push(path) > 0 });
+    assert.equal(seen.length, 1);
+    assert.match(seen[0].replaceAll(sep, '/'), new RegExp(`/legacy/ndk/${ndk}$`));
+    assert.match(problems({ exists: () => false }).join(), new RegExp(`NDK ${ndk} is missing`));
+  });
+
+  it('reports a missing SDK location', () => {
+    assert.match(problems({ env: {} }).join(), /ANDROID_HOME is not set/);
   });
 });

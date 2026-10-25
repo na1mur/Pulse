@@ -1,0 +1,5 @@
+# Kotlin binding options, passed to `uniffi-bindgen generate --config` by the Gradle task
+# `generateCoreBindings` in apps/android/app/build.gradle.kts (uniffi 0.32 global config format).
+[crates.pulse_core_ffi.bindings.kotlin]
+package_name = "com.naimurrahman.pulse.core.ffi"
+cdylib_name = "pulse_core_ffi"

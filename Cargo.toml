@@ -3,7 +3,7 @@
 # `[lints] workspace = true`.
 [workspace]
 resolver = "3"
-members = ["crates/core", "crates/contract-types", "crates/contract-types/codegen", "apps/desktop/src-tauri"]
+members = ["crates/core", "crates/core-ffi", "crates/contract-types", "crates/contract-types/codegen", "apps/desktop/src-tauri"]
 
 [workspace.package]
 edition = "2024"

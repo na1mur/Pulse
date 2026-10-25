@@ -13,7 +13,7 @@ Stack: NestJS server with PostgreSQL, shipped with Docker Compose (bundled or ex
 
 ## Commands
 
-Prerequisites (not installed by `pnpm verify`): Node 24 with Corepack, rustup, Git Bash, a JDK 17 (Gradle downloads one if missing), the Android SDK with `ANDROID_HOME` set and, on Windows, the MSVC Build Tools with the Windows SDK ("Desktop development with C++") and WebView2. Toolchains are pinned: Node `.node-version` with pnpm from `packageManager`, Rust `rust-toolchain.toml`, JDK 17 and Gradle through the wrapper. On Windows use `apps\android\gradlew.bat`.
+Prerequisites (not installed by `pnpm verify`): Node 24 with Corepack, rustup, Git Bash, a JDK 17 (Gradle downloads one if missing), the Android SDK with `ANDROID_HOME` set, the Android NDK 27.1.12297006 (`sdkmanager --install "ndk;27.1.12297006"`), the Rust target `aarch64-linux-android` (installed by rustup from `rust-toolchain.toml`), `cargo-ndk` (`cargo install cargo-ndk --locked --version 4.1.2`; `pnpm check --only android` stops early and names what is missing) and, on Windows, the MSVC Build Tools with the Windows SDK ("Desktop development with C++") and WebView2. Toolchains are pinned: Node `.node-version` with pnpm from `packageManager`, Rust `rust-toolchain.toml`, JDK 17 and Gradle through the wrapper. On Windows use `apps\android\gradlew.bat`.
 
 - **Everything, as CI and the `auto-commit` gate run it:** `pnpm verify` (frozen install + `node scripts/check.mjs`). One group: `pnpm check --only docs|ts|rust|android` (repeatable).
 - **CI:** `.github/workflows/ci.yml` runs the same `check.mjs` groups, one job each, plus actionlint on the workflows; `ci` is the required check on `main` (D-28).

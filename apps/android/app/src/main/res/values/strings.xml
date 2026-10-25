@@ -1,4 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name" translatable="false">Pulse</string>
+    <string name="service_channel_name">Pulse background service</string>
+    <string name="service_notification_title">Pulse is running</string>
+    <string name="service_notification_text">Keeping your timer and devices in sync</string>
 </resources>

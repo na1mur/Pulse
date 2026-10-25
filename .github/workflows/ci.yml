@@ -122,7 +122,13 @@ jobs:
 
   android:
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    # Cold: cargo-ndk build, NDK download and the Rust core built for the host and for arm64-v8a.
+    timeout-minutes: 45
+    env:
+      # Keep in step with `ndkVersion` in apps/android/app/build.gradle.kts and the cargo-ndk
+      # note there; the Rust target comes from rust-toolchain.toml.
+      CARGO_NDK_VERSION: 4.1.2
+      ANDROID_NDK_VERSION: 27.1.12297006
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -140,7 +146,40 @@ jobs:
         with:
           validate-wrappers: true
           cache-provider: basic
-      # The runner's preinstalled Android SDK is found through ANDROID_HOME.
+      # Gradle builds crates/core-ffi through cargo and cargo-ndk. Same toolchain step as the rust
+      # job: installs what rust-toolchain.toml pins, including aarch64-linux-android, before
+      # rust-cache reads `rustc -vV` for its key.
+      - name: Install the pinned Rust toolchain
+        run: |
+          rustup toolchain install --no-self-update
+          rustc --version
+      - uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2.9.3
+        with:
+          # Pull requests reuse main's cache without writing their own.
+          save-if: ${{ github.ref == 'refs/heads/main' }}
+      # cargo-ndk goes into its own --root so rust-cache's handling of ~/.cargo/bin cannot clash.
+      - name: Locate cargo-ndk
+        run: echo "$HOME/.cargo-ndk/bin" >> "$GITHUB_PATH"
+      - name: Cache cargo-ndk
+        id: cargo-ndk-cache
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ~/.cargo-ndk
+          key: cargo-ndk-${{ runner.os }}-${{ env.CARGO_NDK_VERSION }}
+      - name: Install cargo-ndk
+        if: steps.cargo-ndk-cache.outputs.cache-hit != 'true'
+        run: cargo install cargo-ndk --locked --version "$CARGO_NDK_VERSION" --root "$HOME/.cargo-ndk"
+      - name: Show cargo-ndk version
+        run: cargo ndk --version
+      # The runner's preinstalled Android SDK is found through ANDROID_HOME; install the exact NDK
+      # that build.gradle.kts pins (a no-op when the image already has it).
+      - name: Install the Android NDK
+        run: |
+          sdkmanager="$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager"
+          # Process substitution, not a pipe: `yes | ...` would fail under pipefail on SIGPIPE.
+          "$sdkmanager" --licenses < <(yes) > /dev/null
+          "$sdkmanager" --install "ndk;$ANDROID_NDK_VERSION" > /dev/null
+          test -d "$ANDROID_HOME/ndk/$ANDROID_NDK_VERSION"
       - name: Check (android)
         run: node scripts/check.mjs --only android
 

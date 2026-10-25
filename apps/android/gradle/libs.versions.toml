@@ -16,6 +16,10 @@ ktlint-gradle = "14.2.0"
 # The ktlint engine the Gradle plugin runs.
 ktlint-engine = "1.8.0"
 detekt = "1.23.8"
+# Native-library loading for the UniFFI Kotlin bindings (T0.7); the aar carries libjnidispatch.so.
+jna = "5.19.1"
+# Push client only (no BoM, no analytics); optional at runtime (D-23).
+firebase-messaging = "26.0.1"
 
 [libraries]
 kotlin-gradle-plugin = { module = "org.jetbrains.kotlin:kotlin-gradle-plugin", version.ref = "kotlin" }
@@ -23,6 +27,8 @@ compose-bom = { module = "androidx.compose:compose-bom", version.ref = "compose-
 compose-foundation = { module = "androidx.compose.foundation:foundation" }
 activity-compose = { module = "androidx.activity:activity-compose", version.ref = "activity-compose" }
 junit = { module = "junit:junit", version.ref = "junit" }
+jna = { module = "net.java.dev.jna:jna", version.ref = "jna" }
+firebase-messaging = { module = "com.google.firebase:firebase-messaging", version.ref = "firebase-messaging" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }

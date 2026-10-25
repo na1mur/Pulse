@@ -1,6 +1,7 @@
-# One Rust version for every crate, locally and in CI. Android targets are added in T0.7.
+# One Rust version for every crate, locally and in CI. The Android target (64-bit ARM only, spec 9.3)
+# is for the UniFFI library that Gradle builds with cargo-ndk (T0.7).
 [toolchain]
 channel = "1.97.0"
 profile = "minimal"
 components = ["rustfmt", "clippy"]
-targets = ["x86_64-pc-windows-msvc"]
+targets = ["x86_64-pc-windows-msvc", "aarch64-linux-android"]

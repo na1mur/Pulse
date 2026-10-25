@@ -362,7 +362,7 @@ Columns: **ID** · **Feature** · **Pri** · **Origin** · Notes / acceptance. R
 | ID | Feature | Pri | Origin | Notes / acceptance |
 |---|---|---|---|---|
 | DESK-01 | Tray icon showing running or paused; menu with Start/Resume, Pause, current timers, Open, Quit | P0 | Changed | US-12.2 |
-| DESK-02 | Closing the window minimises to the tray | P0 | Kept | US-12.2 |
+| DESK-02 | Closing the window minimises to the tray: the window is destroyed and the native process stays alive (`prevent_exit`), never `window.hide()` (T0.7: hidden costs about 76 MB, destroyed 3.9 MB; budget in 9.3) | P0 | Kept | US-12.2 |
 | DESK-03 | Launch at startup (toggle, default on), starting hidden in the tray | P0 | Changed | US-12.3 |
 | DESK-04 | Global shortcut, configurable, default Ctrl+Alt+Space: toggles start/pause and opens the matching dialog | P0 | New | US-12.4 |
 | DESK-05 | Optional always-on-top mini window with both timers and a start/pause button | P0 | New | US-12.5 |
@@ -617,10 +617,23 @@ The local copy, outbox and caches are keyed by user. Signing out closes the real
 | Charts and other heavy views | Loaded on demand, not in the first bundle |
 | Windows installer size | < 15 MB |
 | Android APK size (64-bit ARM) | < 15 MB, including the FCM client |
+| Android service memory, idle with the timer running | < 50 MB PSS (new row from T0.7) |
 | Desktop memory, closed to tray with the timer running | < 50 MB |
 | Activity tracking cost | Desktop: one foreground check every 5 s (UI Automation only when a browser is in front); no measurable CPU at rest. Android: usage events checked at most every 5 s and only while the screen is on; no wake-ups while it is off |
 
-The size and memory figures are targets to confirm with the T0.7 spike; adjust them there if a measured hello-world build cannot meet them.
+**Measured in T0.7** (2026-10-25, hello-world builds, release, Ryzen 7 5700G, Windows 11; task file `docs/tasks/T0.7.md` has the methods):
+
+| Metric | Measured | Verdict |
+|---|---|---|
+| Windows installer (NSIS) | 1.43 MiB (installed 6.05 MB) | Budget confirmed, large headroom for the core and the real UI |
+| Desktop cold start to first contentful paint (proxy for "interactive": the Svelte UI mounts before first paint) | 474 ms median | Budget confirmed (warm file cache; not measured after a reboot) |
+| Desktop memory, window destroyed, process alive | 3.9 MB private (empty shell, no core or tray; measured on a throwaway spike build, not in the repo) | Budget confirmed **only if closing to tray destroys the window** |
+| Desktop memory, window minimized or hidden | 74 to 76 MB (7 processes; window open and idle 72 MB) | Over budget: DESK-02 must destroy the window on close, never `window.hide()` |
+| Android APK (arm64, with FCM) | 2.06 MB unsigned | Budget confirmed, about 13 MB headroom for Material 3, Navigation, Glance and features. FCM was only linked and initialised with dummy options; no real `getToken` was measured |
+| Android cold start to first frame (proxy for "timer visible") | 543 ms median on an x86_64 emulator | **Not confirmed**: no arm64 device here; re-measure on the owner's phone before the first release |
+| Android service memory, idle | 19.4 MB PSS on the emulator, activity backgrounded not destroyed (includes some UI), no timer running | The < 50 MB PSS row is a proposal, not yet an owner decision; the hello-world figure passes it. Re-measure on a phone with the real core and a running timer |
+
+Re-measure memory and cold start once the tray, core and sync run (M3 and later); the hello-world figures are floors, not forecasts. Not resolved by the spike: the rustls provider choice (aws-lc-rs about +1.55 MB over ring, T0.4) needs the sync client, which does not exist yet; decide it when the first network code lands.
 
 ### 9.4 Accessibility (WCAG 2.2 AA baseline)
 

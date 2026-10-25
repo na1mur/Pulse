@@ -7,7 +7,7 @@
 //
 // No dependencies, so it runs before `pnpm install` has succeeded and on every OS.
 import { execFileSync, spawn } from 'node:child_process';
-import { existsSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -153,6 +153,43 @@ export function planSteps({ groups, platform, tsRoots }) {
   return steps;
 }
 
+// The Android build shells out to cargo-ndk and needs the pinned NDK and Rust target (T0.7);
+// without them Gradle fails minutes in with a cargo error. `probe` injects the machine: `run`
+// returns a command's stdout or null when it fails, `exists` tests a path.
+export function androidPrerequisiteProblems({ env, ndkVersion, probe }) {
+  const problems = [];
+  if (probe.run('cargo', ['ndk', '--version']) === null) {
+    problems.push('cargo-ndk is missing: cargo install cargo-ndk --locked --version 4.1.2');
+  }
+  const targets = probe.run('rustup', ['target', 'list', '--installed']);
+  if (targets !== null && !targets.split(/\s+/).includes('aarch64-linux-android')) {
+    problems.push('Rust target missing: rustup target add aarch64-linux-android');
+  }
+  const sdk = env.ANDROID_HOME ?? env.ANDROID_SDK_ROOT;
+  if (!sdk) {
+    problems.push('ANDROID_HOME is not set (Android SDK)');
+  } else if (!probe.exists(join(sdk, 'ndk', ndkVersion))) {
+    problems.push(`Android NDK ${ndkVersion} is missing: sdkmanager --install "ndk;${ndkVersion}"`);
+  }
+  return problems;
+}
+
+const ndkVersionFromGradle = () =>
+  /ndkVersion\s*=\s*"([^"]+)"/.exec(
+    readFileSync(join(root, 'apps/android/app/build.gradle.kts'), 'utf8'),
+  )?.[1];
+
+const hostProbe = {
+  exists: existsSync,
+  run(command, args) {
+    try {
+      return execFileSync(command, args, { cwd: root, encoding: 'utf8', stdio: 'pipe' });
+    } catch {
+      return null;
+    }
+  },
+};
+
 // On Windows a bare `bash` can resolve to WSL's launcher; check-docs.sh needs Git Bash.
 function gitBash() {
   try {
@@ -195,6 +232,19 @@ async function main() {
   if (process.platform === 'win32') {
     const bash = gitBash();
     for (const step of steps) if (step.command === 'bash') step.command = bash;
+  }
+
+  if (groups.has('android')) {
+    const problems = androidPrerequisiteProblems({
+      env: process.env,
+      ndkVersion: ndkVersionFromGradle() ?? 'unknown',
+      probe: hostProbe,
+    });
+    if (problems.length > 0) {
+      console.error('Android prerequisites missing (see CLAUDE.md, Commands):');
+      for (const problem of problems) console.error(`  - ${problem}`);
+      return 1;
+    }
   }
 
   const started = Date.now();
