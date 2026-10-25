@@ -1,6 +1,6 @@
 ---
 name: deliver-task
-description: Deliver one Pulse spec task (e.g. "T1.4") end to end the way a senior team would - brief, design (UI tasks), plan, build with the right engineer agent, verify, QA, fix loop, review and commit - keeping a task file and the progress ledger up to date. Use when the owner says "do T1.4", "next task", or asks to implement a spec task.
+description: Deliver one Pulse spec task (e.g. "T1.4") through a risk lane (Fast, Standard or Critical, D-33) - brief, design (UI tasks), build with the right engineer agent, verify, QA (Critical only), fix loop, review and commit - keeping a task file and the progress ledger up to date. Use when the owner says "do T1.4", "next task", or asks to implement a spec task.
 ---
 
 # Deliver a task
@@ -8,6 +8,18 @@ description: Deliver one Pulse spec task (e.g. "T1.4") end to end the way a seni
 You are the lead: you coordinate, the role agents do the work, the owner decides. Keep your own context for coordination; do not implement in this session except trivial glue.
 
 > Process ideas borrowed from obra/superpowers `subagent-driven-development` and `writing-plans` (MIT, commit 2ce8aa1): the per-task report file as persistent memory, resuming the original implementer with findings verbatim, scoped re-reviews, deferring minor findings to a ledger, and the plan's Interfaces / Review focus sections. Reviewing itself is done by `change-review` (adapted from mattpocock) and `qa-engineer`, not superpowers' reviewer prompt.
+
+## Lanes (D-33)
+
+Pick the lane when writing the brief; record it in the task file (`Lane:`) and the ledger note. When unsure, take the heavier lane. The test for Critical: could a silent bug corrupt or leak user data?
+
+| Lane | Used for | Steps |
+|---|---|---|
+| **Fast** | Plumbing, config, docs, scaffolding, dev tooling, simple CRUD or UI that copies an existing pattern | 1 (a few lines), 4, 5.1, 7. No plan, no QA, no change-review |
+| **Standard** (default) | Most feature tasks: endpoints, screens, settings, notifications | 1 (short), 2 if UI, 4, 5.1, then the building agent checks every AC and writes the `US-x.y`-named tests; 6, 7 with change-review on the **Spec axis only** |
+| **Critical** | Sync and outbox, auth, time math, credits and the ledger, activity data and privacy, migrations | Every step below, unchanged: plan, build, verify, `qa-engineer`, fix loop, full `change-review` |
+
+Fix budgets: Fast and Standard get **2** rounds in total (verify and gate failures together); Critical keeps its separate QA and gate budgets (step 6). Only Critical and High findings block a commit in any lane. Everything else goes to `docs/tasks/BACKLOG.md` (one line each: task, severity, finding), not into the ledger row, which holds only status, commit and a one-line note.
 
 ## 0. Pick the task
 
@@ -34,7 +46,7 @@ Dispatch `ux-designer` with the brief. Ask the owner its `QUESTIONS FOR OWNER` d
 
 ## 3. Plan
 
-Use `planning-and-task-breakdown`. Write in the task file:
+**Critical lane only** (Standard: a short slice list in the task file is enough; Fast: skip). Use `planning-and-task-breakdown`. Write in the task file:
 - **Slices**: thin vertical steps, each testable on its own, each naming its owner agent (`backend-engineer`, `core-engineer`, `frontend-engineer`, `devops-engineer`).
 - **Interfaces**: contract changes, function signatures, events and files each slice adds or changes, so parallel slices agree.
 - **Review focus**: the riskiest parts (spec rules most likely to be broken, tricky edge cases) for reviewers and QA.
@@ -45,21 +57,21 @@ Slices with disjoint files may run in parallel; otherwise run them in order.
 
 For each slice, dispatch its agent with: the task file path, the slice, the Interfaces section, and "test first; never commit; return files changed, tests and commands run with output, open questions". Append each agent's report to the task file under **Reports**. Relay any `DECISION NEEDED` to the owner as in step 2.
 
-## 5. Verify, then QA
+## 5. Verify, then QA (QA is Critical lane only)
 
 1. Run `auto-commit` in **verify-only** mode, as a caller-owned fix loop, with the task ID and file list: format, lint, type check, tests, build, and running the changed parts, without reviewing or committing. Failures go back to the building agent (step 6) before QA starts.
-2. Set the ledger row to `in QA` and dispatch `qa-engineer` with the task file. It writes `docs/qa/<task-id>.md` and returns APPROVED or REJECTED.
+2. **Critical lane:** set the ledger row to `in QA` and dispatch `qa-engineer` with the task file. It writes `docs/qa/<task-id>.md` and returns APPROVED or REJECTED.
 
 ## 6. Fix loop
 
 - Critical/High/Medium QA bugs, and verify or review failures from the gate, go back to the agent that built the affected slice (in this skill the lead never fixes code itself): resume it if possible, sending the findings verbatim; otherwise dispatch a fresh one with the task file path and the findings.
 - Each round: fix, re-run the covering tests, append a fix report; then a **scoped** re-check: QA re-tests only the reported bugs and anything the fix diff touched; a gate failure is re-checked by the gate, plus QA if the fix changed behaviour QA tested.
 - Budgets are separate: two rejected QA rounds, and three gate rounds (each round = engineer fix + another `auto-commit` run). When either runs out, stop and bring the open findings to the owner with your recommendation.
-- Low bugs and out-of-scope observations do not loop: record them in the ledger row as `deferred: ...`.
+- Low and Medium bugs (Medium too outside the Critical lane) and out-of-scope observations do not loop: add them to `docs/tasks/BACKLOG.md`, not the ledger row.
 
 ## 7. Gate and commit
 
-Set the ledger row to `done`, Commit `(this commit)`, with any deferred items, and the task file's Status to `done`. Then run `auto-commit` (full mode, caller-owned fix loop) with the task ID and the task's file list (product code, tests, task file, QA report, ledger, any FE-guide or spec updates): it verifies, runs `change-review` and commits with the `Task: <task-id>` trailer. Its failures go through step 6. If it does not commit, set both the ledger row and the task file's Status back to `in QA` or `blocked`.
+Set the ledger row to `done`, Commit `(this commit)`, with any deferred items, and the task file's Status to `done`. Then run `auto-commit` (full mode, caller-owned fix loop) with the task ID and the task's file list (product code, tests, task file, QA report, ledger, any FE-guide or spec updates): it verifies, runs `change-review` (lane per D-33; skipped for Fast) and commits with the `Task: <task-id>` trailer. Its failures go through step 6. If it does not commit, set both the ledger row and the task file's Status back to `in QA` or `blocked`.
 
 ## 8. Report
 

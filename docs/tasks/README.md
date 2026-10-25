@@ -8,6 +8,7 @@ One file per spec task being delivered (`docs/tasks/<task-id>.md`), written by t
 # <task-id> - <task title>
 
 Status: in progress | in QA | blocked | done
+Lane: fast | standard | critical (D-33)
 Owner agents: <backend-engineer, core-engineer, ...>
 
 ## Brief
@@ -28,5 +29,5 @@ Owner agents: <backend-engineer, core-engineer, ...>
 <each agent's report and fix reports, appended in order>
 
 ## QA
-<link to docs/qa/<task-id>.md and verdicts per round>
+<Critical lane only: link to docs/qa/<task-id>.md and verdicts per round>
 ```

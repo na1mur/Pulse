@@ -61,7 +61,7 @@ Never make it pass by skipping, deleting or weakening tests or assertions, loose
 
 ## 5. Review the diff before staging
 
-Run the `change-review` skill, passing the task IDs and the file list from step 1. Run it for every change; skip it only for trivial docs edits (typos, ticking a checklist item). Its verdict applies:
+Run the `change-review` skill, passing the task IDs and the file list from step 1. Lane (D-33, from the task file's `Lane:`; no task file means Standard): **Critical** runs both axes; **Standard** runs the Spec axis only (tell change-review to skip the Standards sub-agent); **Fast** skips it. Also skip it for trivial docs edits (typos, ticking a checklist item). Its verdict applies:
 - **block** → fix, rerun from step 2, review again. Debug rounds (step 4) and review rounds share **one budget of 3 rounds**; when it runs out, stop, do not commit, and report.
 - **pass with notes** → fix the cheap notes, mention the rest in the report.
 - **ask the user** → present the disputed finding and wait.
