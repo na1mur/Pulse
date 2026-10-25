@@ -16,5 +16,5 @@ Idioms: follow the `rust-best-practices` skill; Tauri specifics: `tauri-v2`. Str
 - Concurrency: `tokio` only where I/O needs it; bounded channels; no blocking work on async threads.
 - Public surface (`api.rs`, Tauri commands, UniFFI) is small and takes/returns plain data types.
 - Tests: unit tests in `#[cfg(test)]` modules, `proptest` for reducers and math, fake clock for anything timed; integration tests in `tests/`.
-- Gate: `cargo fmt --check`, `cargo clippy --all-targets -- -D warnings`, `cargo test` (exact commands in `CLAUDE.md` once scaffolded). Never silence a lint without a comment saying why.
+- Gate: `cargo fmt --check`, `cargo clippy --all-targets -- -D warnings`, `cargo test` (exact commands: `CLAUDE.md` Commands; `pnpm check --only rust` runs them). Never silence a lint without a comment saying why.
 - Dependencies: justify each new crate (size budget, spec 9.3); prefer `rustls`, avoid OpenSSL.

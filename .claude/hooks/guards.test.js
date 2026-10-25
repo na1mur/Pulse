@@ -135,8 +135,10 @@ test('blocks recursive deletes outside the repo and temp dir', () => {
     'ls | xargs rm -rf',
     'find / -name x -exec rm -rf {} +',
     'find /c/Users -delete',
-    'cmd //c rd /s /q C:\\Users',
-    'cmd //c rd //s //q C:\\Users',
+    // Quoted: unquoted in Bash, C:\Users becomes the drive-relative C:Users, which is inside
+    // the repo when the repo lives on C:.
+    'cmd //c rd /s /q "C:\\Users"',
+    'cmd //c rd //s //q "C:\\Users"',
     'cmd /c "rd /s /q C:\\Users"',
     'powershell -c "Remove-Item -Recurse C:\\Users"',
     'cd /c/Users && rm -rf x',
@@ -199,7 +201,8 @@ test('guard-edit allows normal files, templates, new linter configs and the guar
     '.env.template',
     '.env.local.example',
     'id_ed25519.pub',
-    path.join(repoRoot, 'eslint.config.mjs'),
+    // A linter config that does not exist yet (the repo's own configs exist since T0.2).
+    path.join(os.tmpdir(), 'pulse-guard-absent', 'eslint.config.mjs'),
     path.join(__dirname, 'guard-edit.js'),
     path.join(__dirname, 'guards.test.js'),
   ]) {

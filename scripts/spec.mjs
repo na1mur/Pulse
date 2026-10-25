@@ -37,14 +37,18 @@ const sameId = (a, b) => a.replace(/-0+(\d)/, '-$1') === b.replace(/-0+(\d)/, '-
 function expandRange(arg) {
   const m = /^([A-Za-z]+-?(?:\d+\.)?)(\d+)\.\.([A-Za-z]+-?(?:\d+\.)?)?(\d+)$/.exec(arg);
   if (!m) {
-    if (arg.includes('..')) throw new Error(`unsupported range: ${arg} (write both ends in full, e.g. T1.1..T1.3)`);
+    if (arg.includes('..')) {
+      throw new Error(`unsupported range: ${arg} (write both ends in full, e.g. T1.1..T1.3)`);
+    }
     return null;
   }
   const [, prefix, from, endPrefix, to] = m;
   if (endPrefix && endPrefix !== prefix) throw new Error(`range ends do not match: ${arg}`);
   const width = from.startsWith('0') ? from.length : 0;
   const ids = [];
-  for (let n = Number(from); n <= Number(to); n++) ids.push(prefix + String(n).padStart(width, '0'));
+  for (let n = Number(from); n <= Number(to); n++) {
+    ids.push(prefix + String(n).padStart(width, '0'));
+  }
   if (ids.length === 0) throw new Error(`empty range: ${arg}`);
   return ids;
 }
@@ -82,8 +86,17 @@ function section(number) {
   if (i === -1) return null;
   const level = lines[i].match(/^#+/)[0].length;
   let end = i + 1;
-  while (end < lines.length && !(/^#+ /.test(lines[end]) && lines[end].match(/^#+/)[0].length <= level)) end++;
-  return lines.slice(i, end).join('\n').replace(/\n+---\s*$/, '').trim();
+  while (
+    end < lines.length &&
+    !(/^#+ /.test(lines[end]) && lines[end].match(/^#+/)[0].length <= level)
+  ) {
+    end++;
+  }
+  return lines
+    .slice(i, end)
+    .join('\n')
+    .replace(/\n+---\s*$/, '')
+    .trim();
 }
 
 // The lines of `file` from the first line matching `isStart` while `continues(line)` holds,
@@ -100,7 +113,11 @@ function block(file, isStart, continues) {
 }
 
 function checklistItem(id) {
-  return block('docs/AGENTIC_SETUP.md', (line) => /^- \[/.test(line) && line.includes(`**${id} `), (line) => /^\s{2,}\S/.test(line));
+  return block(
+    'docs/AGENTIC_SETUP.md',
+    (line) => /^- \[/.test(line) && line.includes(`**${id} `),
+    (line) => /^\s{2,}\S/.test(line),
+  );
 }
 
 // A user story starts with "**US-4.1 " and runs (ACs, tables, notes) until the next story,
@@ -153,7 +170,9 @@ if (args[0] === '--task') {
   args = [task, ...cited];
 }
 if (args.length === 0) {
-  console.error('usage: node scripts/spec.mjs [--task T1.4] <ID | ID..ID | TIM-01/02 | MOB-* | section | A-item | FE-NNN | US-x.y> ...');
+  console.error(
+    'usage: node scripts/spec.mjs [--task T1.4] <ID | ID..ID | TIM-01/02 | MOB-* | section | A-item | FE-NNN | US-x.y> ...',
+  );
   process.exit(1);
 }
 

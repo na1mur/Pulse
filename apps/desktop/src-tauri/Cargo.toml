@@ -1,0 +1,19 @@
+[package]
+name = "pulse-desktop"
+version = "0.0.0"
+description = "Pulse desktop shell: Tauri 2 host for the Svelte UI and the pulse-core library."
+edition.workspace = true
+rust-version.workspace = true
+publish.workspace = true
+
+# The Tauri release set of 2026-10-21: tauri 2.12.5 and tauri-build 2.7.4 ship with
+# @tauri-apps/cli 2.12.4, and @tauri-apps/api 2.12.4 is that line's current api (../package.json).
+[build-dependencies]
+tauri-build = { version = "2.7.4", features = [] }
+
+[dependencies]
+pulse-core = { path = "../../../crates/core" }
+tauri = { version = "2.12.5", features = [] }
+
+[lints]
+workspace = true

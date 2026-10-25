@@ -1,0 +1,23 @@
+# Prettier also skips everything in .gitignore (dependencies, build output, secrets).
+# Keep in step with the ignores in eslint.config.mjs.
+
+# Planning docs and the agent setup have their own checks (scripts/check-docs.sh, hook tests).
+docs/
+.claude/
+
+# Written by pnpm.
+pnpm-lock.yaml
+
+# Android: ktlint formats Kotlin and the Gradle Kotlin scripts, Android Lint checks the XML.
+# Prettier has no Kotlin, XML or TOML support without extra plugins.
+apps/android/
+
+# Tauri regenerates these on every build (tauri.conf.json and capabilities are formatted here).
+apps/desktop/src-tauri/gen/
+
+# Build output and generated code (never hand-edited, docs/ARCHITECTURE.md section 1).
+dist/
+build/
+target/
+coverage/
+generated/

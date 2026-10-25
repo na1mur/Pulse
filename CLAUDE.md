@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Current state
 
-Pulse is being **rebuilt from scratch**. The repository holds planning docs and the agentic setup only; there is no code, no build and no tests yet. The stack is decided (spec section 11) but not scaffolded (T0.2).
+Pulse is being **rebuilt from scratch**. Besides the planning docs and the agentic setup, the repository holds the T0.2 scaffold: skeleton apps, toolchain configs and the one-command check. There are no product features yet.
 
 Stack: NestJS server with PostgreSQL, shipped with Docker Compose (bundled or external database, optional Caddy HTTPS) · email over SMTP, Google sign-in, optional FCM push · plain WebSocket realtime · a shared **Rust client core** (sync, outbox, SQLite cache, time and credit math, activity tracking) · **Tauri 2 + Svelte 5** desktop (Windows) · **native Kotlin + Jetpack Compose** Android app (sideloaded APK) calling the core through UniFFI. Small installers and low memory are release gates (spec section 9.3).
 
@@ -13,7 +13,16 @@ Stack: NestJS server with PostgreSQL, shipped with Docker Compose (bundled or ex
 
 ## Commands
 
-None yet (no code). Fill this in during T0.2: install, dev, format check, lint, type check, test (including how to run a single test), build per target.
+Prerequisites (not installed by `pnpm verify`): Node 24 with Corepack, rustup, Git Bash, a JDK 17 (Gradle downloads one if missing), the Android SDK with `ANDROID_HOME` set and, on Windows, the MSVC Build Tools with the Windows SDK ("Desktop development with C++") and WebView2. Toolchains are pinned: Node `.node-version` with pnpm from `packageManager`, Rust `rust-toolchain.toml`, JDK 17 and Gradle through the wrapper. On Windows use `apps\android\gradlew.bat`.
+
+- **Everything, as CI and the `auto-commit` gate run it:** `pnpm verify` (frozen install + `node scripts/check.mjs`). One group: `pnpm check --only docs|ts|rust|android` (repeatable).
+- **Install:** `pnpm install --frozen-lockfile`. Cargo and Gradle fetch their own dependencies.
+- **Dev:** server `pnpm --filter @pulse/server dev`; desktop UI in a browser `pnpm --filter @pulse/desktop dev` (port 1420), in Tauri `pnpm --filter @pulse/desktop tauri dev`; Android `apps/android/gradlew -p apps/android installDebug`.
+- **Format:** `pnpm format` (Prettier: TS, Svelte, JSON, YAML, CSS, Markdown outside `docs/` and `.claude/`), `cargo fmt --all`, `apps/android/gradlew -p apps/android ktlintFormat`.
+- **Lint:** `pnpm lint` (ESLint); architecture boundaries with `pnpm check --only ts` (dependency-cruiser on `apps` and, once it exists, `packages`, plus its rule tests; a failing step prints its exact re-run command); `cargo clippy --workspace --all-targets --locked -- -D warnings`, `apps/android/gradlew -p apps/android ktlintCheck detekt lint`.
+- **Type check:** `pnpm -r typecheck` (tsc, svelte-check).
+- **Test:** `pnpm -r test`, `cargo test --workspace --locked`, `apps/android/gradlew -p apps/android testDebugUnitTest`. One test: `pnpm --filter @pulse/server test src/app.module.spec.ts -t "boots"` (Vitest file and name filter), `cargo test -p pulse-core <name>`, `apps/android/gradlew -p apps/android testDebugUnitTest --tests '*ApplicationIdTest*'`. Repo tooling: `node --test .claude/hooks/*.test.js scripts/*.test.mjs`; docs: `bash scripts/check-docs.sh`.
+- **Build:** `pnpm -r build` (server `apps/server/dist`, desktop UI `apps/desktop/dist`, which the Tauri crate needs before it compiles); Android debug APK `apps/android/gradlew -p apps/android assembleDebug`. Release installers and signing: T0.7.
 
 ## Workflow
 
@@ -30,6 +39,7 @@ Everything agent-related for Pulse (skills, agents, rules, hooks, settings) live
 Guard hooks (`.claude/hooks/`) block dangerous commands and protected-file writes and make every `git push` ask the owner. A block comes back as a hook error with the reason: fix the cause, never route around the guard.
 
 Where third-party skills conflict with this repo, this repo wins:
+
 - **Commits:** every commit (including the per-slice commits incremental-implementation asks for) goes through the `auto-commit` gate and its message style, not conventional `feat:` prefixes.
 - **Requirements:** `docs/REBUILD_SPEC.md` is the spec. Record decisions there (section 11 / 13), not in a separate SPEC.md; ADRs are only for decisions too detailed for the spec.
 - **Pulse overrides** at the top of a skill (e.g. `nestjs-best-practices`, `postgresql-table-design`) win over the rest of that skill.

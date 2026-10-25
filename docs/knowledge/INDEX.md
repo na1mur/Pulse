@@ -22,6 +22,7 @@ Start here to find a fact without reading whole files. Each line says where a ki
 ## Notes
 
 - [[agent-tooling-gotchas]]: things about Claude Code and this Windows machine that cost time once.
+- [[vitest-module-cache]]: Vitest's on-disk cache ignores tsconfig changes, so every package turns it off.
 
 ## Adding a note
 

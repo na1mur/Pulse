@@ -64,7 +64,7 @@ src/
   api.rs      the small public facade used by Tauri commands and UniFFI
 ```
 
-`domain` depends on nothing else in the crate; `app` on `domain` and `ports`; `sync` and `tracking` on `app`, `domain`, `ports`; `adapters` implement `ports`; `api` wires everything. Platform trackers (Windows, Android) only produce foreground samples and presence changes through the ports; classification, accumulation and everything that leaves the device happen in the core, so the privacy rule (principle 11) is enforced in one place.
+Each module starts as a single file (`domain.rs`) and becomes a folder when it grows. `domain` depends on nothing else in the crate; `app` on `domain` and `ports`; `sync` and `tracking` on `app`, `domain`, `ports`; `adapters` implement `ports`; `api` wires everything. Platform trackers (Windows, Android) only produce foreground samples and presence changes through the ports; classification, accumulation and everything that leaves the device happen in the core, so the privacy rule (principle 11) is enforced in one place.
 
 ### Desktop UI (`apps/desktop/src`)
 
@@ -113,7 +113,7 @@ feature/<name>/ screen composables + ViewModel per feature (incl. permissions on
 ui/            theme (generated from packages/tokens) and shared components
 ```
 
-There is deliberately no Kotlin data layer (no Room, Retrofit or repositories): storage, sync and networking live in the Rust core, and `core/` is the only door to them. Split into Gradle modules only when build time or boundaries demand it.
+There is deliberately no Kotlin data layer (no Room, Retrofit or repositories): storage, sync and networking live in the Rust core, and `core/` is the only door to them. Split into Gradle modules only when build time or boundaries demand it. The Kotlin package and namespace are `com.naimurrahman.pulse` (ktlint and detekt reject underscores in package names); only the `applicationId` is `com.naimur_rahman.pulse` (D-26). Android backup and device transfer are off (D-27, proposed).
 
 ## 4. Cross-cutting conventions
 
@@ -123,9 +123,9 @@ There is deliberately no Kotlin data layer (no Room, Retrofit or repositories): 
 - **Configuration:** validated at startup (server) or at build time (clients); no secrets in the repo.
 - **Tests sit next to the code** they test (`*.spec.ts`, Rust `#[cfg(test)]` modules and `tests/`, Android `src/test` and `src/androidTest`); shared fixtures (time zones, DST days) live in one place and are used by every implementation.
 
-## 5. Enforcement (A3.3, after T0.2)
+## 5. Enforcement (A3.3, set up in T0.2)
 
-- TypeScript: dependency-cruiser rules mirroring section 2, run in CI.
+- TypeScript: dependency-cruiser rules mirroring section 2 (`.dependency-cruiser.cjs`), plus an ESLint rule that keeps `fetch`, `WebSocket`, `XMLHttpRequest` and `EventSource` out of `apps/desktop/src`; both run in `pnpm verify` and CI.
 - Rust: crate dependencies in `Cargo.toml` are the rule; `pulse-core` must build without Tauri or Android features.
 - Kotlin: package-level rules checked in review until modules are split.
 - `change-review` checks new code against this file.

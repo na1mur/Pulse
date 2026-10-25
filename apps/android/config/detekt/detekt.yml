@@ -1,0 +1,28 @@
+# Overrides on top of detekt's default configuration (buildUponDefaultConfig = true).
+# Only the Jetpack Compose adjustments recommended by detekt itself
+# (detekt.dev/docs/introduction/compose, following the Compose API guidelines); everything
+# else is detekt's default.
+
+naming:
+  FunctionNaming:
+    # Composables that emit UI are PascalCase.
+    ignoreAnnotated: ['Composable']
+  TopLevelPropertyNaming:
+    # Compose style for top-level constants: `val FooPadding = 16.dp`.
+    constantPattern: '[A-Z][A-Za-z0-9]*'
+
+complexity:
+  LongParameterList:
+    # Composables take many optional parameters with defaults (modifier, colors, ...).
+    ignoreDefaultParameters: true
+  TooManyFunctions:
+    # Preview functions add no complexity.
+    ignoreAnnotatedFunctions: ['Preview']
+
+style:
+  MagicNumber:
+    # Property declarations such as `val Spacing = 8.dp` name their number already.
+    ignorePropertyDeclaration: true
+  UnusedPrivateMember:
+    # @Preview functions are used by the IDE only.
+    ignoreAnnotated: ['Preview']
