@@ -45,7 +45,7 @@ _Owner decisions:_ FE-001, FE-003, FE-010..FE-012.
 ## 4. Layout and navigation
 
 - Timer-first shell with four destinations: Today, History, Stats, Settings; a persistent timer bar on every screen except Today (spec 10.1).
-- Main screen content is fixed by FE-004; which timer is larger is open (D-02, section 11 below).
+- Main screen content is fixed by FE-004; the day total is the larger timer (FE-013, D-02).
 - Settings sections follow US-12.1 in that order; device-only sections are labelled as "this device".
 - Navigation keeps per-screen state and remembers the last screen (spec 10.1).
 - Minimum desktop window about 480x640; layout adapts to width (spec 10.4).
@@ -125,6 +125,7 @@ _Owner decisions:_ none yet beyond the PRD stories cited.
 | FE-010 | 2026-10-24 | What Close does in a session dialog (D-25) | Keep the values from when the dialog opened · clear title and tag · save edits like Confirm | Keep the values from when the dialog opened (the pre-filled ones); the summary dialog's Close saves an empty summary | Session dialogs |
 | FE-011 | 2026-10-24 | Text typed in a dialog when the session changes on another device (D-25) | Save it to that session · discard it | Save it to that session, then close | Session dialogs |
 | FE-012 | 2026-10-24 | Pre-fill when the last session's tag is archived (D-25) | Title only · keep the archived tag | Pre-fill the title only | Start dialog |
+| FE-013 | 2026-10-26 | Which timer is larger on the main screen (D-02) | Day total larger · session timer larger · equal weight | Day total larger; the current session timer sits smaller beside it (owner took the recommendation) | Today, timer bar |
 
 ## 11. Open questions
 
@@ -132,4 +133,3 @@ Decisions noticed but not yet put to the owner (for example when working unatten
 
 | Question | Where it came up | Options so far |
 |---|---|---|
-| Which timer is larger on the main screen: the current session or the day total? (D-02) | PRD US-5.1 lists both without an order | Day total larger (pre-PRD recommendation) · session timer larger · equal weight; decide at T2.6 |
