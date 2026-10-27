@@ -1009,6 +1009,7 @@ Decided 2026-10-24 alongside the stack, and confirmed by the PRD: activity track
 | Offline indicator | | Offline – will sync |
 | Verify email | Confirm your email | Open this link within 24 hours to finish signing up. |
 | Reset password | Reset your password | This link works once, within 1 hour. |
+| Email change | Confirm your new email | Open this link within 24 hours to confirm this address for your Pulse account. |
 | Account deleted | Your Pulse account was deleted | All your data has been permanently removed. |
 
 ## Appendix C. Legacy carry-over actions

@@ -97,7 +97,9 @@ src/
                     tags, goals, preferences, stats (incl. daily aggregates), achievements,
                     usage, credits (rates + ledger), push, sync (realtime + snapshot + change feed),
                     data (export/import), app-updates, health
-  mail/             SMTP transport and templates (used by auth)
+  mail/             SMTP transport and templates (used by auth; T1.4): `MailService` has one method per
+                    email type and returns a typed result (sent / failed with a safe reason /
+                    not-configured), never throws and never logs address, link, token or body
     *.controller.ts / *.gateway.ts   transport only: validate with the contract, call the service
     *.service.ts                     use case, transaction boundary, emits events
     *.repository.ts                  SQL only
@@ -124,6 +126,18 @@ seed/               seed files `NNN-name.sql` / `.ts` (demo data for the dev dat
 ```
 
 Controllers never touch the database; repositories never contain business rules; `domain` imports nothing from Nest.
+
+#### Email links (T1.4)
+
+A link in an email is `PUBLIC_API_URL` + path + `?token=<token>`. The token is URL-safe base64 (16 to 256 characters, e.g. `randomBytes(32).toString('base64url')`), made by auth (T1.5, T1.7) and stored hashed. The server itself answers these paths, because the link is opened in a browser on whatever device reads the mail, with no Pulse client involved. The paths live in one place, `MAIL_LINK_PATHS` in `apps/server/src/mail/mail-links.ts`:
+
+| Email | Path | Valid |
+|---|---|---|
+| Verify email (US-4.1) | `/auth/verify-email` | 24 h |
+| Reset password (US-4.4) | `/auth/reset-password` | 1 h, single use |
+| Email change, sent to the new address | `/auth/confirm-email-change` | 24 h, single use |
+
+Account deleted (US-4.6) has no link. Rules for the handlers (T1.5, T1.7): a GET on these paths must not consume the token, because mail scanners and link previews open links; it shows a page whose button POSTs the token, and that page sends `Referrer-Policy: no-referrer`. The access log records the route, never the query string. Single use and expiry are enforced by the token store, not by the link.
 
 ### Android (`apps/android`)
 

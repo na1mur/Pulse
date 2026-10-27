@@ -33,3 +33,6 @@ T1.3 | medium | First CI run of the `deploy` job: Docker Hub rate limits and Com
 T1.3 | low | With an external `DATABASE_URL`, the owner must also drop `db` from `COMPOSE_PROFILES` (Compose cannot switch a profile on a variable); documented in the README and env template, but the spec's wording "DATABASE_URL switch" (OPS-01) could say so
 T1.3 | low | The template's `PUBLIC_API_URL` defaults to `http://localhost:3000`; a forgotten edit under the `https` profile gives wrong email links (consider an empty default so the `:?` check catches it, once the owner updates `.env.example`)
 T1.3 | low | Compose runs only from `infra/` (no root compose file); README clone URL is hard-coded to the GitHub repository (fails if it is private)
+T1.4 | low | Add the email-change token lifetime (24 h) to Appendix A and the EmailToken row when T1.7 settles it
+T1.4 | low | The send-time address check is stricter than the contract's `z.email()` (no IDN or quoted addresses): T1.5 must handle a `failed/invalid-address` verification mail at sign-up, and registration validation should use the same rule
+T1.4 | low | `isMailToken` (16-256 URL-safe base64 characters) is narrower than the contract's `EmailToken` (1-512): T1.5/T1.7 must generate tokens within it, or the contract should narrow
