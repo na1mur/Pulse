@@ -21,7 +21,7 @@ packages/
                    fixtures/ (shared time, streak and credit cases, D-19);
                    data/ (default usage rules, read by the core at build time)
   tokens/          design tokens source (incl. category colours) -> generated CSS variables and Compose theme
-infra/             docker-compose.yml (server, `db` profile, `proxy` profile with Caddy), .env.example, Caddyfile;
+infra/             docker-compose.yml (server, `db` profile, `https` profile with Caddy), .env.example, Caddyfile;
                    docker-compose.dev.yml (dev-only PostgreSQL + Mailpit, T0.6)
 docs/              spec, PRD, architecture, FE guide, design briefs, QA reports, ADRs, knowledge
 scripts/           repo tooling: docs checks, spec lookup, the one-command check (check.mjs) and the

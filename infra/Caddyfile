@@ -1,0 +1,23 @@
+# Caddy for the `https` profile (OPS-06). {$DOMAIN} and {$PORT} come from the container's
+# environment (infra/docker-compose.yml). A site address that is a plain host name makes Caddy get
+# and renew a Let's Encrypt certificate by itself and redirect HTTP to HTTPS; that needs ports 80 and
+# 443 reachable from the internet and a DNS record for the domain pointing at this machine.
+#
+# WebSocket (the realtime channel /v1/sync/stream) needs no special setting: reverse_proxy passes
+# the Upgrade handshake through. Caddy sends X-Forwarded-For, -Proto and -Host to the server, which
+# trusts exactly one proxy hop when TRUST_PROXY=1.
+{$DOMAIN} {
+	encode zstd gzip
+
+	reverse_proxy server:{$PORT:3000} {
+		# A deploy or config reload cuts open WebSockets after this delay instead of at once, so
+		# clients reconnect in a staggered way.
+		stream_close_delay 30s
+	}
+
+	header {
+		Strict-Transport-Security "max-age=31536000"
+		X-Content-Type-Options nosniff
+		-Server
+	}
+}

@@ -77,6 +77,7 @@ describe('planSteps', () => {
       'scripts/check.test.mjs',
       'scripts/contract-mock-smoke.test.mjs',
       'scripts/dev.test.mjs',
+      'scripts/deploy-smoke.test.mjs',
     ]);
     assert.deepEqual(ruleTests.args, ['--test', 'scripts/dependency-cruiser.test.mjs']);
   });

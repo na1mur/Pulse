@@ -27,3 +27,9 @@ T1.2 | medium | Windows vitest worker start-up crash (exit 3221226505) about onc
 T1.2 | low | `PUBLIC_API_URL` defaults to `http://localhost:PORT`: make it required in the deployment (T1.3); Appendix A could list the fixed timeouts (30 s request, 15 s statement, 5 s connect, 2 s health, 8 s shutdown grace)
 T1.2 | medium | Appendix A says `DATABASE_URL` empty = bundled database, but the server now requires it: T1.3's Compose file must inject the bundled database URL, and Appendix A should say so
 T1.2 | low | A request timeout answers 503 but the handler keeps running (a write may still commit); acceptable because commands are idempotent (documented), revisit if long handlers appear
+T1.3 | low | The server exits 143 after a graceful SIGTERM stop (Nest re-raises the signal); harmless in Docker, exit 0 would be tidier
+T1.3 | low | Base images are pinned by tag, not digest; consider digests plus Renovate/Dependabot when releases start
+T1.3 | medium | First CI run of the `deploy` job: Docker Hub rate limits and Compose >= 2.24 on the runner are unverified
+T1.3 | low | With an external `DATABASE_URL`, the owner must also drop `db` from `COMPOSE_PROFILES` (Compose cannot switch a profile on a variable); documented in the README and env template, but the spec's wording "DATABASE_URL switch" (OPS-01) could say so
+T1.3 | low | The template's `PUBLIC_API_URL` defaults to `http://localhost:3000`; a forgotten edit under the `https` profile gives wrong email links (consider an empty default so the `:?` check catches it, once the owner updates `.env.example`)
+T1.3 | low | Compose runs only from `infra/` (no root compose file); README clone URL is hard-coded to the GitHub repository (fails if it is private)

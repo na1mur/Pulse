@@ -1,5 +1,6 @@
 # CI (T0.3, D-28): every job runs one `scripts/check.mjs` group, the same steps `pnpm verify`
-# runs locally (only actionlint is CI-only). Only the aggregate `ci` job is the required check in
+# runs locally (only actionlint and the `deploy` job are CI-only; `deploy` needs Docker, run it
+# locally with `node scripts/deploy-smoke.mjs`, T1.3). Only the aggregate `ci` job is the required check in
 # the `main` ruleset (.github/rulesets/main.json). No secrets; the token is read-only.
 # Actions are pinned by commit SHA (looked up from each release tag); bump SHA and comment together.
 name: CI
@@ -200,11 +201,31 @@ jobs:
       - name: Check (android)
         run: node scripts/check.mjs --only android
 
+  deploy:
+    # T1.3: builds the server image and runs the production Compose file (bundled database, restart,
+    # backup and restore, https profile on a local domain, external database); scripts/deploy-smoke.mjs
+    # says what each step proves and tears down everything it starts.
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: .node-version
+      - name: Docker and Compose versions
+        run: |
+          docker version --format '{{.Server.Version}}'
+          docker compose version
+      - name: Deployment smoke test
+        run: node scripts/deploy-smoke.mjs
+
   ci:
     # The one required check. Runs even when a job above failed, was cancelled or was skipped,
     # and passes only when every one of them succeeded.
     if: ${{ always() }}
-    needs: [docs, ts, rust, android]
+    needs: [docs, ts, rust, android, deploy]
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:

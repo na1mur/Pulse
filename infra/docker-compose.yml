@@ -1,0 +1,142 @@
+# The Pulse deployment (T1.3, OPS-01, OPS-06): the server, an optional bundled PostgreSQL and an
+# optional Caddy reverse proxy with automatic HTTPS. Guide: README.md (first deploy) and
+# docs/operations/deployment.md.
+#
+#   cp .env.example .env     # in this folder, then fill it in (the README shows how)
+#   docker compose up -d
+#
+# Settings come from `.env` next to this file; nothing secret is written here. Which optional
+# services run is chosen by COMPOSE_PROFILES in that file:
+#   db      the bundled PostgreSQL, used when DATABASE_URL is empty (data on the volume `db-data`)
+#   https   Caddy on ports 80 and 443 for DOMAIN, with a certificate from Let's Encrypt
+# The development stack is infra/docker-compose.dev.yml; nothing here is shared with it.
+name: pulse
+
+x-logging: &logging # Container logs would otherwise grow without limit on a small VPS.
+  driver: json-file
+  options:
+    max-size: 10m
+    max-file: '3'
+
+services:
+  server:
+    build:
+      # The repository root: the workspace manifests and the contract package are part of the build.
+      context: ..
+      dockerfile: apps/server/Dockerfile
+    # PULSE_IMAGE is for the smoke test (scripts/deploy-smoke.mjs) and, later, a published image.
+    image: ${PULSE_IMAGE:-pulse-server:local}
+    restart: unless-stopped
+    # A tiny init process forwards SIGTERM and reaps children; the server then drains in 8 s.
+    init: true
+    stop_grace_period: 10s
+    depends_on:
+      db:
+        condition: service_healthy
+        # Not started (and not waited for) when the `db` profile is off, i.e. an external database.
+        required: false
+    environment:
+      PORT: ${PORT:-3000}
+      # Empty = the bundled database. The password must be URL-safe (the generator in .env.example
+      # makes one); the server refuses a short or placeholder DB_PASSWORD at start.
+      DATABASE_URL: ${DATABASE_URL:-postgres://pulse:${DB_PASSWORD:?Set DB_PASSWORD in .env (bundled database) or set DATABASE_URL (external database)}@db:5432/pulse}
+      DB_PASSWORD: ${DB_PASSWORD:-}
+      JWT_SECRET: ${JWT_SECRET:?Set JWT_SECRET in .env}
+      REFRESH_SECRET: ${REFRESH_SECRET:?Set REFRESH_SECRET in .env}
+      PUBLIC_API_URL: ${PUBLIC_API_URL:?Set PUBLIC_API_URL in .env, for example https://pulse.example.org}
+      DOMAIN: ${DOMAIN:-}
+      CORS_ORIGINS: ${CORS_ORIGINS:-}
+      TRUST_PROXY: ${TRUST_PROXY:-0}
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
+      GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET:-}
+      SMTP_USER: ${SMTP_USER:-}
+      SMTP_APP_PASSWORD: ${SMTP_APP_PASSWORD:-}
+      SMTP_HOST: ${SMTP_HOST:-}
+      SMTP_PORT: ${SMTP_PORT:-}
+      MAIL_FROM: ${MAIL_FROM:-}
+      FCM_PROJECT_ID: ${FCM_PROJECT_ID:-}
+      FCM_CLIENT_EMAIL: ${FCM_CLIENT_EMAIL:-}
+      FCM_PRIVATE_KEY: ${FCM_PRIVATE_KEY:-}
+    ports:
+      # Loopback only: the way in from outside is Caddy (https profile) or your own reverse proxy.
+      # PULSE_BIND_ADDRESS=0.0.0.0 publishes plain HTTP to the network (testing only).
+      - '${PULSE_BIND_ADDRESS:-127.0.0.1}:${PORT:-3000}:${PORT:-3000}'
+    read_only: true
+    tmpfs:
+      - /tmp
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    logging: *logging
+
+  db:
+    image: postgres:17-alpine
+    profiles: [db]
+    restart: unless-stopped
+    # The image stops PostgreSQL with a fast shutdown on SIGINT; give it time to checkpoint.
+    stop_grace_period: 30s
+    environment:
+      POSTGRES_USER: pulse
+      POSTGRES_DB: pulse
+      # Used once, when the volume is empty. Changing it later does not change the database's
+      # password (README.md, "Changing the database password").
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-}
+    volumes:
+      - db-data:/var/lib/postgresql/data
+    # No `ports`: only the server, on the Compose network, can reach the database.
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -h 127.0.0.1 -U pulse -d pulse']
+      interval: 5s
+      timeout: 3s
+      retries: 20
+      start_period: 10s
+    cap_drop:
+      - ALL
+    cap_add:
+      # What the image's entrypoint needs to drop from root to the postgres user and own the data.
+      - CHOWN
+      - DAC_OVERRIDE
+      - FOWNER
+      - SETGID
+      - SETUID
+    security_opt:
+      - no-new-privileges:true
+    logging: *logging
+
+  caddy:
+    image: caddy:2.11-alpine
+    profiles: [https]
+    restart: unless-stopped
+    depends_on:
+      server:
+        condition: service_healthy
+    environment:
+      DOMAIN: ${DOMAIN:-}
+      PORT: ${PORT:-3000}
+    # Fails with a readable message instead of Caddy's "empty site address" when DOMAIN is missing.
+    entrypoint:
+      - sh
+      - -c
+      - 'test -n "$$DOMAIN" || { echo "DOMAIN is not set in .env; the https profile needs it" >&2; exit 1; }; exec caddy run --config /etc/caddy/Caddyfile --adapter caddyfile'
+    ports:
+      - '80:80'
+      - '443:443'
+      - '443:443/udp'
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      # The certificates: keep this volume, a new one asks Let's Encrypt again (rate limits).
+      - caddy-data:/data
+      - caddy-config:/config
+    cap_drop:
+      - ALL
+    cap_add:
+      - NET_BIND_SERVICE
+    security_opt:
+      - no-new-privileges:true
+    logging: *logging
+
+volumes:
+  db-data:
+  caddy-data:
+  caddy-config:

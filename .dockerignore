@@ -1,0 +1,30 @@
+# The build context is the repository root (docs/operations/deployment.md, apps/server/Dockerfile).
+# Allow-list: only what the server image build reads goes to the daemon, so a stray .env, a key or
+# the target/ folder can never end up in a layer or slow the build down.
+*
+
+!package.json
+!pnpm-lock.yaml
+!pnpm-workspace.yaml
+!tsconfig.base.json
+# Workspace members whose manifests the frozen install needs; their sources stay out.
+!apps/desktop/package.json
+!apps/server/
+!packages/contract/
+
+# Not part of the image even inside the folders above.
+**/node_modules
+**/dist
+**/coverage
+**/*.tsbuildinfo
+**/*.log
+**/.env
+**/.env.*
+**/*.pem
+**/*.key
+apps/server/seed
+apps/server/scripts
+**/*.spec.ts
+**/*.testing.ts
+packages/contract/generated
+packages/contract/fixtures

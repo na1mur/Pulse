@@ -2,7 +2,7 @@
 
 Where every secret and signing key for Pulse lives, who may touch it, and what to do if one is lost or leaked. Nothing listed here is ever committed, and agents never create, rotate or upload keys (owner only). Agent-side protection: `guard-edit.js` blocks writes to these files and the settings deny rules block reading them with the file tools; reading them through shell commands (`cat .env`) is not checked, so agents must not do it.
 
-Status: plan, 2026-10-24 (A6.3); server secrets from the PRD's `.env` list added 2026-10-24. T0.3 (CI, 2026-10-25) uses no secrets. Fill in the concrete locations when T1.3 (deployment) and T7.6/T7.7 (releases) set them up.
+Status: plan, 2026-10-24 (A6.3); server secrets from the PRD's `.env` list added 2026-10-24. T0.3 (CI, 2026-10-25) uses no secrets. T1.3 (deployment, 2026-10-27): the server secrets live in `infra/.env` on the server, created from `infra/.env.example` (generation commands in `README.md`; the Compose file reads them, nothing is baked into the image); CI's deployment smoke test generates throwaway secrets per run. Fill in the concrete locations when T7.6/T7.7 (releases) set them up.
 
 ## Inventory
 

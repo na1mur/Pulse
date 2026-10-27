@@ -59,6 +59,7 @@ export function planSteps({ groups, platform, tsRoots }) {
         'scripts/check.test.mjs',
         'scripts/contract-mock-smoke.test.mjs',
         'scripts/dev.test.mjs',
+        'scripts/deploy-smoke.test.mjs',
       ]),
     );
   }
