@@ -38,8 +38,10 @@ services:
     environment:
       PORT: ${PORT:-3000}
       # Empty = the bundled database. The password must be URL-safe (the generator in .env.example
-      # makes one); the server refuses a short or placeholder DB_PASSWORD at start.
-      DATABASE_URL: ${DATABASE_URL:-postgres://pulse:${DB_PASSWORD:?Set DB_PASSWORD in .env (bundled database) or set DATABASE_URL (external database)}@db:5432/pulse}
+      # makes one); the server refuses a missing, short or placeholder DB_PASSWORD at start.
+      # Never nest a required check (the `:?` form) in a default: Compose v2 evaluates it even when
+      # DATABASE_URL is set (docs/operations/deployment.md; scripts/deploy-smoke.test.mjs checks).
+      DATABASE_URL: ${DATABASE_URL:-postgres://pulse:${DB_PASSWORD:-}@db:5432/pulse}
       DB_PASSWORD: ${DB_PASSWORD:-}
       JWT_SECRET: ${JWT_SECRET:?Set JWT_SECRET in .env}
       REFRESH_SECRET: ${REFRESH_SECRET:?Set REFRESH_SECRET in .env}
@@ -82,6 +84,12 @@ services:
       # Used once, when the volume is empty. Changing it later does not change the database's
       # password (README.md, "Changing the database password").
       POSTGRES_PASSWORD: ${DB_PASSWORD:-}
+    # Names the .env setting instead of the image's POSTGRES_PASSWORD message. Not a Compose
+    # `${DB_PASSWORD:?}`: that would also fail for an external database, where the profile is off.
+    entrypoint:
+      - sh
+      - -c
+      - 'test -n "$$POSTGRES_PASSWORD" || { echo "DB_PASSWORD is not set in .env; the bundled database (profile db) needs it" >&2; exit 1; }; exec docker-entrypoint.sh postgres'
     volumes:
       - db-data:/var/lib/postgresql/data
     # No `ports`: only the server, on the Compose network, can reach the database.

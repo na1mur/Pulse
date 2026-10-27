@@ -218,6 +218,19 @@ jobs:
         run: |
           docker version --format '{{.Server.Version}}'
           docker compose version
+      - name: Compose file renders with the oldest supported Compose
+        # The README promises Compose v2.20+; the runner's newer Compose would not notice a file
+        # only newer versions accept. Pinned binary, checked against its release checksum.
+        env:
+          COMPOSE_VERSION: v2.20.0
+          COMPOSE_SHA256: b49e358d11c198fa228fb7eca2a177affd8e1e33e06d29940668668482f797cd
+        run: |
+          binary="$RUNNER_TEMP/docker-compose-$COMPOSE_VERSION"
+          curl -fsSL -o "$binary" "https://github.com/docker/compose/releases/download/$COMPOSE_VERSION/docker-compose-linux-x86_64"
+          echo "$COMPOSE_SHA256  $binary" | sha256sum --check --strict
+          chmod +x "$binary"
+          "$binary" version
+          node scripts/deploy-smoke.mjs --config-only --compose "$binary"
       - name: Deployment smoke test
         run: node scripts/deploy-smoke.mjs
 

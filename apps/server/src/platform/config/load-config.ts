@@ -133,6 +133,17 @@ function readDatabaseUrl(reader: EnvReader): string {
   return '';
 }
 
+/**
+ * An explicitly empty password (`user:@host`): what the Compose file builds for the bundled
+ * database when DB_PASSWORD is empty. Compose cannot check that itself on every supported version
+ * (docs/operations/deployment.md), so the server names the missing variable instead of failing
+ * later as "database unreachable" or with a login error. `user@host` stays allowed.
+ */
+function hasEmptyPassword(databaseUrl: string): boolean {
+  if (databaseUrl === '' || new URL(databaseUrl).password !== '') return false;
+  return /^[a-z][a-z0-9+.-]*:\/\/[^/@]*:@/i.test(databaseUrl);
+}
+
 function readPublicApiUrl(reader: EnvReader, port: number): string {
   const value = reader.text('PUBLIC_API_URL');
   if (value === undefined) return `http://localhost:${port}`;
@@ -252,6 +263,13 @@ export function loadConfig(env: Env): AppConfig {
     reader.fail('REFRESH_SECRET must differ from JWT_SECRET: one leaked key must not open both.');
   }
   reader.secret('DB_PASSWORD', DB_PASSWORD_MIN_LENGTH, { required: false });
+  if (reader.raw('DB_PASSWORD') === undefined && hasEmptyPassword(databaseUrl)) {
+    reader.fail(
+      'DB_PASSWORD is required with the bundled database (DATABASE_URL has an empty password): ' +
+        `set it in .env, at least ${DB_PASSWORD_MIN_LENGTH} characters, or set DATABASE_URL ` +
+        'to your external database with its password.',
+    );
+  }
   const publicApiUrl = readPublicApiUrl(reader, port);
   const domain = readDomain(reader);
   const corsOrigins = readCorsOrigins(reader);

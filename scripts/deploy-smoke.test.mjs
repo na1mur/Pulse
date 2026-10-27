@@ -2,7 +2,7 @@
 // agreements between the deployment files that nothing else would notice drifting: the Node
 // version in the Dockerfile, the variables Compose passes on, the template and the spec's list.
 import assert from 'node:assert/strict';
-import { readFileSync } from 'node:fs';
+import { readFileSync, readdirSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { describe, it } from 'node:test';
 import { fileURLToPath } from 'node:url';
@@ -10,13 +10,14 @@ import { fileURLToPath } from 'node:url';
 import {
   PULSE_VARIABLES,
   childEnv,
-  composeArgs,
+  composeCommand,
   externalNetworkOverride,
   generateSecret,
   isHealthy,
   proxyPortsOverride,
   publishedPorts,
   renderEnv,
+  smokeOptions,
   waitFor,
 } from './deploy-smoke.mjs';
 
@@ -69,19 +70,39 @@ describe('childEnv', () => {
   });
 });
 
-describe('composeArgs', () => {
-  it('names the project and env file and lists each file in order', () => {
-    assert.deepEqual(composeArgs({ project: 'p', envFile: 'e.env', files: ['a.yml', 'b.yml'] }), [
-      'compose',
-      '-p',
-      'p',
-      '--env-file',
-      'e.env',
-      '-f',
-      'a.yml',
-      '-f',
-      'b.yml',
-    ]);
+describe('composeCommand', () => {
+  const shared = ['-p', 'p', '--env-file', 'e.env', '-f', 'a.yml', '-f', 'b.yml'];
+  const target = { project: 'p', envFile: 'e.env', files: ['a.yml', 'b.yml'] };
+
+  it('runs `docker compose`, naming the project and env file and each file in order', () => {
+    assert.deepEqual(composeCommand(target), {
+      command: 'docker',
+      args: ['compose', ...shared],
+    });
+  });
+
+  it('runs a standalone Compose binary with the same arguments when one is given', () => {
+    assert.deepEqual(composeCommand({ ...target, binary: '/opt/docker-compose' }), {
+      command: '/opt/docker-compose',
+      args: shared,
+    });
+  });
+});
+
+describe('smokeOptions', () => {
+  it('defaults to `docker compose` and every step', () => {
+    assert.deepEqual(smokeOptions([]), { compose: undefined, configOnly: false });
+  });
+
+  it('reads --compose and --config-only', () => {
+    assert.deepEqual(smokeOptions(['--compose', '/opt/dc', '--config-only']), {
+      compose: '/opt/dc',
+      configOnly: true,
+    });
+  });
+
+  it('refuses an unknown option instead of running everything', () => {
+    assert.throws(() => smokeOptions(['--config']), /Unknown option/);
   });
 });
 
@@ -181,6 +202,43 @@ function serviceSection(compose, name) {
   return lines.slice(start + 1, end < 0 ? undefined : end).join('\n');
 }
 
+/**
+ * Every required-variable check (`${NAME:?…}` or `${NAME?…}`) written inside another `${…}`, as
+ * "NAME inside OUTER". Compose v2 (2.20 to at least 2.38) evaluates such a check even when the
+ * outer variable is set, Compose v5 does not; the deploy job broke on exactly that. `$$` is a
+ * literal dollar sign, not an expression.
+ */
+function nestedRequiredChecks(text) {
+  const found = [];
+  const open = [];
+  for (let i = 0; i < text.length; i += 1) {
+    if (text.startsWith('$$', i)) {
+      i += 1;
+    } else if (text.startsWith('${', i)) {
+      const [, name, required] = /^\$\{([A-Za-z_][A-Za-z0-9_]*)(:?\?)?/.exec(text.slice(i)) ?? [];
+      if (required && open.length > 0) found.push(`${name} inside ${open.at(-1)}`);
+      open.push(name ?? '?');
+      i += 1;
+    } else if (text[i] === '}' && open.length > 0) {
+      open.pop();
+    }
+  }
+  return found;
+}
+
+describe('nestedRequiredChecks', () => {
+  it('finds the required check nested in a default that broke CI on Compose v2.38', () => {
+    const line = 'DATABASE_URL: ${DATABASE_URL:-postgres://pulse:${DB_PASSWORD:?Set it}@db/pulse}';
+    assert.deepEqual(nestedRequiredChecks(line), ['DB_PASSWORD inside DATABASE_URL']);
+    assert.deepEqual(nestedRequiredChecks('${A-${B?x}}'), ['B inside A']);
+  });
+
+  it('allows nested defaults, checks side by side and escaped dollar signs', () => {
+    assert.deepEqual(nestedRequiredChecks('${A:-x${B:-}y} ${C:?c} ${D:?d}'), []);
+    assert.deepEqual(nestedRequiredChecks('sh -c "test -n $${A} || { exit 1; }" ${B:?b}'), []);
+  });
+});
+
 describe('deployment files agree with each other', () => {
   const compose = read('infra/docker-compose.yml');
   const template = read('infra/env.example.proposed');
@@ -239,6 +297,14 @@ describe('deployment files agree with each other', () => {
     const ignore = read('.dockerignore').split('\n');
     for (const pattern of ['*', '**/.env', '**/.env.*', '**/*.pem', '**/*.key']) {
       assert.ok(ignore.includes(pattern), `.dockerignore lacks ${pattern}`);
+    }
+  });
+
+  it('no Compose file nests a required-variable check inside another variable', () => {
+    const files = readdirSync(join(root, 'infra')).filter((name) => /\.ya?ml$/.test(name));
+    assert.ok(files.includes('docker-compose.yml'));
+    for (const name of files) {
+      assert.deepEqual(nestedRequiredChecks(read(`infra/${name}`)), [], `infra/${name}`);
     }
   });
 

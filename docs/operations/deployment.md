@@ -17,7 +17,7 @@ The development stack (`infra/docker-compose.dev.yml`) shares nothing with these
 
 ## How the switches work
 
-- **Bundled or external database.** The profile `db` (set through `COMPOSE_PROFILES` in `.env`, because plain `docker compose up -d` takes no flags) starts PostgreSQL. The server's `DATABASE_URL` is `${DATABASE_URL}` when set, else `postgres://pulse:${DB_PASSWORD}@db:5432/pulse`; the second form refuses to start Compose without `DB_PASSWORD`. The server waits for the database through `depends_on` with `required: false`, so with the profile off nothing waits. If `DATABASE_URL` is empty and the profile is off, the server cannot resolve `db` and stops with the "database unreachable" message.
+- **Bundled or external database.** The profile `db` (set through `COMPOSE_PROFILES` in `.env`, because plain `docker compose up -d` takes no flags) starts PostgreSQL. The server's `DATABASE_URL` is `${DATABASE_URL}` when set, else `postgres://pulse:${DB_PASSWORD}@db:5432/pulse`. A missing `DB_PASSWORD` is reported at start, not by Compose: the `db` container exits with "DB_PASSWORD is not set in .env" (its entrypoint checks before PostgreSQL starts), and the server refuses its configuration with "DB_PASSWORD is required with the bundled database" (it sees the empty password in `postgres://pulse:@db…`). Compose itself cannot check it: a required check (`:?`) inside the default of `DATABASE_URL` is evaluated by Compose v2 (2.20 to at least 2.38) even when `DATABASE_URL` is set, which breaks every external-database setup, and a plain `${DB_PASSWORD:?…}` on the `db` service fails too when its profile is off. `scripts/deploy-smoke.test.mjs` refuses any nested required check in `infra/*.yml`. The server waits for the database through `depends_on` with `required: false`, so with the profile off nothing waits. If `DATABASE_URL` is empty and the profile is off, the server cannot resolve `db` and stops with the "database unreachable" message.
 - **Passwords inside a URL.** Compose cannot percent-encode, so `DB_PASSWORD` must be URL-safe; the generators in the README (hex) are. The server itself refuses a `DB_PASSWORD` shorter than 12 characters or a placeholder (OPS-03).
 - **HTTPS.** Profile `https` starts Caddy on 80, 443 and 443/udp. The server's own port stays on `127.0.0.1` (`PULSE_BIND_ADDRESS` changes that for tests). `TRUST_PROXY` must be 1 behind Caddy; it is not derived automatically.
 - **`PORT`** sets the port inside the container and on the host, so the health check, the published port and Caddy's upstream follow it.
@@ -29,7 +29,7 @@ The server runs with a read-only root file system (a `tmpfs` on `/tmp`), no Linu
 
 ## Smoke test
 
-`node scripts/deploy-smoke.mjs` (needs Docker with Compose v2.24 or newer; CI: job `deploy`, a few minutes when the image is built cold). It uses a throwaway project name, a temporary env file with generated secrets, free loopback ports and a uniquely tagged image, never reads `infra/.env`, and removes containers, volumes, networks and the image it created, also on failure. It proves, in order:
+`node scripts/deploy-smoke.mjs` (CI: job `deploy`, a few minutes when the image is built cold). The full run needs Docker with Compose v2.24.4 or newer, because its https step replaces Caddy's ports with `!override` (older versions ignore the tag and merge the ports); the Compose file itself works from v2.20, the version the README promises. `--compose <binary>` runs every Compose call through a standalone `docker-compose` binary (another version) and `--config-only` stops after the first step; the `deploy` job runs those two together with a checksum-pinned Compose v2.20.0 before the full run, so a file only newer Compose versions accept fails CI. It uses a throwaway project name, a temporary env file with generated secrets, free loopback ports and a uniquely tagged image, never reads `infra/.env`, and removes containers, volumes, networks and the image it created, also on failure. It proves, in order:
 
 1. the Compose file renders for the profile combinations `db`, `db,https`, `https` and none, and `caddy validate` accepts the Caddyfile;
 2. `/health` answers `{"status":"ok","database":"up"}` on the bundled database;
@@ -37,15 +37,17 @@ The server runs with a read-only root file system (a `tmpfs` on `/tmp`), no Linu
 4. a row survives `down` and `up`, and the second start reports an up-to-date schema (migrations are idempotent);
 5. a `pg_dump` taken from the running database restores into a brand-new empty volume, and the server then finds the schema up to date;
 6. with the `https` profile on the domain `localhost`, Caddy answers over HTTPS with its own certificate, proxies `/health`, and redirects HTTP to HTTPS;
-7. with `DATABASE_URL` set to a second PostgreSQL container and the profile off, only the server runs, it migrates that database and is healthy.
+7. with the `db` profile and an empty `DB_PASSWORD`, both the database and the server log a message naming `DB_PASSWORD`;
+8. with `DATABASE_URL` set to a second PostgreSQL container and the profile off, only the server runs, it migrates that database and is healthy.
 
-The pure parts (secret and env-file generation, health parsing, waiting with a fake clock, the Compose overrides) and the agreement between the files (Node version, the variables Compose reads against the template and spec Appendix A, no published database port, the `.dockerignore` rules) are tested in `scripts/deploy-smoke.test.mjs`, which runs in `node scripts/check.mjs --only docs`.
+The pure parts (secret and env-file generation, health parsing, waiting with a fake clock, the Compose overrides) and the agreement between the files (Node version, the variables Compose reads against the template and spec Appendix A, no published database port, the `.dockerignore` rules, no required check nested in another variable) are tested in `scripts/deploy-smoke.test.mjs`, which runs in `node scripts/check.mjs --only docs`.
 
 Not covered: certificate issuance from Let's Encrypt (needs a public domain), the WebSocket upgrade through Caddy (the server has no WebSocket endpoint yet; `reverse_proxy` passes upgrades by design, re-check when the sync gateway lands, T3.x), a real clean VM, and `linux/arm64`.
 
 ## Troubleshooting
 
 - `required variable ... is missing a value` from `docker compose`: the named line in `.env` is empty.
+- `db` keeps restarting with "DB_PASSWORD is not set in .env" and the server with "DB_PASSWORD is required with the bundled database": set `DB_PASSWORD` (README, first deploy), or for an external database set `DATABASE_URL` and remove `db` from `COMPOSE_PROFILES`. `docker compose up -d` only warns that the optional dependency `db` failed, so check `docker compose ps` and the logs.
 - The server container restarts and logs a configuration problem: the server lists every wrong value (never the secrets). Fix `.env`, `docker compose up -d`.
 - Server logs "database unreachable": with the bundled database check `docker compose ps` (db healthy?) and that `COMPOSE_PROFILES` contains `db`; with an external one check that the host name resolves and is reachable from the container, and the firewall.
 - `/health` answers 503: the database does not answer within 2 s; the container shows "unhealthy" but is not restarted (nothing in the stack acts on it).

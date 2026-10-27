@@ -8,22 +8,27 @@
 //      and a pg_dump backup restores into a fresh, empty database volume;
 //   3. https profile: Caddy answers on the local domain `localhost` (its own certificate) and proxies
 //      to the server. Let's Encrypt itself cannot be tested without a public domain;
-//   4. external database: with `DATABASE_URL` set, no bundled database runs and the server migrates
+//   4. bundled database without DB_PASSWORD: the server and the database both name the setting;
+//   5. external database: with `DATABASE_URL` set, no bundled database runs and the server migrates
 //      and uses the external one.
 // Everything runs under a throwaway Compose project on free loopback ports with a generated
 // environment file in a temporary folder; it never reads infra/.env and always tears down what it
-// started (containers, volumes, networks, the image it built). Needs Docker with Compose v2.24+.
+// started (containers, volumes, networks, the image it built). Needs Docker with Compose v2.24.4+
+// (`!override` in the https step); the Compose file itself supports v2.20+ (README).
 //
-//   node scripts/deploy-smoke.mjs
+//   node scripts/deploy-smoke.mjs [--compose <standalone docker-compose binary>] [--config-only]
 //
-// No dependencies, like check.mjs.
+// --compose runs every Compose call through that binary instead of `docker compose` (to test
+// another Compose version); --config-only stops after step 1. CI runs both together with the
+// oldest supported Compose. No dependencies, like check.mjs.
 import { spawnSync } from 'node:child_process';
 import { randomBytes } from 'node:crypto';
 import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { request } from 'node:https';
 import { tmpdir } from 'node:os';
-import { dirname, join } from 'node:path';
+import { basename, dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { parseArgs } from 'node:util';
 
 import { freePort } from './contract-mock-smoke.mjs';
 
@@ -85,9 +90,24 @@ export function childEnv(env, names = PULSE_VARIABLES) {
   );
 }
 
-/** The arguments every `docker compose` call shares. */
-export function composeArgs({ project, envFile, files }) {
-  return ['compose', '-p', project, '--env-file', envFile, ...files.flatMap((f) => ['-f', f])];
+/** The command line options: `{ compose, configOnly }`; throws on an unknown one. */
+export function smokeOptions(args) {
+  const { values } = parseArgs({
+    args,
+    options: { compose: { type: 'string' }, 'config-only': { type: 'boolean', default: false } },
+  });
+  return { compose: values.compose, configOnly: values['config-only'] };
+}
+
+/**
+ * The program and the arguments every Compose call shares: `docker compose`, or the standalone
+ * Compose `binary` when one is given.
+ */
+export function composeCommand({ binary, project, envFile, files }) {
+  const shared = ['-p', project, '--env-file', envFile, ...files.flatMap((f) => ['-f', f])];
+  return binary
+    ? { command: binary, args: shared }
+    : { command: 'docker', args: ['compose', ...shared] };
 }
 
 /** `/health` in its healthy form: the API and the database both report up (OPS-01). */
@@ -163,19 +183,20 @@ export async function waitFor(
 
 // ---- Docker -------------------------------------------------------------------------------------
 
-function docker(args, { env, input, allowFailure = false, cwd = root } = {}) {
-  const result = spawnSync('docker', args, {
+function run(command, args, { env, input, allowFailure = false, cwd = root } = {}) {
+  const result = spawnSync(command, args, {
     cwd,
     env,
     input,
     encoding: 'utf8',
     maxBuffer: 256 * 1024 * 1024,
   });
-  if (result.error) throw new Error(`docker could not run: ${result.error.message}`);
+  const name = basename(command);
+  if (result.error) throw new Error(`${name} could not run: ${result.error.message}`);
   if (result.status !== 0 && !allowFailure) {
     const text = (value) => (value ? value.toString().trim().slice(-2000) : '');
     throw new Error(
-      `docker ${args
+      `${name} ${args
         .filter((a) => !a.startsWith('--env-file'))
         .slice(0, 8)
         .join(' ')} failed (${result.status})\n${text(result.stderr)}`,
@@ -183,6 +204,8 @@ function docker(args, { env, input, allowFailure = false, cwd = root } = {}) {
   }
   return result;
 }
+
+const docker = (args, options) => run('docker', args, options);
 
 async function getJson(url) {
   const response = await fetch(url, { signal: AbortSignal.timeout(5000) });
@@ -233,7 +256,7 @@ const step = async (name, run) => {
   console.log(`ok - ${name} (${((Date.now() - started) / 1000).toFixed(1)} s)`);
 };
 
-async function main() {
+async function main({ compose: composeBinary, configOnly }) {
   const suffix = randomBytes(3).toString('hex');
   const project = `pulse-smoke-${suffix}`;
   const image = `pulse-smoke-server:${suffix}`;
@@ -268,11 +291,15 @@ async function main() {
     writeFileSync(file, text);
     return file;
   };
-  const dc = (args, options) =>
-    docker([...composeArgs({ project, envFile, files: [composeFile, ...overrides] }), ...args], {
-      env: baseEnv,
-      ...options,
-    });
+  const dc = (args, options) => {
+    const files = [composeFile, ...overrides];
+    const compose = composeCommand({ binary: composeBinary, project, envFile, files });
+    return run(compose.command, [...compose.args, ...args], { env: baseEnv, ...options });
+  };
+  const logsOf = (service) => {
+    const result = dc(['logs', '--no-log-prefix', service], { allowFailure: true });
+    return `${result.stdout ?? ''}${result.stderr ?? ''}`;
+  };
   const health = () => getJson(`http://127.0.0.1:${port}/health`);
   const waitHealthy = (what) =>
     waitFor(
@@ -303,16 +330,19 @@ async function main() {
       '-c',
       sql,
     ]).stdout.trim();
-  const serverLog = () => dc(['logs', '--no-log-prefix', 'server']).stdout;
+  const serverLog = () => logsOf('server');
 
   let failure;
   try {
     await step('compose file and Caddyfile are valid for every profile combination', async () => {
       for (const profiles of ['db', 'db,https', 'https', '']) {
+        const bundled = profiles.includes('db');
+        // As the README sets it up: an external database leaves DB_PASSWORD empty.
         writeSettings({
           COMPOSE_PROFILES: profiles,
           DOMAIN: 'pulse.example.org',
-          DATABASE_URL: profiles.includes('db') ? '' : 'postgres://u:p@db.example.org:5432/pulse',
+          DATABASE_URL: bundled ? '' : 'postgres://u:p@db.example.org:5432/pulse',
+          DB_PASSWORD: bundled ? dbPassword : '',
         });
         dc(['config', '--quiet']);
       }
@@ -336,8 +366,17 @@ async function main() {
         ],
         { env: baseEnv },
       );
-      writeSettings({ COMPOSE_PROFILES: 'db', DOMAIN: '', DATABASE_URL: '' });
+      writeSettings({
+        COMPOSE_PROFILES: 'db',
+        DOMAIN: '',
+        DATABASE_URL: '',
+        DB_PASSWORD: dbPassword,
+      });
     });
+    if (configOnly) {
+      console.log('deploy smoke: --config-only, the steps that start containers were skipped');
+      return 0;
+    }
 
     await step('the server image builds', async () => {
       dc(['build', 'server']);
@@ -460,6 +499,33 @@ async function main() {
     );
 
     await step(
+      'bundled database without DB_PASSWORD: the server and the database name the setting',
+      async () => {
+        // With --volumes while the https profile is still on, so Caddy's volumes go too.
+        dc(['down', '--volumes', '--remove-orphans']);
+        overrides.length = 0;
+        writeSettings({
+          COMPOSE_PROFILES: 'db',
+          DOMAIN: '',
+          TRUST_PROXY: '0',
+          PUBLIC_API_URL: `http://localhost:${port}`,
+          DB_PASSWORD: '',
+        });
+        // The database is an optional dependency (external databases), so Compose only warns
+        // that it failed and starts the server anyway; its exit code differs between versions.
+        dc(['up', '-d'], { allowFailure: true });
+        const expected = {
+          server: 'DB_PASSWORD is required with the bundled database',
+          db: 'DB_PASSWORD is not set in .env',
+        };
+        await waitFor(
+          () => Object.entries(expected).every(([service, text]) => logsOf(service).includes(text)),
+          { timeoutMs: 60_000, what: 'the server and the database naming DB_PASSWORD' },
+        );
+      },
+    );
+
+    await step(
       'external database: DATABASE_URL set, no bundled database, migrations applied',
       async () => {
         dc(['down', '--volumes', '--remove-orphans']);
@@ -549,6 +615,13 @@ async function main() {
     );
   } finally {
     dc(['down', '--volumes', '--remove-orphans'], { allowFailure: true });
+    // `down` only sees the volumes of the profiles that are on now; remove the rest by label.
+    const leftover = docker(
+      ['volume', 'ls', '-q', '--filter', `label=com.docker.compose.project=${project}`],
+      { allowFailure: true },
+    ).stdout;
+    const volumes = (leftover ?? '').split(/\s+/).filter(Boolean);
+    if (volumes.length > 0) docker(['volume', 'rm', ...volumes], { allowFailure: true });
     docker(['rm', '--force', '--volumes', externalName], { allowFailure: true });
     docker(['network', 'rm', externalNetwork], { allowFailure: true });
     docker(['image', 'rm', image], { allowFailure: true });
@@ -562,4 +635,4 @@ async function main() {
   return 0;
 }
 
-if (import.meta.main) process.exitCode = await main();
+if (import.meta.main) process.exitCode = await main(smokeOptions(process.argv.slice(2)));

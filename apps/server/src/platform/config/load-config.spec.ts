@@ -94,6 +94,11 @@ describe('OPS-03: defaults', () => {
     expect(config.fcm?.privateKey).toContain('\nMIIEvQ\n');
   });
 
+  it('accepts a DATABASE_URL without a password (external database, other authentication)', () => {
+    const url = 'postgres://pulse@db.example.org:5432/pulse';
+    expect(loadConfig({ ...base, DATABASE_URL: url }).databaseUrl).toBe(url);
+  });
+
   it('uses a mail catcher without credentials (the dev services)', () => {
     const config = loadConfig({ ...base, SMTP_HOST: 'localhost', SMTP_PORT: '1025' });
     expect(config.mail).toEqual({
@@ -139,6 +144,12 @@ describe('OPS-03: bad configuration is rejected, every problem at once', () => {
       /REFRESH_SECRET must differ from JWT_SECRET/,
     ],
     ['weak DB_PASSWORD', { ...base, DB_PASSWORD: 'password123456' }, /DB_PASSWORD is too weak/],
+    [
+      // What Compose hands the server for the bundled database when DB_PASSWORD is empty.
+      'bundled database without DB_PASSWORD',
+      { ...base, DATABASE_URL: 'postgres://pulse:@db:5432/pulse', DB_PASSWORD: '' },
+      /DB_PASSWORD is required/,
+    ],
     ['non-numeric PORT', { ...base, PORT: 'abc' }, /PORT must be/],
     ['PORT with trailing text', { ...base, PORT: '3000abc' }, /PORT must be/],
     ['PORT above 65535', { ...base, PORT: '70000' }, /PORT must be/],
