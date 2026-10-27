@@ -131,8 +131,9 @@ module.exports = {
     {
       name: 'server-not-to-dev-dep',
       severity: 'error',
-      comment: 'The server image installs production dependencies only; tests may use dev ones.',
-      from: { path: '^apps/server/src/', pathNot: '[.](spec|test)[.]ts$' },
+      comment:
+        'The server image installs production dependencies only; tests and their *.testing.ts helpers (not built, see tsconfig.build.json) may use dev ones.',
+      from: { path: '^apps/server/src/', pathNot: '[.](spec|test|testing)[.]ts$' },
       to: { dependencyTypes: ['npm-dev'], dependencyTypesNot: ['type-only'] },
     },
   ],

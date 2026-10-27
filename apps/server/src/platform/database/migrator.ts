@@ -110,7 +110,7 @@ async function migrateUp(db: AnyDatabase, migrations: readonly Migration[]): Pro
   const applied: string[] = [];
   for (const migration of migrations) {
     const ran = await db.transaction().execute(async (tx) => {
-      await lock(tx);
+      await prepare(tx);
       await sql`
         create table if not exists schema_migrations (
           id text primary key,
@@ -140,7 +140,7 @@ async function migrateDown(
   const rolledBack: string[] = [];
   while (rolledBack.length < steps) {
     const id = await db.transaction().execute(async (tx) => {
-      await lock(tx);
+      await prepare(tx);
       const exists = await sql<{ present: boolean }>`
         select to_regclass('schema_migrations') is not null as present`.execute(tx);
       if (exists.rows[0]?.present !== true) return undefined;
@@ -165,8 +165,14 @@ async function migrateDown(
   return rolledBack;
 }
 
-async function lock(tx: Tx): Promise<void> {
+/**
+ * Queues behind other starting servers, and lifts the statement timeout the application's pool
+ * sets for requests (T1.2): a long migration must not be cancelled half way (the transaction
+ * would roll back, so nothing is lost, but the server could never start).
+ */
+async function prepare(tx: Tx): Promise<void> {
   await sql`select pg_advisory_xact_lock(hashtext('pulse.schema_migrations'))`.execute(tx);
+  await sql`set local statement_timeout = 0`.execute(tx);
 }
 
 async function appliedRows(tx: Tx): Promise<AppliedRow[]> {

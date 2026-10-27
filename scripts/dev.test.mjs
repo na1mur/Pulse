@@ -56,6 +56,11 @@ function harness({ answers = {}, busy = [], env = {}, childCodes = [] } = {}) {
     runChild,
     portInUse,
     env,
+    // Deterministic token secrets, in the order the server's variables are read.
+    generateSecret: (() => {
+      let n = 0;
+      return () => `generated-secret-${++n}`;
+    })(),
     log: (s) => out.push(s),
     error: (s) => err.push(s),
   };
@@ -776,7 +781,7 @@ describe('runDev start (pnpm dev)', () => {
     assert.equal(h.err.length, 0);
   });
 
-  it('gives the seed step DATABASE_URL and the server DATABASE_URL, SMTP_HOST and SMTP_PORT', async () => {
+  it('gives the seed step DATABASE_URL and the server its database, mail catcher and token secrets', async () => {
     const h = harness();
     await runDev('start', h.deps);
     const [seed, server] = h.children;
@@ -785,7 +790,24 @@ describe('runDev start (pnpm dev)', () => {
       DATABASE_URL: 'postgres://pulse:pulse@localhost:5432/pulse',
       SMTP_HOST: 'localhost',
       SMTP_PORT: '1025',
+      JWT_SECRET: 'generated-secret-1',
+      REFRESH_SECRET: 'generated-secret-2',
     });
+  });
+
+  it('keeps token secrets the user already set, and generates different ones otherwise (OPS-03)', async () => {
+    const kept = harness({ env: { JWT_SECRET: 'mine-jwt', REFRESH_SECRET: 'mine-refresh' } });
+    await runDev('start', kept.deps);
+    assert.equal(kept.children[1].env.JWT_SECRET, 'mine-jwt');
+    assert.equal(kept.children[1].env.REFRESH_SECRET, 'mine-refresh');
+
+    const real = harness();
+    delete real.deps.generateSecret;
+    await runDev('start', real.deps);
+    const { JWT_SECRET, REFRESH_SECRET } = real.children[1].env;
+    assert.match(JWT_SECRET, /^[A-Za-z0-9_-]{43}$/);
+    assert.notEqual(JWT_SECRET, REFRESH_SECRET);
+    assert.equal(JSON.stringify(real.children[0].env).includes(JWT_SECRET), false);
   });
 
   it('takes the settings from the resolved ports, and overrides a DATABASE_URL of the user', async () => {
@@ -893,7 +915,7 @@ describe('round 3: runDev start in detail', () => {
     assert.equal(h.children.length, 2);
   });
 
-  it('gives the seed step exactly DATABASE_URL and the server exactly three variables', async () => {
+  it('gives the seed step exactly DATABASE_URL and the server exactly five variables', async () => {
     const h = harness({
       env: {
         PULSE_DEV_DB_PORT: '5433',
@@ -910,6 +932,8 @@ describe('round 3: runDev start in detail', () => {
       DATABASE_URL: 'postgres://pulse:pulse@localhost:5433/pulse',
       SMTP_HOST: 'localhost',
       SMTP_PORT: '2525',
+      JWT_SECRET: 'generated-secret-1',
+      REFRESH_SECRET: 'generated-secret-2',
     });
     assert.equal(JSON.stringify(h.children).includes('prod.example.com'), false);
     assert.equal(JSON.stringify(h.children).includes('smtp.example.com'), false);

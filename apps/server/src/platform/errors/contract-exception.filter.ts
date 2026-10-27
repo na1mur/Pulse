@@ -12,6 +12,7 @@ import { HttpAdapterHost } from '@nestjs/core';
 import type { ServerResponse } from 'node:http';
 import { CLOCK, type Clock } from '../clock/clock.js';
 import { ensureRequestContext, removeFrameworkHeader } from '../http/request-context.middleware.js';
+import { stackFrames, summarizeError } from '../logging/safe-error.js';
 import { AppError } from './app-error.js';
 
 // Errors raised outside our handlers (routing, body parsing) arrive as Nest HTTP exceptions.
@@ -71,10 +72,11 @@ export class ContractExceptionFilter implements ExceptionFilter {
     const requestId = ensureRequestContext(response, this.clock);
     const body = this.toBody(exception, requestId);
     if (body.code === 'INTERNAL') {
-      // Spec 9.5: the request ID ties the log line to the answer; the cause stays in the log.
-      // JavaScript can throw anything, null included; log what was thrown.
-      const cause = exception instanceof Error ? exception.stack : String(exception);
-      this.logger.error(`Unhandled error (request ${requestId})`, cause);
+      // Spec 9.5: the log line carries the request ID (log context) that the answer carries.
+      // OPS-04: the message of a driver or validation error can embed user values, so only the
+      // class, code and stack frames are logged. JavaScript can throw anything, null included.
+      const frames = exception instanceof Error ? stackFrames(exception.stack) : '';
+      this.logger.error(`Unhandled error: ${summarizeError(exception)}`, frames || undefined);
     }
     this.adapterHost.httpAdapter.reply(response, body, ERROR_HTTP_STATUS[body.code]);
   }

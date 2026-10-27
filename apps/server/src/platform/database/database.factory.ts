@@ -17,11 +17,32 @@ function parseInt8(value: string): number {
 
 const logger = new Logger('Database');
 
-/** A Kysely bound to one PostgreSQL URL. The pool connects on first use, not here. */
-export function createDatabase(connectionUrl: string): Kysely<Database> {
+export interface DatabaseOptions {
+  /** How long to wait for a connection from the pool or a new one (spec 9.2). */
+  readonly connectTimeoutMs?: number;
+  /** PostgreSQL cancels a statement, and ends a transaction left idle, after this long. */
+  readonly statementTimeoutMs?: number;
+  readonly poolMax?: number;
+}
+
+/**
+ * A Kysely bound to one PostgreSQL URL. The pool connects on first use, not here. Without options
+ * there are no timeouts (tests and tools); the server passes the configured ones.
+ */
+export function createDatabase(
+  connectionUrl: string,
+  options: DatabaseOptions = {},
+): Kysely<Database> {
   const types = new pg.TypeOverrides();
   types.setTypeParser(pg.types.builtins.INT8, parseInt8);
-  const pool = new pg.Pool({ connectionString: connectionUrl, types });
+  const pool = new pg.Pool({
+    connectionString: connectionUrl,
+    types,
+    max: options.poolMax,
+    connectionTimeoutMillis: options.connectTimeoutMs,
+    statement_timeout: options.statementTimeoutMs,
+    idle_in_transaction_session_timeout: options.statementTimeoutMs,
+  });
   // node-postgres re-emits an error on an idle pooled client (PostgreSQL restarted, failover, a
   // proxy idle timeout) as an error event on the pool; without a listener it is an uncaught
   // exception that kills the process. The pool drops that client and the next query reconnects.
@@ -30,16 +51,4 @@ export function createDatabase(connectionUrl: string): Kysely<Database> {
     logger.error(`Idle database connection lost (${error.code ?? 'no code'}): ${error.message}`);
   });
   return new Kysely<Database>({ dialect: new PostgresDialect({ pool }) });
-}
-
-/**
- * A Kysely for a process with no DATABASE_URL (the HTTP specs): building it is free and the first
- * query fails with a clear message. The real server refuses to start without the URL (bootstrap).
- */
-export function createUnconfiguredDatabase(): Kysely<Database> {
-  return new Kysely<Database>({
-    dialect: new PostgresDialect({
-      pool: () => Promise.reject(new Error('DATABASE_URL is not set: no database is configured')),
-    }),
-  });
 }

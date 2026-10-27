@@ -18,9 +18,9 @@ pnpm dev                             # services + seeds + server, in this termin
 2. The seed files (`pnpm --filter @pulse/server seed`) against that database.
 3. The NestJS server in the foreground (`pnpm --filter @pulse/server dev`, on http://localhost:3000; a cold `nest start` took about 40 s when measured, later starts are faster). Ctrl+C stops the server; the services keep running until `pnpm dev:down`. Stopping with Ctrl+C is not yet verified on Linux and macOS; if the server is still running afterwards, stop it by hand.
 
-It gives the seed step and the server the settings printed by `dev:up` (`DATABASE_URL`, and `SMTP_HOST` and `SMTP_PORT` for the server), taken from the ports in use, so a changed port needs no `export`. A `DATABASE_URL` already set in your shell is ignored by `pnpm dev`. If the services or the seed step fail, the server is not started and the command exits non-zero.
+It gives the seed step and the server the settings printed by `dev:up` (`DATABASE_URL`, and `SMTP_HOST` and `SMTP_PORT` for the server), taken from the ports in use, so a changed port needs no `export`, plus a fresh random `JWT_SECRET` and `REFRESH_SECRET` (the server refuses to start without strong ones, see Server configuration; set both in your shell to keep them across runs). A `DATABASE_URL` already set in your shell is ignored by `pnpm dev`. If the services or the seed step fail, the server is not started and the command exits non-zero.
 
-Check the server with `curl http://localhost:3000/health` (`GET /` is a 404). The server needs `DATABASE_URL` (it refuses to start without it) and applies the database migrations before it listens (see Database and migrations). It does not read `SMTP_HOST` or `SMTP_PORT` yet, and the `database` status in `/health` is still a stub that always says `up`; T1.2 replaces both.
+Check the server with `curl http://localhost:3000/health` (`GET /` is a 404). `/health` runs a real query: `{"status":"ok","database":"up"}`, or 503 `UNAVAILABLE` when PostgreSQL does not answer within 2 s (`/health/live` only says the process is up). The server validates its configuration first (see Server configuration) and applies the database migrations before it listens (see Database and migrations). It reads `SMTP_HOST` and `SMTP_PORT` into its mail settings; nothing sends email before the auth tasks.
 
 Start Docker first: `pnpm dev` stops with a clear message when the daemon is not running, or when one of the host ports (5432, 1025, 8025) is already taken; see Changing the ports. The first run pulls two small images, which is most of the wait. The commands work the same in Git Bash, PowerShell and Linux shells.
 
@@ -34,7 +34,7 @@ pnpm dev:seed                        # applies the seed files (see Seed data)
 pnpm --filter @pulse/server dev      # the server
 ```
 
-Run them in this order. `pnpm dev:up` returns only when both services report healthy, so after it finishes the database accepts connections and `pnpm dev:seed` works. The server needs `DATABASE_URL` in its shell (the line printed by `dev:up`); `pnpm dev` sets it for you.
+Run them in this order. `pnpm dev:up` returns only when both services report healthy, so after it finishes the database accepts connections and `pnpm dev:seed` works. The server needs `DATABASE_URL`, `JWT_SECRET` and `REFRESH_SECRET` in its shell (`dev:up` prints the first; Server configuration shows how to make secrets); `pnpm dev` sets all three for you.
 
 ## Dev services
 
@@ -45,7 +45,7 @@ Run them in this order. `pnpm dev:up` returns only when both services report hea
 | PostgreSQL | `postgres://pulse:pulse@localhost:5432/pulse`    | Data on the named volume `pulse-dev_db-data`            |
 | Mailpit    | SMTP `localhost:1025`, inbox `http://localhost:8025` | No auth, no TLS; messages live in memory only       |
 
-Server settings for them (names from the spec's Appendix A): `DATABASE_URL=postgres://pulse:pulse@localhost:5432/pulse`, `SMTP_HOST=localhost`, `SMTP_PORT=1025`. Emails the server sends (verification, password reset, ...) show up in the Mailpit inbox.
+Server settings for them (names from the spec's Appendix A): `DATABASE_URL=postgres://pulse:pulse@localhost:5432/pulse`, `SMTP_HOST=localhost`, `SMTP_PORT=1025`. Running the server by hand also needs `JWT_SECRET` and `REFRESH_SECRET` (see Server configuration); the dev password `pulse` is never accepted for those. Emails the server sends (verification, password reset, ...) show up in the Mailpit inbox.
 
 | Command          | Does                                                                       |
 | ---------------- | -------------------------------------------------------------------------- |
@@ -56,6 +56,39 @@ Server settings for them (names from the spec's Appendix A): `DATABASE_URL=postg
 | `pnpm dev:seed`  | Applies the seed files to the dev database (see below)                     |
 
 These credentials are public and for development only. They are not defaults for `infra/.env.example` or any deployment; a deployment must set its own strong secrets.
+
+## Server configuration
+
+The server reads its settings from environment variables (spec Appendix A, OPS-03), validates all of them once at start and refuses to start on a bad value: it prints every problem in one message and exits with code 1, never printing a secret. The code is `apps/server/src/platform/config/`; `loadConfig(env)` is a pure function and its table tests list the rules.
+
+| Variable | Rule | Default |
+| --- | --- | --- |
+| `PORT` | whole number 0 to 65535 | 3000 |
+| `DATABASE_URL` | `postgres://user:password@host:5432/database`; required (the Docker deployment fills it in for the bundled database) | none |
+| `JWT_SECRET`, `REFRESH_SECRET` | required, at least 32 characters, no placeholder, different from each other | none |
+| `DB_PASSWORD` | optional here (it belongs to the bundled database); at least 12 characters and no placeholder when set | none |
+| `PUBLIC_API_URL` | http(s) address without credentials; used in email links | `http://localhost:<PORT>` |
+| `DOMAIN` | host name only | none |
+| `CORS_ORIGINS` | comma-separated exact origins (`https://app.example.org`); no `*`, no paths | empty: no cross-origin access |
+| `TRUST_PROXY` | number of reverse proxies in front of the server, 0 to 32 | 0 |
+| `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` | optional; both or neither | Google sign-in off |
+| `SMTP_USER`, `SMTP_APP_PASSWORD` | optional; both or neither (Gmail app password) | none |
+| `SMTP_HOST`, `SMTP_PORT`, `MAIL_FROM` | mail is on when the user and password, or `SMTP_HOST`, are set (a catcher like Mailpit needs no login); `SMTP_HOST` and `SMTP_PORT` default to `smtp.gmail.com` and 465; `MAIL_FROM` defaults to `SMTP_USER`, else `pulse@localhost` | mail off |
+| `FCM_PROJECT_ID`, `FCM_CLIENT_EMAIL`, `FCM_PRIVATE_KEY` | optional; all three or none (D-23); the key may be written on one line with a backslash and n (`\n`) for each newline | push off |
+
+An empty variable counts as unset (Compose passes empty values). Weak means too short, starting or ending with whitespace, too few different characters, or a placeholder such as `changeme`, `your-secret-here`, `secret`, `password`, `example`, `default` or a run like `123456`. Make a secret with:
+
+```bash
+node -e "console.log(require('crypto').randomBytes(32).toString('base64url'))"
+```
+
+`CORS_ORIGINS` matters only for browsers; the desktop and Android clients are not subject to it. For `pnpm --filter @pulse/desktop dev` in a browser add `http://localhost:1420`. Behind Caddy or another reverse proxy set `TRUST_PROXY=1`: without it the server ignores `X-Forwarded-*` headers, so a client cannot choose the address the server sees.
+
+Timeouts and limits are fixed in code, not variables (`DEFAULT_RUNTIME_LIMITS` in `platform/config/app-config.ts`): a request that runs longer than 30 s is answered 503 `UNAVAILABLE` (the handler is not cancelled, which is safe for commands because replays carry the same command ID); PostgreSQL cancels a statement after 15 s (migrations are exempt) and a new connection must succeed within 5 s; `/health` waits 2 s for the database; on SIGTERM or SIGINT the server stops listening, closes idle connections, gives open requests at most 6 s and then closes the rest, and the database pool closes with whatever is left of one 8 s budget for the whole shutdown (less than the 10 s Docker waits). Requests Node rejects before routing (malformed request line, oversized header, a request that never completes) get the same JSON error body and request ID as any other error, with status 400 `VALIDATION` or, for a timeout, 503 `UNAVAILABLE`.
+
+### Logs
+
+One JSON object per line on stdout (errors on stderr): `time`, `level`, `context`, `message` and, inside a request, `requestId` (also sent as the `Pulse-Request-Id` response header and in every error body) and `userId` once authentication knows it. Each request writes one line (method, matched route pattern, status, duration; `warn` for 5xx) and never its URL, query, headers or body; successful health checks are not logged. Unhandled errors log their class, code (for example the PostgreSQL SQLSTATE) and stack frames under the same request ID, never the error message, because driver and validation messages can quote user values; the client only gets `INTERNAL`. Structured log calls keep only the access-line fields. Search a problem report by request ID: `docker compose logs | grep <id>` (the deployment's service names come with T1.3). Code that logs must pass IDs and counts only, never emails, names, titles or tokens (OPS-04); to use the user ID call `setLogUser(id)` from `platform/logging`.
 
 ## Database and migrations
 

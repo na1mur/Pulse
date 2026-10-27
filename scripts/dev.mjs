@@ -10,6 +10,7 @@
 //
 // Host ports: PULSE_DEV_DB_PORT (5432), PULSE_DEV_SMTP_PORT (1025), PULSE_DEV_MAIL_UI_PORT (8025).
 import { spawn, spawnSync } from 'node:child_process';
+import { randomBytes } from 'node:crypto';
 import { constants as osConstants } from 'node:os';
 import { connect, createServer } from 'node:net';
 import { dirname, join } from 'node:path';
@@ -280,6 +281,11 @@ async function composeStep(name, deps, ran) {
   return { code: 0, ports };
 }
 
+/** A fresh random token secret: the server (OPS-03) refuses weak and placeholder values. */
+function generateSecret() {
+  return randomBytes(32).toString('base64url');
+}
+
 /**
  * `pnpm dev`, after the services are up: apply the seeds, then run the server in the foreground.
  * The settings come from the resolved ports, so a user's own DATABASE_URL never points the seed
@@ -302,6 +308,10 @@ async function seedAndServe(ports, deps) {
       ...database,
       SMTP_HOST: connection.smtpHost,
       SMTP_PORT: String(connection.smtpPort),
+      // New on every `pnpm dev`, so sign-in tokens do not survive a restart of the command (not
+      // of the server's file watcher). Set both in your shell to keep them: see DEVELOPMENT.md.
+      JWT_SECRET: deps.env.JWT_SECRET || (deps.generateSecret ?? generateSecret)(),
+      REFRESH_SECRET: deps.env.REFRESH_SECRET || (deps.generateSecret ?? generateSecret)(),
     },
   });
 }
@@ -315,6 +325,7 @@ async function seedAndServe(ports, deps) {
  *   runChild: (command: string, args: string[], options: {env: object}) => Promise<number>,
  *   portInUse: (port: number) => Promise<boolean>,
  *   env: Record<string, string | undefined>,
+ *   generateSecret?: () => string,
  *   log: (line: string) => void,
  *   error: (line: string) => void}} deps
  */

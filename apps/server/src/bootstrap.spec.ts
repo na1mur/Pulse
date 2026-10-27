@@ -3,10 +3,13 @@ import { Logger, type INestApplication } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
 import { sql, type Kysely } from 'kysely';
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
-import { startServer } from './bootstrap.js';
+import { describeStartupFailure, startServer } from './bootstrap.js';
+import { ConfigError, loadConfig } from './platform/config/load-config.js';
+import { testEnv } from './platform/config/config.testing.js';
+import { describeConnectionFailure } from './platform/database/connection-failure.js';
 import { createDatabase } from './platform/database/database.factory.js';
 import type { Database } from './platform/database/database.types.js';
-import { migrate } from './platform/database/migrator.js';
+import { migrate, MigrationError } from './platform/database/migrator.js';
 import {
   createTestDatabase,
   databaseTestsSkipped,
@@ -24,12 +27,77 @@ describe('startServer', () => {
 
   beforeEach(() => {
     vi.stubEnv('PORT', '0');
+    vi.stubEnv('JWT_SECRET', testEnv()['JWT_SECRET'] ?? '');
+    vi.stubEnv('REFRESH_SECRET', testEnv()['REFRESH_SECRET'] ?? '');
   });
   afterEach(async () => {
     vi.unstubAllEnvs();
     vi.restoreAllMocks();
     await started?.close();
     started = undefined;
+  });
+
+  it('OPS-03: refuses bad configuration with every problem listed, before creating the application', async () => {
+    vi.stubEnv('DATABASE_URL', '');
+    vi.stubEnv('PORT', 'abc');
+    vi.stubEnv('JWT_SECRET', 'changeme');
+    vi.stubEnv('CORS_ORIGINS', '*');
+    const create = vi.spyOn(NestFactory, 'create');
+
+    const failure = await startServer().then(
+      () => undefined,
+      (error: unknown) => error,
+    );
+
+    expect(failure).toBeInstanceOf(ConfigError);
+    expect((failure as ConfigError).problems.map((problem) => problem.split(' ')[0])).toEqual([
+      'PORT',
+      'DATABASE_URL',
+      'JWT_SECRET',
+      'CORS_ORIGINS',
+    ]);
+    expect((failure as Error).message).not.toContain('changeme');
+    expect(create).not.toHaveBeenCalled();
+  });
+
+  it('OPS-03: prints a configuration error as its message alone, and keeps the stack of other failures', () => {
+    let configError: unknown;
+    try {
+      loadConfig({});
+    } catch (error) {
+      configError = error;
+    }
+    const printed = describeStartupFailure(configError);
+    expect(printed).toMatch(/^Invalid configuration \(3 problems\):/);
+    expect(printed).not.toContain('    at ');
+  });
+
+  it('OPS-04: prints an unexpected startup failure by class, code and frames, never its message', () => {
+    const driver = Object.assign(new Error('invalid input syntax: "a.person@example.org"'), {
+      code: '22P02',
+    });
+    const printed = describeStartupFailure(driver);
+    expect(printed).toMatch(/^Pulse server failed to start: Error \[22P02\]\n\s+at /);
+    expect(printed).not.toContain('example.org');
+    expect(describeStartupFailure('a.person@example.org')).toBe(
+      'Pulse server failed to start: a thrown string',
+    );
+  });
+
+  it('keeps the message of the failures the server words itself and that hold no value', () => {
+    const migrationFailure = new MigrationError(
+      'the database has migration 9999, which is unknown',
+    );
+    expect(describeStartupFailure(migrationFailure)).toBe(
+      `Pulse server failed to start: ${migrationFailure.message}`,
+    );
+    const unreachable = describeConnectionFailure(
+      Object.assign(new Error(''), { code: 'ECONNREFUSED' }),
+      'postgres://pulse:s3cret@db.internal:5432/pulse',
+    );
+    const printed = describeStartupFailure(unreachable);
+    expect(printed).toContain('Cannot reach the database at db.internal:5432 (ECONNREFUSED)');
+    expect(printed).not.toContain('s3cret');
   });
 
   it('refuses to start without DATABASE_URL, before creating the application', async () => {

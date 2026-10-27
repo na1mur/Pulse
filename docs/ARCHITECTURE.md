@@ -106,6 +106,17 @@ src/
                     platform/database (T1.1): Kysely provider, hand-written table types, the migration
                     runner and migrations/NNNN-name.{up,down}.sql (raw SQL, copied to dist by nest build);
                     migrations run on start before listening (src/bootstrap.ts)
+                    platform/config (T1.2): `loadConfig(env)` validates every Appendix A variable once
+                    (every problem in one message, no secret printed, weak secrets refused) into an
+                    `AppConfig` injected as `APP_CONFIG`; only `config.module.ts` and `bootstrap.ts` read `process.env`
+                    platform/logging (T1.2): JSON lines; `requestId` and `userId` come from an
+                    AsyncLocalStorage context set by the request-context middleware, nothing else is
+                    added automatically (OPS-04)
+                    platform/http (T1.2): `configureApp` applies what belongs to the process (request
+                    context first, trust proxy, CORS allow-list, Node timeouts); the request-timeout
+                    interceptor and `GracefulShutdown` (bounded drain, then the pool closes) are
+                    registered in the root module; `*.testing.ts` helpers (`startTestApp`,
+                    `testConfig`) start the real application for specs and are not built
 scripts/seed/       dev seed runner behind `pnpm dev:seed` (T0.6): applies seed/ files in name order,
                     records them in `dev_seeds`, refuses non-local databases; outside src/ so it is
                     never built into dist or the image; own tsconfig, run by Node with type stripping

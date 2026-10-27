@@ -1,16 +1,9 @@
 // HTTP behaviour of the server stub against the contract: error shape, request IDs, server time,
 // contract-driven validation and the stubbed operations.
 import { Controller, Get, Logger, type INestApplication } from '@nestjs/common';
-import { Test } from '@nestjs/testing';
-import {
-  ErrorBody,
-  HealthReport,
-  LivenessReport,
-  REQUEST_ID_HEADER,
-  SERVER_TIME_HEADER,
-} from '@pulse/contract';
+import { ErrorBody, LivenessReport, REQUEST_ID_HEADER, SERVER_TIME_HEADER } from '@pulse/contract';
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
-import { AppModule } from './app.module.js';
+import { startTestApp } from './platform/http/test-app.testing.js';
 
 @Controller()
 class FailingController {
@@ -37,13 +30,7 @@ let app: INestApplication;
 let baseUrl: string;
 
 beforeAll(async () => {
-  const moduleRef = await Test.createTestingModule({
-    imports: [AppModule],
-    controllers: [FailingController],
-  }).compile();
-  app = moduleRef.createNestApplication({ logger: false });
-  await app.listen(0, '127.0.0.1');
-  baseUrl = await app.getUrl();
+  ({ app, baseUrl } = await startTestApp({ controllers: [FailingController] }));
 });
 
 afterAll(async () => {
@@ -82,13 +69,7 @@ describe('every response (spec 7.1)', () => {
   });
 });
 
-describe('health (health.get, health.live)', () => {
-  it('reports API and database status per the contract', async () => {
-    const response = await fetch(`${baseUrl}/health`);
-    expect(response.status).toBe(200);
-    expect(HealthReport.parse(await response.json())).toEqual({ status: 'ok', database: 'up' });
-  });
-
+describe('health (health.live; health.get has its own spec)', () => {
   it('answers liveness', async () => {
     const response = await fetch(`${baseUrl}/health/live`);
     expect(response.status).toBe(200);
@@ -144,12 +125,12 @@ describe('errors outside handlers', () => {
     expect(JSON.stringify(body)).not.toContain('hunter2');
   });
 
-  it('answers INTERNAL and logs the thrown value when something other than an Error is thrown', async () => {
+  it('answers INTERNAL and logs only the type when something other than an Error is thrown (OPS-04)', async () => {
     const logged = vi.spyOn(Logger.prototype, 'error').mockImplementation(() => undefined);
     try {
-      for (const [path, thrown] of [
-        ['/test/fail-null', 'null'],
-        ['/test/fail-string', 'database password is hunter2'],
+      for (const [path, description] of [
+        ['/test/fail-null', 'a thrown null'],
+        ['/test/fail-string', 'a thrown string'],
       ] as const) {
         logged.mockClear();
         const response = await fetch(`${baseUrl}${path}`);
@@ -157,9 +138,11 @@ describe('errors outside handlers', () => {
         const body = await errorOf(response);
         expect(body.code, path).toBe('INTERNAL');
         expect(JSON.stringify(body), path).not.toContain('hunter2');
-        // One log line with the real cause, not a TypeError from the filter itself.
+        // One log line saying what kind of value it was (not a TypeError from the filter itself),
+        // and no trace of the value: it may hold user data.
         expect(logged, path).toHaveBeenCalledTimes(1);
-        expect(logged.mock.calls[0]?.[1], path).toBe(thrown);
+        expect(String(logged.mock.calls[0]?.[0]), path).toBe(`Unhandled error: ${description}`);
+        expect(JSON.stringify(logged.mock.calls), path).not.toContain('hunter2');
       }
     } finally {
       logged.mockRestore();

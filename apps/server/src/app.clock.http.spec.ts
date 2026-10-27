@@ -1,26 +1,17 @@
 // ADR-0004 clock: server time on every response (spec 7.1, 8.2) comes from the injected Clock,
-// so tests can pin it. Covers the middleware path and the exception-filter path (body-parser
-// errors arrive before the middleware runs).
+// so tests can pin it. Covers the success path and the error paths (a body-parser error is rejected before routing).
 import type { INestApplication } from '@nestjs/common';
-import { Test } from '@nestjs/testing';
 import { SERVER_TIME_HEADER } from '@pulse/contract';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
-import { AppModule } from './app.module.js';
-import { CLOCK } from './platform/clock/clock.js';
 import { FakeClock } from './platform/clock/fake-clock.js';
+import { startTestApp } from './platform/http/test-app.testing.js';
 
 const clock = new FakeClock('2026-11-01T09:30:00Z');
 let app: INestApplication;
 let baseUrl: string;
 
 beforeAll(async () => {
-  const moduleRef = await Test.createTestingModule({ imports: [AppModule] })
-    .overrideProvider(CLOCK)
-    .useValue(clock)
-    .compile();
-  app = moduleRef.createNestApplication({ logger: false });
-  await app.listen(0, '127.0.0.1');
-  baseUrl = await app.getUrl();
+  ({ app, baseUrl } = await startTestApp({ clock }));
 });
 
 afterAll(async () => {
@@ -47,7 +38,7 @@ describe('Pulse-Server-Time comes from the injected clock', () => {
     expect(response.headers.get(SERVER_TIME_HEADER)).toBe('2027-01-01T00:00:00.999Z');
   });
 
-  it('stamps a body-parser error (filter before the middleware)', async () => {
+  it('stamps a body-parser error (rejected before routing)', async () => {
     clock.set('2028-02-29T12:00:00Z');
     const response = await fetch(`${baseUrl}/v1/timer/start`, {
       method: 'POST',

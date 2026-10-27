@@ -23,12 +23,20 @@ function unreachableCode(error: unknown): string | undefined {
   return undefined;
 }
 
+/** The database cannot be reached; the message is worded here and holds no credentials. */
+export class DatabaseUnreachableError extends Error {
+  override readonly name = 'DatabaseUnreachableError';
+}
+
 /**
  * A short startup error naming the host and port (never the user or password) when the database
  * cannot be reached; undefined for any other error, which already says what is wrong (wrong
  * password, missing database, a failed migration).
  */
-export function describeConnectionFailure(error: unknown, databaseUrl: string): Error | undefined {
+export function describeConnectionFailure(
+  error: unknown,
+  databaseUrl: string,
+): DatabaseUnreachableError | undefined {
   const code = unreachableCode(error);
   if (code === undefined) return undefined;
   let target = 'the configured host';
@@ -38,7 +46,7 @@ export function describeConnectionFailure(error: unknown, databaseUrl: string): 
   } catch {
     // The URL does not parse; the generic wording above is all we can say.
   }
-  return new Error(
+  return new DatabaseUnreachableError(
     `Cannot reach the database at ${target} (${code}). Is PostgreSQL running, and is DATABASE_URL right?`,
   );
 }

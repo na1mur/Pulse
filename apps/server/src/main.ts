@@ -1,3 +1,8 @@
-import { startServer } from './bootstrap.js';
+import { describeStartupFailure, startServer } from './bootstrap.js';
 
-await startServer();
+try {
+  await startServer();
+} catch (error) {
+  process.stderr.write(`${describeStartupFailure(error)}\n`);
+  process.exitCode = 1;
+}

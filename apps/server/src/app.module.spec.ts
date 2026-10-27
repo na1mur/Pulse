@@ -2,6 +2,8 @@ import { Injectable, type INestApplication } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
 import { afterEach, describe, expect, it } from 'vitest';
 import { AppModule } from './app.module.js';
+import { APP_CONFIG } from './platform/config/config.module.js';
+import { testConfig } from './platform/config/config.testing.js';
 
 describe('AppModule', () => {
   let app: INestApplication | undefined;
@@ -12,7 +14,10 @@ describe('AppModule', () => {
   });
 
   it('boots an Express application from the root module', async () => {
-    const moduleRef = await Test.createTestingModule({ imports: [AppModule] }).compile();
+    const moduleRef = await Test.createTestingModule({ imports: [AppModule] })
+      .overrideProvider(APP_CONFIG)
+      .useValue(testConfig())
+      .compile();
     app = moduleRef.createNestApplication();
 
     await app.init();
@@ -34,7 +39,10 @@ describe('AppModule', () => {
     const moduleRef = await Test.createTestingModule({
       imports: [AppModule],
       providers: [Dependency, Dependent],
-    }).compile();
+    })
+      .overrideProvider(APP_CONFIG)
+      .useValue(testConfig())
+      .compile();
 
     expect(moduleRef.get(Dependent).dependency).toBeInstanceOf(Dependency);
   });

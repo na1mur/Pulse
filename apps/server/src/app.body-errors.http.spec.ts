@@ -3,19 +3,15 @@
 // INTERNAL treats the command as a server fault and retries it instead of raising a sync issue
 // (R-36), and the server logs every such request as an unhandled error.
 import type { INestApplication } from '@nestjs/common';
-import { Test } from '@nestjs/testing';
 import { ErrorBody, REQUEST_ID_HEADER, SERVER_TIME_HEADER } from '@pulse/contract';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
-import { AppModule } from './app.module.js';
+import { startTestApp } from './platform/http/test-app.testing.js';
 
 let app: INestApplication;
 let baseUrl: string;
 
 beforeAll(async () => {
-  const moduleRef = await Test.createTestingModule({ imports: [AppModule] }).compile();
-  app = moduleRef.createNestApplication({ logger: false });
-  await app.listen(0, '127.0.0.1');
-  baseUrl = await app.getUrl();
+  ({ app, baseUrl } = await startTestApp());
 });
 
 afterAll(async () => {

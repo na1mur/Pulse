@@ -32,6 +32,7 @@ const files = {
     "import k from 'kysely';\nexport const x = k;\n",
   'apps/server/src/clean.ts': "import c from 'declared';\nexport const x = c;\n",
   'apps/server/src/clean.spec.ts': "import d from 'dev-only';\nexport const x = d;\n",
+  'apps/server/src/clean.testing.ts': "import d from 'dev-only';\nexport const x = d;\n",
   'apps/desktop/src/features/today/network.ts': "import o from 'ofetch';\nexport const x = o;\n",
   'apps/desktop/src/features/today/tauri.ts':
     "import t from '@tauri-apps/api';\nexport const x = t;\n",
@@ -71,6 +72,15 @@ after(() => {
 describe('dependency-cruiser rules on packages that ship from dist/', () => {
   it('reports server production code importing a dev dependency', () => {
     assert.ok(violations.includes('server-not-to-dev-dep: apps/server/src/uses-dev-dependency.ts'));
+  });
+
+  it('lets specs and *.testing.ts helpers (not built) use dev dependencies', () => {
+    assert.equal(
+      violations.some((violation) =>
+        /^server-not-to-dev-dep: .*clean[.](spec|testing)[.]ts$/.test(violation),
+      ),
+      false,
+    );
   });
 
   it('reports a package missing from the importing package.json', () => {
