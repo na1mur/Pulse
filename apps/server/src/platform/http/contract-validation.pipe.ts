@@ -1,6 +1,6 @@
 import { Injectable, type ArgumentMetadata, type PipeTransform } from '@nestjs/common';
 import { fieldErrors } from '@pulse/contract';
-import { AppError } from '../errors/app-error.js';
+import { invalidRequest } from '../errors/app-error.js';
 
 const LOCATION = { body: 'body', query: 'query', param: 'params', custom: 'custom' } as const;
 
@@ -16,9 +16,7 @@ export class ContractValidationPipe implements PipeTransform<unknown, Promise<un
     if (!schema) return value;
     const result = await schema['~standard'].validate(value);
     if (result.issues) {
-      throw new AppError('VALIDATION', 'The request is invalid.', {
-        fields: fieldErrors(LOCATION[metadata.type], result.issues),
-      });
+      throw invalidRequest(fieldErrors(LOCATION[metadata.type], result.issues));
     }
     return result.value;
   }

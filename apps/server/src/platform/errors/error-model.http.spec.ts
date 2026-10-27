@@ -24,7 +24,7 @@ class ProvokingController {
 
   @Get('/test/conflict')
   conflict(): never {
-    throw new AppError('CONFLICT', 'The name is taken.', {});
+    throw new AppError('CONFLICT', 'The name is taken.', { details: {} });
   }
 
   @Get('/test/crash')

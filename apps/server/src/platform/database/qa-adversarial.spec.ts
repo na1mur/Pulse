@@ -191,7 +191,9 @@ describe.skipIf(databaseTestsSkipped)('QA adversarial: schema 0001', () => {
     it('supports the canonical atomic bump (revision = revision + 1) under concurrency without gaps', async () => {
       const a = await user();
       await sql`insert into user_revisions (user_id) values (${a})`.execute(db);
-      const pools = Array.from({ length: 6 }, () => createDatabase(database.url));
+      // Twelve connections contend for the row at once; uncapped, the six pools would open sixty
+      // and, with the other spec files running in parallel, exhaust PostgreSQL's 100 connections.
+      const pools = Array.from({ length: 6 }, () => createDatabase(database.url, { poolMax: 2 }));
       try {
         const results = await Promise.all(
           pools.flatMap((p) =>

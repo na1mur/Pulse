@@ -18,7 +18,6 @@ T1.1 | low | Email token 24 h / 1 h expiry is not enforced in the database; T1.3
 T1.1 | low | `emailKey()` lower-cases rather than case-folds (`ΑΣ`/`ασ`, `STRASSE`/`STRAßE`, Turkish İ stay separate accounts); trim runs before NFKC and U+200B is not trimmed: T1.4 email validation should reject such input
 T1.1 | low | The checksum-guard message for a database that ran an older 0001 says "add a new migration"; dev databases need `pnpm dev:reset`
 T1.1 | medium | Intermittent vitest worker crash (0xC0000409, about 3 in 20 full runs on this Windows machine) in the HTTP specs, not tied to T1.1; a crashed worker leaves a `pulse_test_*` database behind. Capture the log if it recurs in CI
-T1.1 | medium | Decide before T1.4: `devices.id` is globally unique (primary key); a second user signing in on an install that another user used collides. Reassign or delete the old device row on sign-out, or generate a fresh device ID per sign-in
 T1.1 | low | `user_revisions` is not created with the user and only `tags` / `user_preferences` carry a revision column; the revision service (first write task) must create the row and bump it in every change transaction (R-35)
 T1.1 | low | `email_key` is not derived or checked by the database (application-folded, `emailKey()`); every user insert and lookup must go through it. A tag `name_key` rule needs the same single helper when the tag service lands
 T1.1 | low | Notification toggles default to on (spec silent): confirm with the owner when NOTIF-03 lands
@@ -34,5 +33,12 @@ T1.3 | low | With an external `DATABASE_URL`, the owner must also drop `db` from
 T1.3 | low | The template's `PUBLIC_API_URL` defaults to `http://localhost:3000`; a forgotten edit under the `https` profile gives wrong email links (consider an empty default so the `:?` check catches it, once the owner updates `.env.example`)
 T1.3 | low | Compose runs only from `infra/` (no root compose file); README clone URL is hard-coded to the GitHub repository (fails if it is private)
 T1.4 | low | Add the email-change token lifetime (24 h) to Appendix A and the EmailToken row when T1.7 settles it
-T1.4 | low | The send-time address check is stricter than the contract's `z.email()` (no IDN or quoted addresses): T1.5 must handle a `failed/invalid-address` verification mail at sign-up, and registration validation should use the same rule
-T1.4 | low | `isMailToken` (16-256 URL-safe base64 characters) is narrower than the contract's `EmailToken` (1-512): T1.5/T1.7 must generate tokens within it, or the contract should narrow
+T1.5 | low | First sign-in completed later from another device returns the 7 starter tags in arbitrary order instead of the TAG-07 order
+T1.5 | low | A device that loses a refresh response and retries with the old token is signed out (reuse detection as specified); decide on purpose before the Android client (T1.8 single-flight refresh)
+T1.5 | low | Anyone who learns another user's device ID can sign that device out by signing in to their own account with it (follows the T1.1/T1.5 device-reuse decision)
+T1.5 | low | Password length counts UTF-16 units (four emoji pass as 8 characters) and passwords are not Unicode-normalised; settle with AUTH-06/T1.7
+T1.5 | low | Register's 200 ms response floor holds here; under load the new-address path would exceed it first (timing enumeration); revisit in T1.13
+T1.5 | low | Once tag creation exists (T2.x), a user tag with a starter-tag name would make first sign-in setup fail every time
+T1.5 | medium | Rate limiter fails closed when a rule's table (10,000 windows) is full of blocking windows: about 100,000 hashed login attempts from 3,334+ IPv6 /64s can refuse sign-in to accounts not yet in the table for up to 15 min; resend for new addresses can be held at 429 for a minute cheaply. Same setup also lets an account one guess short of its limit be evicted for 9 fresh guesses per extra request (QA R2-1). Revisit in T1.13 (capacity, per-prefix aggregation)
+T1.5 | low | `auth.refresh` and `auth.verifyEmail` are rate limited per IP only (spec 9.1 says per IP and per account); tokens are 256-bit so guessing is not the risk; decide in T1.13 whether a per-family / per-token limit is wanted
+T1.5 | low | dependency-cruiser `server-transport-no-database` covers `*.controller.ts` and `*.gateway.ts` but not `*.guard.ts` (how the AuthGuard-calls-a-repository breach slipped past tooling); add `guard` to the pattern and a case to its rule test

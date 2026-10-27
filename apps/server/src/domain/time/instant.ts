@@ -49,6 +49,16 @@ export function formatInstantMillis(instant: Temporal.Instant): string {
   return instant.toString({ fractionalSecondDigits: 3, roundingMode: 'floor' });
 }
 
+/** A database `timestamptz` (node-postgres reads it as a Date, millisecond precision) as an instant. */
+export function instantFromDate(date: Date): Temporal.Instant {
+  return Temporal.Instant.fromEpochMilliseconds(date.getTime());
+}
+
+/** A database `timestamptz` as the wire writes instants (`formatInstantMillis`). */
+export function formatDateMillis(date: Date): string {
+  return formatInstantMillis(instantFromDate(date));
+}
+
 /** R-16, R-18: `end - start` in whole seconds, never negative. */
 export function durationSeconds(start: number, end: number): number {
   assertSeconds(start);

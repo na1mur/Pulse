@@ -5,7 +5,7 @@
   "description": "Pulse wire contract: zod schemas for every operation, event and error (spec section 7), the OpenAPI and JSON Schema generated from them, a typed client and a mock server.",
   "type": "module",
   "engines": {
-    "node": "^24.15.0"
+    "node": "^24.22.1"
   },
   "exports": {
     ".": {

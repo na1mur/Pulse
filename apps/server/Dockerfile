@@ -8,7 +8,7 @@
 # pnpm: installed by Corepack from the `packageManager` field of package.json, so the version is
 # written in one place only.
 
-ARG NODE_VERSION=24.15.0
+ARG NODE_VERSION=24.22.1
 
 # ---- build: install, compile, and cut a production-only copy of the server ----------------------
 FROM node:${NODE_VERSION}-alpine AS build

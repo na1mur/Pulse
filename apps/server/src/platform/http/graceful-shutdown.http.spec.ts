@@ -5,6 +5,7 @@ import type { Kysely } from 'kysely';
 import { sql } from 'kysely';
 import pg from 'pg';
 import { afterEach, describe, expect, it } from 'vitest';
+import { BackgroundTasks } from '../async/background-tasks.js';
 import { DEFAULT_RUNTIME_LIMITS } from '../config/app-config.js';
 import { testConfig } from '../config/config.testing.js';
 import { DATABASE } from '../database/database.module.js';
@@ -20,9 +21,15 @@ import { startTestApp } from './test-app.testing.js';
 let reached: (() => void) | undefined;
 const handlerReached = () => new Promise<void>((resolve) => (reached = resolve));
 
+// What the background work a request started got to do before the application closed.
+let backgroundOutcome: 'pending' | 'queried' | 'failed' = 'pending';
+
 @Controller()
 class SlowController {
-  constructor(@Inject(DATABASE) private readonly database: Kysely<Database>) {}
+  constructor(
+    @Inject(DATABASE) private readonly database: Kysely<Database>,
+    private readonly background: BackgroundTasks,
+  ) {}
 
   @Get('/test/slow')
   async slow(): Promise<{ finished: true }> {
@@ -49,6 +56,31 @@ class SlowController {
   async dbStuck(): Promise<{ ok: true }> {
     reached?.();
     await sql`select pg_sleep(60)`.execute(this.database);
+    return { ok: true };
+  }
+
+  // Like sign-up: the request is still running when the shutdown starts, and only then queues
+  // work that answers nothing but still needs the pool (a resend reads the account).
+  @Get('/test/slow-then-background')
+  async slowThenBackground(): Promise<{ ok: true }> {
+    reached?.();
+    await new Promise((resolve) => setTimeout(resolve, 200));
+    this.background.run('test work', async () => {
+      await new Promise((resolve) => setTimeout(resolve, 100));
+      try {
+        await sql`select 1`.execute(this.database);
+        backgroundOutcome = 'queried';
+      } catch (error) {
+        backgroundOutcome = 'failed';
+        throw error;
+      }
+    });
+    return { ok: true };
+  }
+
+  @Get('/test/background-stuck')
+  backgroundStuck(): { ok: true } {
+    this.background.run('stuck work', () => new Promise<never>(() => undefined));
     return { ok: true };
   }
 
@@ -195,6 +227,48 @@ describe.skipIf(databaseTestsSkipped)('graceful shutdown with a real PostgreSQL'
     await started.app.close();
 
     expect((await inFlight).status).toBe(200);
+  });
+
+  it('lets background work a draining request started finish before it closes the pool', async () => {
+    // T1.5 verify round 1: the background tasks were awaited before the HTTP drain, so work a
+    // still-running request queued during the drain (a verification mail, a resend's lookup) was
+    // cut off by the pool closing under it, or dropped with the process.
+    backgroundOutcome = 'pending';
+    database = await createTestDatabase();
+    const started = await startTestApp({
+      controllers: [SlowController],
+      config: testConfig({ databaseUrl: database.url }),
+    });
+    app = started.app;
+    const arrived = handlerReached();
+    const inFlight = fetch(`${started.baseUrl}/test/slow-then-background`);
+    await arrived;
+
+    await started.app.close();
+
+    expect((await inFlight).status).toBe(200);
+    expect(backgroundOutcome).toBe('queried');
+  });
+
+  it('bounds the wait for background work by the one shutdown budget', async () => {
+    database = await createTestDatabase();
+    const started = await startTestApp({
+      controllers: [SlowController],
+      config: testConfig({
+        databaseUrl: database.url,
+        limits: { ...DEFAULT_RUNTIME_LIMITS, shutdownGraceMs: 500, shutdownHttpDrainMs: 300 },
+      }),
+    });
+    app = started.app;
+    expect((await fetch(`${started.baseUrl}/test/background-stuck`)).status).toBe(200);
+
+    const startedAt = Date.now();
+    await started.app.close();
+    const elapsed = Date.now() - startedAt;
+
+    // The stuck task had what was left of the budget (all of it: no request was open), not more.
+    expect(elapsed).toBeGreaterThanOrEqual(450);
+    expect(elapsed).toBeLessThan(1_500);
   });
 
   it('finishes within the one shutdown budget when a request and the pool are both stuck', async () => {

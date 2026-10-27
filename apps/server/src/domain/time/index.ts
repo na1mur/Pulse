@@ -2,7 +2,14 @@
 // period bounds. Pure functions on whole epoch seconds and YYYY-MM-DD day keys; "now" is always
 // an argument (read it from the injected Clock). Kept identical to pulse-core by the shared
 // fixtures in packages/contract/fixtures/time (D-19).
-export { durationSeconds, formatInstant, formatInstantMillis, parseInstant } from './instant.js';
+export {
+  durationSeconds,
+  formatDateMillis,
+  formatInstant,
+  formatInstantMillis,
+  instantFromDate,
+  parseInstant,
+} from './instant.js';
 export { dayBounds, dayKey, dayRows, type Bounds, type DayRow, type SessionSpan } from './days.js';
 export {
   period,
@@ -14,3 +21,4 @@ export {
 } from './periods.js';
 export { formatClock, summaryParts } from './display.js';
 export { TimeMathError, type TimeMathErrorCode } from './time-math-error.js';
+export { canonicalTimeZone } from './time-zone.js';

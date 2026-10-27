@@ -1,5 +1,6 @@
 import { Temporal } from 'temporal-polyfill';
 import { describe, expect, it } from 'vitest';
+import { formatNow } from './clock.js';
 import { FakeClock } from './fake-clock.js';
 import { SystemClock } from './system-clock.js';
 
@@ -10,6 +11,12 @@ describe('SystemClock', () => {
     const after = Temporal.Now.instant();
     expect(Temporal.Instant.compare(before, now)).toBeLessThanOrEqual(0);
     expect(Temporal.Instant.compare(now, after)).toBeLessThanOrEqual(0);
+  });
+});
+
+describe('formatNow', () => {
+  it('writes the clock reading as a stored instant: three fractional digits, floored', () => {
+    expect(formatNow(new FakeClock('2026-10-25T08:30:00.2509Z'))).toBe('2026-10-25T08:30:00.250Z');
   });
 });
 

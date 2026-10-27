@@ -5,7 +5,7 @@
   "description": "Pulse work-hours tracker: NestJS server, Tauri desktop app, Android app and shared Rust core.",
   "packageManager": "pnpm@11.1.2",
   "engines": {
-    "node": "^24.15.0"
+    "node": "^24.22.1"
   },
   "scripts": {
     "verify": "pnpm install --frozen-lockfile && node scripts/check.mjs",

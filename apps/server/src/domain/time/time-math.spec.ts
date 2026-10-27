@@ -9,7 +9,9 @@ import {
   durationSeconds,
   formatClock,
   formatInstant,
+  formatDateMillis,
   formatInstantMillis,
+  instantFromDate,
   parseInstant,
   period,
   periodId,
@@ -55,6 +57,20 @@ describe('formatInstantMillis (Pulse-Server-Time)', () => {
     expect(formatInstantMillis(Temporal.Instant.from('1969-12-31T23:59:59.9995Z'))).toBe(
       '1969-12-31T23:59:59.999Z',
     );
+  });
+});
+
+describe('instants read from the database (timestamptz arrives as a Date)', () => {
+  it('converts a Date to the same instant, to the millisecond', () => {
+    const date = new Date('2026-10-25T08:30:00.250Z');
+    expect(instantFromDate(date).equals(Temporal.Instant.from('2026-10-25T08:30:00.25Z'))).toBe(
+      true,
+    );
+  });
+
+  it('writes a Date the way the wire writes instants: three fractional digits', () => {
+    expect(formatDateMillis(new Date('2026-10-25T08:30:00Z'))).toBe('2026-10-25T08:30:00.000Z');
+    expect(formatDateMillis(new Date(-1))).toBe('1969-12-31T23:59:59.999Z');
   });
 });
 

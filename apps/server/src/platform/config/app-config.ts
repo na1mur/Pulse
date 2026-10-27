@@ -20,6 +20,11 @@ export interface RuntimeLimits {
   readonly databasePoolMax: number;
   /** The `/health` database query must answer within this time. */
   readonly healthTimeoutMs: number;
+  /**
+   * Sign-up answers no sooner than this after it started, so a new address (which costs a few
+   * more writes) cannot be told from an existing one by response time (spec 9.1).
+   */
+  readonly authResponseFloorMs: number;
 }
 
 // The shutdown budget stays below the 10 s Docker waits after SIGTERM before it kills the process:
@@ -34,6 +39,7 @@ export const DEFAULT_RUNTIME_LIMITS: RuntimeLimits = {
   databaseStatementTimeoutMs: 15_000,
   databasePoolMax: 10,
   healthTimeoutMs: 2_000,
+  authResponseFloorMs: 200,
 };
 
 export interface GoogleConfig {

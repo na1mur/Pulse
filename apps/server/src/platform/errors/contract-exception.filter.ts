@@ -78,6 +78,9 @@ export class ContractExceptionFilter implements ExceptionFilter {
       const frames = exception instanceof Error ? stackFrames(exception.stack) : '';
       this.logger.error(`Unhandled error: ${summarizeError(exception)}`, frames || undefined);
     }
+    if (exception instanceof AppError && exception.retryAfterSeconds !== undefined) {
+      response.setHeader('Retry-After', String(exception.retryAfterSeconds));
+    }
     this.adapterHost.httpAdapter.reply(response, body, ERROR_HTTP_STATUS[body.code]);
   }
 

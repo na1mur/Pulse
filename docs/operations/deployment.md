@@ -55,4 +55,4 @@ Not covered: certificate issuance from Let's Encrypt (needs a public domain), th
 
 ## Pinned versions
 
-Node `24.15.0` (Dockerfile ARG and `.node-version`), pnpm from `package.json`, `postgres:17-alpine` (the major is pinned; minor updates arrive with a pull), `caddy:2.11-alpine`. Base images are tags, not digests: a rebuild picks up patched Alpine and Node layers of the same version on purpose; pin digests if you want bit-for-bit repeatable images.
+Node `24.22.1` (Dockerfile ARG and `.node-version`), pnpm from `package.json`, `postgres:17-alpine` (the major is pinned; minor updates arrive with a pull), `caddy:2.11-alpine`. Base images are tags, not digests: a rebuild picks up patched Alpine and Node layers of the same version on purpose; pin digests if you want bit-for-bit repeatable images.

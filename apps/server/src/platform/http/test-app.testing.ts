@@ -25,6 +25,8 @@ export interface TestAppOptions {
   readonly clock?: Clock;
   /** Defaults to no logging. */
   readonly logger?: LoggerService;
+  /** Replaces providers by injection token (a fake mail transport, say). */
+  readonly overrides?: readonly { readonly token: unknown; readonly value: unknown }[];
 }
 
 export async function startTestApp(options: TestAppOptions = {}): Promise<TestApp> {
@@ -36,6 +38,9 @@ export async function startTestApp(options: TestAppOptions = {}): Promise<TestAp
     .overrideProvider(APP_CONFIG)
     .useValue(config);
   if (options.clock) builder.overrideProvider(CLOCK).useValue(options.clock);
+  for (const { token, value } of options.overrides ?? []) {
+    builder.overrideProvider(token).useValue(value);
+  }
   const moduleRef = await builder.compile();
   const app = moduleRef.createNestApplication<NestExpressApplication>({
     logger: options.logger ?? false,

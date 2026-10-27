@@ -97,14 +97,27 @@ src/
                     tags, goals, preferences, stats (incl. daily aggregates), achievements,
                     usage, credits (rates + ledger), push, sync (realtime + snapshot + change feed),
                     data (export/import), app-updates, health
+  modules/auth/     (T1.5) register, verification (and the HTML pages behind email links), login,
+                    refresh rotation, logout, getMe, first-sign-in; split into registration / session /
+                    first-sign-in / account services over users, email-tokens and sessions (devices +
+                    credentials) repositories; `AuthGuard` (global, enforces `auth: 'user'`; asks
+                    `SessionService.isSignedIn` on every request) and `@CurrentUser()`; the impure
+                    auth helpers live here (`newToken`, `PasswordHasher` drawing the salt), the pure
+                    ones in domain/auth (Argon2id with a given salt, token hashes, starter tags)
+  modules/preferences/, modules/tags/
+                    (T1.5) for now only the repositories and mappers auth needs; their operations land
+                    in later tasks
   mail/             SMTP transport and templates (used by auth; T1.4): `MailService` has one method per
                     email type and returns a typed result (sent / failed with a safe reason /
                     not-configured), never throws and never logs address, link, token or body
     *.controller.ts / *.gateway.ts   transport only: validate with the contract, call the service
+    *.guard.ts                       transport too: decides on the request, asks services, no SQL
     *.service.ts                     use case, transaction boundary, emits events
     *.repository.ts                  SQL only
   domain/           pure functions (no Nest, no database): time math, streaks, credit math and ledger
-  platform/         config, database, logging, errors, http (contract validation), idempotency, revisions
+  platform/         config, database, logging, errors, http (contract validation), idempotency, revisions;
+                    a piece that provides something to Nest has its own global `<name>.module.ts` next to
+                    the service file (as `clock.module.ts`, `config.module.ts`)
                     platform/database (T1.1): Kysely provider, hand-written table types, the migration
                     runner and migrations/NNNN-name.{up,down}.sql (raw SQL, copied to dist by nest build);
                     migrations run on start before listening (src/bootstrap.ts)
@@ -119,6 +132,31 @@ src/
                     interceptor and `GracefulShutdown` (bounded drain, then the pool closes) are
                     registered in the root module; `*.testing.ts` helpers (`startTestApp`,
                     `testConfig`) start the real application for specs and are not built
+                    platform/database (T1.5) also holds `UnitOfWork` (`unit-of-work.module.ts`; the
+                    transaction boundary services own; repositories receive an `Executor`, either the
+                    pool or a transaction) and `pg-errors`
+                    platform/revisions (T1.5): `RevisionService` (`revision.module.ts`), the one owner of
+                    `user_revisions`: `create` with the user, `bump(tx, userId)` in every change
+                    transaction (R-35)
+                    platform/idempotency (T1.5): `IdempotencyService.run(tx, userId, commandId, work)`
+                    (`idempotency.module.ts`) over `processed_commands`: the work and its stored result
+                    commit together, a replay returns the stored result (R-34); retention and purge
+                    belong to the first task that needs them
+                    platform/rate-limit (T1.5): in-memory, bounded, injected-clock fixed windows
+                    (`RateLimiter`, `rate-limit.module.ts`); one table per rule, a window at its limit is never evicted (a full table of them
+                    refuses newcomers); count before the work, never check now and count later;
+                    callers pass hashed or short keys; limits per operation live next to the operation
+                    platform/async (T1.5): `BackgroundTasks` (`background-tasks.module.ts`; work that
+                    must not delay an answer, drained on shutdown after the HTTP drain and before the
+                    pool closes, within the one deadline) and `holdUntil` (a minimum response time
+                    where timing would reveal something)
+                    platform/http (T1.5) also: `ClientKey` (the rate-limit identity of a caller from
+                    `request.ip`, so `TRUST_PROXY` decides what a client can claim) and
+                    `ContractBody`/`ContractParams`; `ContractRoute` records the catalogue's `auth` so
+                    the global auth guard enforces it
+                    platform/errors: `AppError` (code, message, `{ details, retryAfterSeconds }`) and
+                    `invalidRequest(fields)`, the one VALIDATION wording for field errors (a refused email
+                    link has its own, `invalidLink()` in auth)
 scripts/seed/       dev seed runner behind `pnpm dev:seed` (T0.6): applies seed/ files in name order,
                     records them in `dev_seeds`, refuses non-local databases; outside src/ so it is
                     never built into dist or the image; own tsconfig, run by Node with type stripping
