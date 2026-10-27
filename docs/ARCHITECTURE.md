@@ -103,6 +103,9 @@ src/
     *.repository.ts                  SQL only
   domain/           pure functions (no Nest, no database): time math, streaks, credit math and ledger
   platform/         config, database, logging, errors, http (contract validation), idempotency, revisions
+                    platform/database (T1.1): Kysely provider, hand-written table types, the migration
+                    runner and migrations/NNNN-name.{up,down}.sql (raw SQL, copied to dist by nest build);
+                    migrations run on start before listening (src/bootstrap.ts)
 scripts/seed/       dev seed runner behind `pnpm dev:seed` (T0.6): applies seed/ files in name order,
                     records them in `dev_seeds`, refuses non-local databases; outside src/ so it is
                     never built into dist or the image; own tsconfig, run by Node with type stripping

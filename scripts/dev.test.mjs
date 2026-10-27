@@ -712,7 +712,7 @@ describe('pnpm verify and CI stay Docker-free', () => {
     }
   });
 
-  it('the server test run never needs a database: the seed specs inject their ports', () => {
+  it('the server test run never starts Docker itself (T1.1: its PostgreSQL integration tests expect one from the environment)', () => {
     const config = read('apps', 'server', 'vitest.config.ts');
     assert.equal(/globalSetup|DATABASE_URL|docker/i.test(config), false);
   });

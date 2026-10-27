@@ -1,6 +1,6 @@
 # Dev seed data
 
-Demo data for the local development database. `pnpm --filter @pulse/server seed` (the root alias is `pnpm dev:seed`) applies every file in this folder that has not run yet, in name order. The folder is empty until the schema exists (T1.1); later tasks add the demo user, sessions and so on.
+Demo data for the local development database. `pnpm --filter @pulse/server seed` (the root alias is `pnpm dev:seed`) applies every file in this folder that has not run yet, in name order. The folder is empty for now; later tasks add the demo user, sessions and so on. The schema comes from the server's migrations (T1.1), which run when the server starts, so a seed that writes to a table needs the server to have started once against that database.
 
 ## Convention
 

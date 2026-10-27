@@ -60,6 +60,23 @@ jobs:
   ts:
     runs-on: ubuntu-latest
     timeout-minutes: 20
+    # The server's integration tests (T1.1) create throwaway databases on this PostgreSQL; the
+    # default PULSE_TEST_DATABASE_URL (localhost:5432, user pulse) points at it. Same image as the
+    # local dev database in infra/.
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_USER: pulse
+          POSTGRES_PASSWORD: pulse
+          POSTGRES_DB: pulse
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U pulse -d pulse"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:

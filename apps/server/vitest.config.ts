@@ -13,5 +13,9 @@ export default defineConfig({
     // Vitest's on-disk module cache is not invalidated by tsconfig changes (verified with the
     // decorator flags Nest depends on), so a local run could test stale transforms.
     fsModuleCache: false,
+    // The PostgreSQL integration tests create databases and start the whole application; on a
+    // loaded machine (all packages test in parallel) that can pass the 5 s default once in a while.
+    testTimeout: 20_000,
+    hookTimeout: 30_000,
   },
 });
