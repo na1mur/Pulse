@@ -237,7 +237,7 @@ describe('deployment files agree with each other', () => {
 
   it('the build context never includes environment files or keys', () => {
     const ignore = read('.dockerignore').split('\n');
-    for (const pattern of ['*', '.env', '.env.*', '**/*.pem', '**/*.key']) {
+    for (const pattern of ['*', '**/.env', '**/.env.*', '**/*.pem', '**/*.key']) {
       assert.ok(ignore.includes(pattern), `.dockerignore lacks ${pattern}`);
     }
   });
